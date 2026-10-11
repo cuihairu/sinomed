@@ -58,6 +58,7 @@
 | 订单（自助机下单 / 前台建单 / 状态流转） | `OrderController` | 可用 |
 | 中药处方（开方 / 代煎与膏方流转 / 实时计价 / 配伍与过敏审方） | `PrescriptionController` | 可用 |
 | 病症处方模板 | `PrescriptionTemplateController` | 可用 |
+| 外治处方模板（耳穴/贴敷/艾灸/拔罐常用组合） | `TherapyTemplateController` | 可用 |
 | 方剂库（方名/拼音检索带出全方） | `FormulaController` | 可用 |
 | 药材字典（开方比价取数） | `HerbController` | 可用 |
 | 饮片出入库（流水登记 / 余额与效期预警） | `HerbStockController` | 可用 |

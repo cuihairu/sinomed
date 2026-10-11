@@ -171,6 +171,8 @@ append-only：每次结算抵扣（`payType=5`）在同一事务落一条，随�
 
 `prescription_templates` / `prescription_template_items`（病症模板，结构同下）：模板侧多 `doses`/`decoction`/`usage`/`remark` 建议值与 `enabled` 上架位。`formulas` / `formula_items`（方剂库）：`formulas` 为 `name`（方名唯一 1–20 字）、`pinyin`（全拼小写检索码，非空）、`source`（出处）、`indication`（功效主治）；`formula_items` 为 `formula_id`（非空，索引）+ 药味四件套 `herb`/`weight`/`special`/`sort`。两者均为开方参考数据——模板按病症套用、方剂按方名/拼音检索带出全方，带出后随处方自由增减、不写回；方剂为文献常用量口径，不参与计价与审方。
 
+`therapy_templates`（外治处方模板）：`name`（模板名唯一，1–20 字，索引）+ `method`（外治方法，非空，≤10 字，索引）+ `target`（建议取穴/部位，≤100 字，可空）+ `course`（建议疗程/频次，≤100 字，可空）+ `note`（注意事项，≤100 字，可空）+ `enabled`（0 停用 / 1 启用）+ 审计时间。单表无明细（外治组合是「方法 + 部位 + 疗程」的自由文本，不像药方有逐味剂量）。接诊页「套用外治模板」只取 `method`/`target`/`course` 三个建议值回填针灸处方区与取穴文本，回填后随诊疗单自由改，不写回模板。
+
 索引：`prescriptions` 顾客、接诊单；`prescription_items` 处方；`herb_stock_logs` 药材、类型。代煎领取与膏方领取流转已实装（两条独立单向链：待煎→可取→已取；待制作→可取→已取）；饮片出入库流水已实装（余额按流水重算）；配伍审方（十八反/十九畏）为静态规则比对（不落表），见 [api](/server/api) 处方组。
 
 ## staffs — 员工（登录主体，诊所运营）
