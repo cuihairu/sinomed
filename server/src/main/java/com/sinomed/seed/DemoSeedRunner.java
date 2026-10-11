@@ -21,6 +21,7 @@ import com.sinomed.entity.SettlementEntity;
 import com.sinomed.entity.SignEntity;
 import com.sinomed.entity.StaffEntity;
 import com.sinomed.entity.StaffShiftEntity;
+import com.sinomed.entity.TherapyTemplateEntity;
 import com.sinomed.entity.TreatEntity;
 import com.sinomed.repository.AppointmentRepository;
 import com.sinomed.repository.CardUsageRepository;
@@ -49,6 +50,7 @@ import com.sinomed.repository.ReviewStaffRepository;
 import com.sinomed.repository.SignRepository;
 import com.sinomed.repository.StaffRepository;
 import com.sinomed.repository.StaffShiftRepository;
+import com.sinomed.repository.TherapyTemplateRepository;
 import com.sinomed.repository.TreatRepository;
 import com.sinomed.util.DateUtil;
 import lombok.RequiredArgsConstructor;
@@ -105,6 +107,7 @@ public class DemoSeedRunner implements ApplicationRunner {
     private final AcupointRepository acupointRepository;
     private final StaffShiftRepository shiftRepository;
     private final HerbStockLogRepository herbStockLogRepository;
+    private final TherapyTemplateRepository therapyTemplateRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewCustomerRepository reviewCustomerRepository;
     private final ReviewStaffRepository reviewStaffRepository;
@@ -123,6 +126,7 @@ public class DemoSeedRunner implements ApplicationRunner {
             seedAcupoints();
             seedShifts();
             seedHerbStock();
+            seedTherapyTemplates();
             Map<String, Long> customers = seedCustomers();
             seedTreats(customers);
             seedReviews();
@@ -667,6 +671,31 @@ public class DemoSeedRunner implements ApplicationRunner {
             backdateRow("herb_stock_logs", saved.getId(), at(-15, 9, 0));
         }
         log.info("种子·饮片库存：检查完成");
+    }
+
+    /** 外治处方模板：耳穴压豆/穴位贴敷/艾灸/拔罐常用组合各一；模板只存建议值，接诊页套用后随单自由改 */
+    private void seedTherapyTemplates() {
+        if (therapyTemplateRepository.count() > 0) {
+            return;
+        }
+        record TplSeed(String name, String method, String target, String course, String note) {}
+        List<TplSeed> seeds = List.of(
+                new TplSeed("失眠·耳穴压豆", "耳穴压豆", "神门、交感、皮质下、心", "每周 2 次 × 4 周，留豆 3 天一换", "每日睡前自行揉按 1 分钟，胶布过敏停用"),
+                new TplSeed("咳喘·穴位贴敷", "穴位贴敷", "肺俞、定喘、膻中", "贴敷 4~6 小时，隔日一换 × 7 次", "皮肤发红属正常，灼热起疱即取下"),
+                new TplSeed("肾阳虚·温灸关元", "艾灸", "关元、气海、命门", "每日 1 次，每次 20 分钟 × 2 周", "灸后避风保暖，口干舌燥减量"),
+                new TplSeed("腰痛·留罐", "拔罐", "肾俞、大肠俞、委中", "每周 2 次 × 3 周，留罐 10 分钟", "罐斑紫暗属正常，皮肤破损不拔"));
+        for (TplSeed s : seeds) {
+            TherapyTemplateEntity entity = new TherapyTemplateEntity();
+            entity.setName(s.name());
+            entity.setMethod(s.method());
+            entity.setTarget(s.target());
+            entity.setCourse(s.course());
+            entity.setNote(s.note());
+            entity.setEnabled(1);
+            TherapyTemplateEntity saved = therapyTemplateRepository.save(entity);
+            backdateRow("therapy_templates", saved.getId(), at(-14, 10, 0));
+        }
+        log.info("种子·外治模板：检查完成");
     }
 
     /** 次卡：演示顾客持「经络推拿（10 次卡）」已用 3 次 */
