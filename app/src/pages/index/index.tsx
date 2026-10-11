@@ -1,22 +1,34 @@
 import React, { useEffect, useState } from 'react'
 import { View, Image, Text } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { BRAND } from '../../services/brand'
 import { fetchHomeItems } from '../../services/api'
+import { loadBookingSession } from '../../services/session'
 import type { HomeItem } from '../../services/api'
 import './index.css'
 
-/** 按真实时段问候（顾客姓名无接口，不带称呼不造假） */
-function greeting(): string {
-  const h = new Date().getHours()
-  if (h < 5) return '夜深了'
-  if (h < 11) return '早上好'
-  if (h < 14) return '中午好'
-  if (h < 18) return '下午好'
-  return '晚上好'
+function pad(n: number): string {
+  return String(n).padStart(2, '0')
 }
 
-/** 规划功能标记：无接口的区块如实标注，不放假数据（口径同管理端 plan-note） */
+function todayStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** 按真实时段问候；称呼来自本机自助约期留的称呼（无接口查询顾客档案，不带称呼不造假） */
+function greeting(name: string | undefined): string {
+  const h = new Date().getHours()
+  let part = '夜深了'
+  if (h < 5) part = '夜深了'
+  else if (h < 11) part = '早上好'
+  else if (h < 14) part = '中午好'
+  else if (h < 18) part = '下午好'
+  else part = '晚上好'
+  return name ? `${part}，${name}` : `${part}，欢迎光临`
+}
+
+/** 规划功能标记：无接口的区块如实标注，不造假数据（口径同管理端 plan-note） */
 function PlanPill() {
   return <Text className="plan-pill">规划功能</Text>
 }
@@ -24,6 +36,11 @@ function PlanPill() {
 export default function Index() {
   const [items, setItems] = useState<HomeItem[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const [session, setSession] = useState(loadBookingSession)
+
+  // 从预约 tab 切换回来时重读本机预约，保持横幅提醒态新鲜
+  useDidShow(() => setSession(loadBookingSession()))
 
   const load = () => {
     setFailed(false)
@@ -34,31 +51,55 @@ export default function Index() {
 
   useEffect(load, [])
 
+  const today = todayStr()
+  const upcoming = session && session.startTime.slice(0, 10) >= today
+  const apptTitle = (() => {
+    if (!session) return '在线预约'
+    const date = session.startTime.slice(0, 10)
+    const time = session.startTime.slice(11, 16)
+    const label = date === today ? '今天' : `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`
+    return `${label} ${time} · ${session.itemName || '项目到店再定'}`
+  })()
+  const shownItems = items ? (showAll ? items : items.slice(0, 4)) : []
+
   return (
     <View className="home-page">
-      {/* 品牌头：商家图标优先，无位图以金棕「养」印兜底 */}
+      {/* 品牌头：商家图标优先，无位图以金棕「养」印兜底；右侧圆钮进「我的」 */}
       <View className="brand-head">
         <View className="seal">
           {BRAND.iconData ? <Image className="seal-img" src={BRAND.iconData} mode="aspectFit" /> : '养'}
         </View>
         <View className="bt">
           <View className="bn">{BRAND.name}</View>
-          <View className="bg">{greeting()}，欢迎光临</View>
+          <View className="bg">{greeting(session?.customerName || undefined)}</View>
+        </View>
+        <View className="bell" onClick={() => Taro.switchTab({ url: '/pages/me/index' })}>
+          {session?.customerName ? session.customerName.slice(0, 1) : '客'}
         </View>
       </View>
 
-      {/* 预约横幅：入口接自助约期页（免登录写入口，见 docs/design/app-booking.md） */}
-      <View className="appt" onClick={() => Taro.navigateTo({ url: '/pages/booking/index' })}>
-        <View className="ic">预</View>
+      {/* 预约横幅：有本机未过期待到店预约则显提醒，否则为通用自助约期入口 */}
+      <View className="appt" onClick={() => Taro.switchTab({ url: '/pages/booking/index' })}>
+        <View className="ic">{upcoming && session && session.itemName ? session.itemName.slice(0, 1) : '预'}</View>
         <View className="appt-bd">
-          <View className="tt">在线预约</View>
-          <View className="ss">选个时段，到店免等待</View>
+          <View className="tt">{upcoming ? apptTitle : '在线预约'}</View>
+          <View className="ss">
+            {upcoming && session
+              ? `已预约 ${session.appointmentId}，到店报手机号即可`
+              : '选个时段，到店免等待'}
+          </View>
         </View>
+        <View className="go">预约</View>
       </View>
 
       {/* 今日宜养：实拉上架项目（/api/v1/kiosk/items，与自助机同一份真实数据） */}
       <View className="sec">
         <Text className="sec-h3">今日宜养</Text>
+        {items && items.length > 4 ? (
+          <Text className="sec-link" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? '收起' : '全部项目'}
+          </Text>
+        ) : null}
       </View>
       {failed ? (
         <View className="plan-note">
@@ -71,7 +112,7 @@ export default function Index() {
         <View className="plan-note">暂无上架项目，请到店咨询</View>
       ) : (
         <View className="items">
-          {items.map((item, i) => (
+          {shownItems.map((item, i) => (
             <View className="item" key={item.id}>
               <View className={`cover ${i % 2 === 0 ? 'g1' : 'g2'}`}>
                 {item.cover ? (
@@ -92,12 +133,14 @@ export default function Index() {
         </View>
       )}
 
-      {/* 我的卡项：顾客购卡/余次无接口，如实规划占位 */}
+      {/* 我的卡项：顾客购卡/余次无接口，如实规划占位（详见「卡项」页） */}
       <View className="sec">
         <Text className="sec-h3">我的卡项</Text>
         <PlanPill />
       </View>
-      <View className="plan-note">购卡与余次查询为规划功能，上线后将在这里展示您的卡项与剩余次数。</View>
+      <View className="plan-note">
+        购卡与余次查询为规划功能，上线后将在这里展示您的卡项与剩余次数；现已开卡可到前台或致电门店查询，「卡项」页有说明。
+      </View>
 
       {/* 养生贴士：静态编辑内容 */}
       <View className="sec">
@@ -106,35 +149,6 @@ export default function Index() {
       <View className="tip">
         <Text className="tip-b">秋燥宜润肺</Text>
         <Text className="tip-t">少辛增酸，早卧早起；艾灸后两小时勿碰冷水。</Text>
-      </View>
-
-      {/* 白标自检（保留工程验收用，挪至页底） */}
-      <View className="sec">
-        <Text className="sec-h3">白标自检</Text>
-      </View>
-      <View className="brand-card">
-        <View className="brand-row">
-          <View className="brand-label">主题色</View>
-          <View className="brand-value">
-            <View className="brand-swatch" style={{ background: BRAND.themeColor }} />
-            <View className="brand-mono">{BRAND.themeColor}</View>
-          </View>
-        </View>
-        <View className="brand-row">
-          <View className="brand-label">后端域名</View>
-          <View className="brand-value">
-            <View className="brand-mono">{BRAND.apiBase}</View>
-          </View>
-        </View>
-        <View className="brand-row">
-          <View className="brand-label">页内图标</View>
-          <View className="brand-value">
-            <View className="brand-mono">{BRAND.iconData ? '已注入（商家 icon）' : '未注入位图'}</View>
-          </View>
-        </View>
-      </View>
-      <View className="brand-tip">
-        以上参数由构建脚本注入，改参数不改代码；换商家出包见仓库 docs/app-white-label.md。
       </View>
     </View>
   )

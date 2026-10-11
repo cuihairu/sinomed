@@ -5,6 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
+> 进度（2026-10-11 续批）：已清 8 条（P0 2/2 + P1 2 + P2 4，含 admin-herbprescription 辨证条、mobile-home 全部 7 条），余 76 条（P1 22 / P2 54）。
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -104,14 +105,14 @@
 - [ ] Ads 素材卡渐变硬编码 #353a37 不随主题变｜原型 tokens.css:19 / 实现 web/src/pages/Ads/Index/index.less:141｜P2
 - [ ] Settle 页硬编码警示色 #a3542e/#f7ede4（tokens 体系外）｜原型 admin-billing.html:62 / 实现 web/src/pages/Billing/Settle/index.less:124｜P2
 
-### mobile-home（7 条）
-- [ ] 底部 tabbar（首页/预约/卡项/我的）整条缺失，app.config 无 tabBar、无「卡项」「我的」页面｜原型 mobile-home.html:119 / 实现 app/src/app.config.ts:2｜P0
-- [ ] 预约横幅语义不同：原型「明日 10:00 · 艾灸调理」预约提醒，实现为通用「在线预约」入口（跳 booking 已实现）｜原型 mobile-home.html:77 / 实现 app/src/pages/index/index.tsx:51｜P1
-- [ ] 实现多出「白标自检」区块直接暴露在顾客首页（原型无此节）｜原型 mobile-home.html:118 / 实现 app/src/pages/index/index.tsx:111｜P1
-- [ ] 品牌头右侧铃铛/头像圆钮缺失｜原型 mobile-home.html:72 / 实现 app/src/pages/index/index.tsx:40｜P2
-- [ ] 问候语无顾客称呼（「下午好，王女士」→「下午好，欢迎光临」）｜原型 mobile-home.html:70 / 实现 app/src/pages/index/index.tsx:46｜P2
-- [ ] 区块标题右侧「全部项目」链接缺失｜原型 mobile-home.html:82 / 实现 app/src/pages/index/index.tsx:60｜P2
-- [ ] 我的卡项余次为「规划功能」占位（按裁定：忠实占位，信息项不计缺陷）｜原型 mobile-home.html:101 / 实现 app/src/pages/index/index.tsx:96｜P2
+### mobile-home（7 条，全部已清）
+- [x] 底部 tabbar（首页/预约/卡项/我的）整条缺失，app.config 无 tabBar、无「卡项」「我的」页面｜原型 mobile-home.html:119 / 实现 app/src/app.config.ts:16、app/src/app.config.ts:24、app/src/pages/card/index.tsx:10、app/src/pages/me/index.tsx:14（无图标纯文字标签；卡项/我的为规划占位与身份页）｜P0
+- [x] 预约横幅语义不同：原型「明日 10:00 · 艾灸调理」预约提醒，实现为通用「在线预约」入口（跳 booking 已实现）｜原型 mobile-home.html:77 / 实现 app/src/pages/index/index.tsx:55、app/src/pages/index/index.tsx:85（本机未过期待到店预约显提醒态，口径：本机自助约期写 Taro storage `sinomed_booking_session`，booking 提交后写 app/src/pages/booking/index.tsx:78，切换 tab 回首页 useDidShow 重读）｜P1
+- [x] 实现多出「白标自检」区块直接暴露在顾客首页（原型无此节）｜原型 mobile-home.html:118 / 实现 app/src/pages/me/index.tsx:72（挪至「我的」页，工程验收用，共享样式上提 app.css）｜P1
+- [x] 品牌头右侧铃铛/头像圆钮缺失｜原型 mobile-home.html:72 / 实现 app/src/pages/index/index.tsx:76（有本机称呼显首字，无则显「客」，点击进「我的」）｜P2
+- [x] 问候语无顾客称呼（「下午好，王女士」→「下午好，欢迎光临」）｜原型 mobile-home.html:70 / 实现 app/src/pages/index/index.tsx:74（称呼取本机自助约期留的称呼，无接口查询顾客档案故不造假）｜P2
+- [x] 区块标题右侧「全部项目」链接缺失｜原型 mobile-home.html:82 / 实现 app/src/pages/index/index.tsx:99（上架项目超 4 项时显示，点击展开全量/收起）｜P2
+- [x] 我的卡项余次为「规划功能」占位（按裁定：忠实占位，信息项不计缺陷）｜原型 mobile-home.html:101 / 实现 app/src/pages/index/index.tsx:119、app/src/pages/card/index.tsx:15（卡项 tab 同为规划占位 + 到店/致电查询指引）｜P2
 
 ### kiosk-menu（3 条）
 - [ ] 购物篮为条件渲染，空选态整条不出现（原型常驻底栏含空态指引）｜原型 kiosk-menu.html:81 / 实现 kiosk/src/App.tsx:159｜P2
@@ -131,15 +132,15 @@
 6. **admin-ads**：4 条（P0 0/P1 0/P2 4）——单页四 tab + 左表右栏完全对齐，仅文案/交互呈现细节。
 7. **admin-appearance**：2 条（P0 0/P1 0/P2 2）——四主题卡+实时预览逐元素还原，仅两处皮肤级细节。
 8. **admin-booking**：7 条（P0 0/P1 3/P2 4）——原型单页看板被拆三页，缺「过号」状态与每时段限约规则。
-9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。
+9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。✅ P0 辨证摘要条已清（2026-10-11，联接诊单 diagnose/plan/acuCourse）。
 10. **admin-billing**：7 条（P0 0/P1 2/P2 5）——结算主流程对齐；缺口集中在多项目单据数据模型（明细表退化单行、无整单备注）。
 11. **desktop-workstation**：7 条（P0 0/P1 1/P2 6）——薄壳+Web 页骨架完整，唯一实质差距是外设状态条静态文案。
 12. **admin-themes**：6 条（P0 0/P1 1/P2 5）——web 端四主题落地完整（tokens 同源+data-theme+antd token 双通道）；差距在非 web 端（小程序 :root 失效风险、kiosk/tablet 无切换）。
-13. **mobile-home**：7 条（P0 1/P1 2/P2 4）——主体四节结构对齐，唯一 P0 是底部 tabbar 及两个 tab 页整体缺失。
+13. **mobile-home**：7 条（P0 1/P1 2/P2 4）——主体四节结构对齐，唯一 P0 是底部 tabbar 及两个 tab 页整体缺失。✅ 2026-10-11 全部 7 条已清（tabbar+卡项/我的页、预约横幅提醒态、白标自检挪「我的」、铃铛、称呼、全部项目、卡项占位）。
 14. **kiosk-menu**：3 条（P0 0/P1 0/P2 2）——差距最小，五区块逐项对齐；手机号下单/回执两步为实现超集。
 15. **tablet-screen**：2 条（P0 0/P1 1/P2 1）——轮播/pager/叫号条/断网角标全落地，唯一实质差距是单页广告排版层。
 
-**修复优先级建议**：P0 2 条（herbprescription 辨证条、mobile-home tabbar）→ P1 中影响数据模型的（billing 多项目明细/整单备注、orders 多品项+查看、booking 过号+限约、diagnosis 寸关尺+五行图）→ 其余 P1 → P2 批量扫尾。修复后按 mockups README §2 口径重出截图验收。
+**修复优先级建议**：~~P0 2 条（herbprescription 辨证条、mobile-home tabbar）~~（已清）→ P1 中影响数据模型的（billing 多项目明细/整单备注、orders 多品项+查看、booking 过号+限约、diagnosis 寸关尺+五行图）→ 其余 P1 → P2 批量扫尾。修复后按 mockups README §2 口径重出截图验收。
 
 ## 未实现功能（audit-doc-consistency.md 点名；mockups README 状态为「部分实现」，缺口以上表核对为准）
 - [ ] 预约挂号（设计原型：/screenshots/admin-booking.png）

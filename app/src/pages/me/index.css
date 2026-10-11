@@ -1,0 +1,59 @@
+/* 我的 tab：本机预约身份卡 + 快捷入口（共享样式在 app.css） */
+.me-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--paper);
+  /* 底部留白给原生 tabBar */
+  padding-bottom: 76px;
+}
+
+.me-card {
+  margin: 0 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 2px 16px;
+}
+
+.me-row {
+  display: flex;
+  gap: 12px;
+  padding: 13px 0;
+  align-items: flex-start;
+}
+
+.me-row + .me-row {
+  border-top: 1px solid var(--line);
+}
+
+.me-k {
+  font-size: 13px;
+  color: var(--muted);
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.me-v {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.7;
+}
+
+.me-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.me-act {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 13px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-deep);
+}

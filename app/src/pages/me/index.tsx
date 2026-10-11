@@ -1,0 +1,98 @@
+import React, { useState } from 'react'
+import { View, Image, Text } from '@tarojs/components'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { BRAND } from '../../services/brand'
+import { loadBookingSession } from '../../services/session'
+import './index.css'
+
+/**
+ * 我的 tab：免登录口径下的顾客身份与快捷入口。
+ * 身份只含本机自助约期留下的称呼/预约（不提供顾客档案查询接口）；
+ * 白标自检从顾客首页挪到此处（工程验收用，不再暴露在顾客首页）。
+ */
+export default function Me() {
+  const [session, setSession] = useState(loadBookingSession)
+
+  // 切回本页时重读本机预约（首页/预约页都可能更新它）
+  useDidShow(() => setSession(loadBookingSession()))
+
+  const initial = session?.customerName ? session.customerName.slice(0, 1) : '客'
+
+  return (
+    <View className="me-page">
+      <View className="brand-head">
+        <View className="seal">
+          {BRAND.iconData ? <Image className="seal-img" src={BRAND.iconData} mode="aspectFit" /> : '养'}
+        </View>
+        <View className="bt">
+          <View className="bn">{session?.customerName || '尊敬的顾客'}</View>
+          <View className="bg">到店报手机号即可接待，无需注册</View>
+        </View>
+        <View className="bell">{initial}</View>
+      </View>
+
+      <View className="sec">
+        <Text className="sec-h3">本机预约</Text>
+      </View>
+      <View className="me-card">
+        <View className="me-row">
+          <Text className="me-k">称呼</Text>
+          <Text className="me-v">{session?.customerName || '未留称呼'}</Text>
+        </View>
+        <View className="me-row">
+          <Text className="me-k">最近预约</Text>
+          <Text className="me-v">
+            {session ? `${session.startTime.slice(0, 16)} · ${session.itemName || '到店再定'}` : '暂无'}
+          </Text>
+        </View>
+        <View className="me-row">
+          <Text className="me-k">说明</Text>
+          <Text className="me-v">
+            仅记住本机提交的预约；卡项余次请到店或致电门店查询，见「卡项」页。
+          </Text>
+        </View>
+      </View>
+
+      <View className="sec">
+        <Text className="sec-h3">快捷</Text>
+      </View>
+      <View className="me-actions">
+        <View className="me-act" onClick={() => Taro.switchTab({ url: '/pages/booking/index' })}>
+          去预约
+        </View>
+        <View className="me-act" onClick={() => Taro.switchTab({ url: '/pages/index/index' })}>
+          回首页
+        </View>
+      </View>
+
+      {/* 白标自检（工程验收用） */}
+      <View className="sec">
+        <Text className="sec-h3">白标自检</Text>
+      </View>
+      <View className="brand-card">
+        <View className="brand-row">
+          <View className="brand-label">主题色</View>
+          <View className="brand-value">
+            <View className="brand-swatch" style={{ background: BRAND.themeColor }} />
+            <View className="brand-mono">{BRAND.themeColor}</View>
+          </View>
+        </View>
+        <View className="brand-row">
+          <View className="brand-label">后端域名</View>
+          <View className="brand-value">
+            <View className="brand-mono">{BRAND.apiBase}</View>
+          </View>
+        </View>
+        <View className="brand-row">
+          <View className="brand-label">页内图标</View>
+          <View className="brand-value">
+            <View className="brand-mono">{BRAND.iconData ? '已注入（商家 icon）' : '未注入位图'}</View>
+          </View>
+        </View>
+      </View>
+      <View className="brand-tip">
+        以上参数由构建脚本注入，改参数不改代码；换商家出包见仓库 docs/app-white-label.md。
+      </View>
+    </View>
+  )
+}

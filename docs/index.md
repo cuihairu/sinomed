@@ -91,7 +91,7 @@ features:
 
 ![桌面工作站 · 接诊开单（界面原型）](/screenshots/desktop-workstation.png)
 
-**小程序端**（app · 顾客首页，业务页面规划中）
+**小程序端**（app · 底部四标签：首页 / 预约 / 卡项 / 我的；卡项余次与顾客自助查询仍属规划功能，界面如实占位）
 
 ![小程序端 · 首页（界面原型）](/screenshots/mobile-home.png)
 

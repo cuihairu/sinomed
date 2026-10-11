@@ -1,60 +1,14 @@
 /* 顾客首页：对齐原型 mobile-home（390 稿数值，pxtransform 转 rpx）。
-   全部走 tokens.css 变量；规划区块 plan-pill/plan-note 口径同管理端。 */
+   全部走 tokens.css 变量；品牌头/区块标题/规划标记/白标自检等共享样式在 app.css。 */
 .home-page {
   min-height: 100vh;
   box-sizing: border-box;
   background: var(--paper);
-  padding-bottom: 40px;
+  /* 底部留白给原生 tabBar */
+  padding-bottom: 76px;
 }
 
-/* 品牌头 */
-.brand-head {
-  padding: 14px 20px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.seal {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  background: var(--amber);
-  color: #fff;
-  font-family: var(--serif);
-  font-size: 24px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 10px rgba(184, 147, 90, 0.35);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.seal-img {
-  width: 100%;
-  height: 100%;
-}
-
-.bt {
-  flex: 1;
-}
-
-.bn {
-  font-family: var(--serif);
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.bg {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-
-/* 预约横幅（样式按原型 .appt；功能=规划，如实标注） */
+/* 预约横幅（样式按原型 .appt；有本机预约显提醒态，无则通用入口） */
 .appt {
   margin: 0 16px;
   background: linear-gradient(120deg, var(--brand-deep), var(--brand));
@@ -97,47 +51,18 @@
   margin-top: 3px;
 }
 
-/* 规划标记（口径同管理端「规划功能」pill + note） */
-.plan-pill {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--amber-deep);
-  background: var(--amber-tint);
-  border: 1px solid #e6d5b8;
+.appt .go {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 999px;
-  padding: 1px 7px;
-}
-
-.plan-note {
-  margin: 0 16px;
-  background: var(--card);
-  border: 1px dashed var(--line);
-  border-radius: 13px;
-  padding: 13px 16px;
-  font-size: 12.5px;
-  color: var(--muted);
-  line-height: 1.7;
+  padding: 5px 12px;
+  flex-shrink: 0;
 }
 
 .retry {
   color: var(--brand);
   font-weight: 600;
   margin-left: 10px;
-}
-
-/* 区块标题（对齐原型 .sec；小程序端宋体走 var(--serif)） */
-.sec {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 20px 10px;
-}
-
-.sec-h3 {
-  font-family: var(--serif);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink);
 }
 
 /* 项目宫格（对齐原型 .items/.item；flex 双列，小程序端 grid 兼容保守处理） */
@@ -248,54 +173,4 @@
 
 .tip-t {
   display: block;
-}
-
-/* 白标自检（原自检页样式保留，挪至页底缩小呈现） */
-.brand-card {
-  margin: 0 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  padding: 2px 16px;
-}
-
-.brand-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 13px 0;
-}
-
-.brand-row + .brand-row {
-  border-top: 1px solid var(--line);
-}
-
-.brand-label {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.brand-value {
-  display: flex;
-  align-items: center;
-}
-
-.brand-swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  margin-right: 8px;
-  border: 1px solid var(--line);
-}
-
-.brand-mono {
-  font-size: 12px;
-  color: var(--ink);
-}
-
-.brand-tip {
-  margin: 10px 16px 0;
-  font-size: 11.5px;
-  line-height: 1.7;
-  color: var(--faint);
 }

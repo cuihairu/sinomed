@@ -20,7 +20,7 @@
 | `admin-herbprescription.html` | web | ◐ **部分实现** | 中药处方：处方笺开方/查询已实装（`/prescription/create`、`/prescription/query`，药材自由文本）+ 配伍审方已实装（`POST /prescription/compatibility` 十八反/十九畏静态规则）+ 计价已实装（`/api/v1/herb` 字典 + `POST /prescription/price` 试算，开方页随写随查，未收录药名不计费）；代煎领取已实装（开方勾选代煎袋数=剂数落待煎，查询页流转 待煎→可取→已取，服务费 ¥3/袋 仅提示，141f295/47e4828） |
 | `admin-billing.html` | web | ◐ **部分实现** | 收费结算：待结算队列/储值支付与充值/微信·支付宝·现金（记录口径）已实装（`/billing/settle`，结算台形态）+ 次卡抵扣已实装（payType 5，扣 1 次实收 0）+ 小票打印已实装（服务端套打 `GET /api/v1/print/receipt/{settlementId}`，收款后打印/最近结算补打，f57f10d/1b33703）；原型里的处方饮片行已裁定不做（依据「收费以卡项订单结算为准」，处方计价为试算/提示口径） |
 | `desktop-workstation.html` | desktop | ✅ 已实现功能 | 接诊开单 + 打印/扫码外设状态 |
-| `mobile-home.html` | app | ✅ 已实现功能 | 小程序首页：品牌头/预约横幅（入口 → 自助约期 `pages/booking`）/今日宜养（宫格实拉）/我的卡项/养生贴士/白标自检页底（卡项余次无接口，界面如实「规划功能」占位） |
+| `mobile-home.html` | app | ✅ 已实现功能 | 小程序首页：品牌头（右侧铃铛/头像圆钮，称呼取本机自助约期留下的称呼）/预约横幅（有本机未过期待到店预约显提醒态，否则自助约期入口，均跳 `pages/booking` tab）/今日宜养（宫格实拉，超 4 项显示「全部项目」展开）/我的卡项/养生贴士；底部四标签 tabBar（首页/预约/卡项/我的）；白标自检自顾客首页挪至 `pages/me`（工程验收用）；卡项余次无接口，`pages/card` 与首页均如实「规划功能」占位 |
 | `kiosk-menu.html` | kiosk | ✅ 已实现功能 | 选服务下单：卡项网格/购物篮/手机号下单/回执 |
 | `tablet-screen.html` | tablet | ✅ 已实现功能 | 广告轮播 + 叫号上屏（脱敏姓名） |
 

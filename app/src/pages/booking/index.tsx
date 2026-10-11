@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { fetchHomeItems, bookAppointment } from '../../services/api'
+import { saveBookingSession } from '../../services/session'
 import type { HomeItem } from '../../services/api'
 import './index.css'
 
@@ -72,7 +73,17 @@ export default function Booking() {
       itemId: itemIdx === null || !items ? undefined : items[itemIdx].id,
       startTime: `${days[dayIdx].date} ${pad(hour!)}:00`
     })
-      .then((r) => setResult(r))
+      .then((r) => {
+        // 本机记住这次自助约期：首页横幅提醒与「我的」页身份都用它
+        saveBookingSession({
+          appointmentId: String(r.appointmentId),
+          startTime: r.startTime,
+          itemName: r.itemName || '',
+          customerName: r.customerName || '',
+          savedAt: new Date().toISOString()
+        })
+        setResult(r)
+      })
       .catch((e) => setError(e.message || '提交失败，请稍后再试'))
       .finally(() => setSubmitting(false))
   }
@@ -102,7 +113,7 @@ export default function Booking() {
             </View>
           </View>
           <View className="bk-done-tip">到店后报手机号，前台为您接待；如需改期请致电门店。</View>
-          <View className="bk-submit" onClick={() => Taro.navigateBack()}>
+          <View className="bk-submit" onClick={() => Taro.switchTab({ url: '/pages/index/index' })}>
             返回首页
           </View>
         </View>
