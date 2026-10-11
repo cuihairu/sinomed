@@ -112,9 +112,10 @@
 | total_times / remaining_times | Integer | 总次数 / 剩余次数（发卡=全量，抵扣减余次） |
 | status | Integer | `1` 有效 / `0` 停用（列默认 1；停用卡不参与抵扣） |
 | source_order_id | Long | 发卡来源订单（可空，前台手工发卡为空） |
+| valid_until | Date | 有效期至（可空=长期有效），过期卡不参与抵扣 |
 | create_time / update_time | Date | 审计时间 |
 
-索引：顾客。抵扣按「同顾客 + 同卡项、有效且有余次」取**最早一张**扣 1 次；暂无有效期（规划）。接口见 [api](/server/api) 次卡组。
+索引：顾客。抵扣按「同顾客 + 同卡项、有效未过期且有余次」取**最早一张**扣 1 次。接口见 [api](/server/api) 次卡组。
 
 ## refund_logs — 退款流水（退费）
 

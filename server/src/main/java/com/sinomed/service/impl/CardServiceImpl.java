@@ -15,10 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 
 /**
- * 次卡/疗程卡实现：发卡全量次数、抵扣按「早发的先扣」并落核销流水；无有效期（口径见文档）。
+ * 次卡/疗程卡实现：发卡全量次数、抵扣按「早发的先扣」并落核销流水；
+ * validUntil 可空=长期有效，过期卡不参与抵扣。
  */
 @Slf4j
 @Service
@@ -61,6 +63,7 @@ public class CardServiceImpl implements CardService {
         card.setRemainingTimes(view.getTotalTimes());
         card.setStatus(STATUS_ACTIVE);
         card.setSourceOrderId(view.getSourceOrderId());
+        card.setValidUntil(view.getValidUntil());
         return cardRepository.save(card);
     }
 
@@ -90,6 +93,9 @@ public class CardServiceImpl implements CardService {
         List<CustomerCardEntity> candidates = cardRepository
                 .findByCustomerIdAndItemIdAndStatusAndRemainingTimesGreaterThanOrderByIdAsc(
                         customerId, itemId, STATUS_ACTIVE, 0);
+        // 过期卡不参与抵扣（validUntil 空为长期有效）
+        Date now = new Date();
+        candidates.removeIf(c -> c.getValidUntil() != null && c.getValidUntil().before(now));
         if (candidates.isEmpty()) {
             throw new IllegalArgumentException("顾客无可抵扣次卡（卡项 " + itemId + "）");
         }

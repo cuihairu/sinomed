@@ -21,7 +21,7 @@ public interface CardService {
     CustomerCardEntity setStatus(Long id, Integer status);
 
     /**
-     * 结算抵扣：按顾客 + 卡项找有效且有余次的最早一张卡扣 1 次，并落一条核销流水
+     * 结算抵扣：按顾客 + 卡项找有效、未过期且有余次的最早一张卡扣 1 次，并落一条核销流水
      * （times_used=第几次，staffId 取订单）；无可抵扣卡抛 IllegalArgumentException（转 400）。
      */
     CustomerCardEntity deduct(Long customerId, Long itemId, Long orderId);

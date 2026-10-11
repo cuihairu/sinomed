@@ -22,7 +22,7 @@ import {
   ProFormSelect,
   ProFormInstance,
 } from '@ant-design/pro-components';
-import { Button, Drawer, Form, Input, InputNumber, message, Modal, Popconfirm, Radio, Select } from 'antd';
+import { Button, DatePicker, Drawer, Form, Input, InputNumber, message, Modal, Popconfirm, Radio, Select } from 'antd';
 import { history, useSearchParams } from '@umijs/max';
 import moment from 'moment';
 import './index.less';
@@ -115,6 +115,7 @@ const Update: React.FC = () => {
         customerId: Number(customerId),
         itemId: values.itemId,
         totalTimes: values.totalTimes,
+        validUntil: values.validUntil ? values.validUntil.endOf('day').valueOf() : undefined,
       });
       if (created?.id) {
         message.success('已发卡');
@@ -197,6 +198,7 @@ const Update: React.FC = () => {
             <span>
               {customer?.gender === 1 ? '男' : '女'} · {customer?.age ?? '—'} 岁
             </span>
+            {customer?.createTime ? <span>{moment(customer.createTime).format('YYYY-MM')} 建档</span> : null}
             {customer?.address ? <span>{customer.address}</span> : null}
             <span>{lastVisitText}</span>
           </p>
@@ -301,6 +303,11 @@ const Update: React.FC = () => {
                       }}
                     />
                   </div>
+                  {/* 购入日期 · 有效期至（原型 .card-item .meta 口径；有效期可空=长期有效） */}
+                  <div className="cd-meta">
+                    {c.createTime ? moment(c.createTime).format('YYYY-MM-DD') : '—'} 购入
+                    {c.validUntil ? ` · 有效期至 ${moment(c.validUntil).format('YYYY-MM-DD')}` : ''}
+                  </div>
                 </div>
                 <div className="cd-ops">
                   <a onClick={() => openUsages(c)}>核销记录</a>
@@ -395,6 +402,9 @@ const Update: React.FC = () => {
             rules={[{ required: true, message: '总次数必须 ≥ 1' }]}
           >
             <InputNumber min={1} precision={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="validUntil" label="有效期至" tooltip="选填，不填=长期有效；过期后该卡不再参与结算抵扣">
+            <DatePicker style={{ width: '100%' }} disabledDate={(d) => d && d.isBefore(moment().startOf('day'))} />
           </Form.Item>
         </Form>
       </Modal>

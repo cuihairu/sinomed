@@ -49,6 +49,9 @@ public class CardView {
     @Schema(title = "发卡来源订单id（可空）", example = "12")
     private Long sourceOrderId;
 
+    @Schema(title = "有效期至（可空=长期有效），过期卡不参与抵扣", example = "2026-10-09")
+    private Date validUntil;
+
     @Schema(title = "发卡时间", example = "2026-10-10 10:00:00")
     private Date createTime;
 
@@ -61,6 +64,7 @@ public class CardView {
                 .remainingTimes(entity.getRemainingTimes())
                 .status(entity.getStatus())
                 .sourceOrderId(entity.getSourceOrderId())
+                .validUntil(entity.getValidUntil())
                 .createTime(entity.getCreateTime())
                 .build();
     }

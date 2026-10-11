@@ -194,11 +194,11 @@
 
 ## 次卡 `/api/v1/card`（需登录）
 
-顾客持卡（次数卡/疗程卡——推拿、艾灸等按疗程计次的服务项目即疗程卡口径）：发卡即全量次数，结算按卡项抵扣并落核销流水；暂无有效期（口径见 [data-model](/server/data-model)）。
+顾客持卡（次数卡/疗程卡——推拿、艾灸等按疗程计次的服务项目即疗程卡口径）：发卡即全量次数，结算按卡项抵扣并落核销流水；`validUntil` 有效期可空=长期有效，过期卡不参与抵扣（口径见 [data-model](/server/data-model)）。
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/card/` | 发卡：`customerId` + `itemId` + `totalTimes`（≥1）必填，`sourceOrderId` 可空（溯源购卡订单）；余次=总次数、状态有效 |
+| POST | `/api/v1/card/` | 发卡：`customerId` + `itemId` + `totalTimes`（≥1）必填，`sourceOrderId` 可空（溯源购卡订单），`validUntil` 可空=长期有效（毫秒数，过期卡不参与抵扣）；余次=总次数、状态有效 |
 | GET | `/api/v1/card/list` | 按顾客查持卡（`customerId` 必填），新卡在前，联出顾客名与卡项名 |
 | PUT | `/api/v1/card/{id}/status?status=` | 停用 / 恢复（`1` 有效 / `0` 停用）；停用卡不参与抵扣 |
 | GET | `/api/v1/card/{id}/usages` | 按持卡查核销记录（新记录在前）：每次结算抵扣一条，含 `timesUsed`（第几次，1 起）、`orderId`、`staffId/staffName`（服务员工，取订单 staffId）、`createTime`；持卡不存在报 400 |

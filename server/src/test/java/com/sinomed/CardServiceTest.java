@@ -13,6 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -142,6 +146,30 @@ class CardServiceTest {
     void deductRejectsNoCardAtAll() {
         Long customer = newCustomer("13900005018");
         var e = assertThrows(IllegalArgumentException.class, () -> cardService.deduct(customer, itemId, null));
+        assertTrue(e.getMessage().contains("无可抵扣次卡"));
+    }
+
+    @Test
+    void issueStoresValidUntilAndDeductSkipsExpired() {
+        Long customer = newCustomer("13900005019");
+        var expired = cardService.issue(CardView.builder()
+                .customerId(customer).itemId(itemId).totalTimes(10)
+                .validUntil(Date.from(Instant.now().minus(1, ChronoUnit.DAYS))).build());
+        // 有效期落库读回：已过（参与抵扣判定用 before(now)，只断言方向不掐精度）
+        assertTrue(expired.getValidUntil() != null && expired.getValidUntil().before(new Date()));
+        var valid = cardService.issue(view(customer, itemId, 10));
+
+        // 过期卡跳过，扣到未过期那张
+        var deducted = cardService.deduct(customer, itemId, null);
+        assertEquals(valid.getId(), deducted.getId());
+        assertEquals(10, cardRepository.findById(expired.getId()).orElseThrow().getRemainingTimes());
+
+        // 只剩过期卡时无可抵扣
+        var only = newCustomer("13900005020");
+        cardService.issue(CardView.builder()
+                .customerId(only).itemId(itemId).totalTimes(5)
+                .validUntil(Date.from(Instant.now().minus(1, ChronoUnit.DAYS))).build());
+        var e = assertThrows(IllegalArgumentException.class, () -> cardService.deduct(only, itemId, null));
         assertTrue(e.getMessage().contains("无可抵扣次卡"));
     }
 }

@@ -17,7 +17,7 @@ import java.util.Date;
 
 /**
  * 顾客持卡（次卡）：顾客 × 卡项的次数持有。发卡即全量次数，抵扣减 remaining_times；
- * status：1 有效 / 0 停用。有效期暂不做（口径见 docs/server/data-model.md）。
+ * status：1 有效 / 0 停用。valid_until 可空=长期有效，过期卡不参与抵扣（口径见 docs/server/data-model.md）。
  */
 @Data
 @Entity
@@ -51,6 +51,10 @@ public class CustomerCardEntity {
     /** 发卡来源订单（可空，前台手工发卡为空） */
     @Column(name = "source_order_id")
     private Long sourceOrderId;
+
+    /** 有效期至（可空=长期有效），过期卡不参与抵扣 */
+    @Column(name = "valid_until")
+    private Date validUntil;
 
     @CreatedDate
     @Column(name = "create_time")

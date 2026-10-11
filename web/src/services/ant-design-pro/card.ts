@@ -14,12 +14,14 @@ export interface Card {
   /** 1 有效 / 0 停用 */
   status?: number;
   sourceOrderId?: number;
+  /** 有效期至（可空=长期有效），过期卡不参与抵扣 */
+  validUntil?: string;
   createTime?: string;
 }
 
-/** 发卡：customerId + itemId + totalTimes（≥1）必填；余次=总次数、状态有效 */
+/** 发卡：customerId + itemId + totalTimes（≥1）必填；余次=总次数、状态有效；validUntil 传当天末毫秒数（可空=长期有效） */
 export async function issueCard(
-  body: { customerId: number; itemId: number; totalTimes: number; sourceOrderId?: number },
+  body: { customerId: number; itemId: number; totalTimes: number; sourceOrderId?: number; validUntil?: number },
   options?: { [key: string]: any },
 ) {
   return request<Card>('/api/v1/card/', {
