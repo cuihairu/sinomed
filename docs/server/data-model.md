@@ -159,6 +159,9 @@ append-only：每次结算抵扣（`payType=5`）在同一事务落一条，随�
 | prescription_type | Integer | 处方类型：0 汤剂（默认）/ 1 膏方 |
 | paste_status | Integer | 膏方领取状态：0 非膏方 / 1 待制作 / 2 可取 / 3 已取（开膏方落 1，流转 待制作→可取→已取 单向推进） |
 | craft | String | 收膏方式（仅膏方：炼蜜/清膏/糖膏/阿胶收膏等，可空；汤剂恒空） |
+| dispense_status | Integer | 发药状态：0 待发药（默认）/ 1 已发药（开方落 0，单向不回退；代煎/膏方推进「已取」自动置 1） |
+| dispense_time | Date | 发药时间（待发药为空） |
+| dispense_by | Long | 发药操作人 staff_id（自动带出路径留空） |
 | usage | String | 用法：煎服法/频次/代煎说明 |
 | remark | String | 备注 |
 | create_time / update_time | Date | 审计时间 |
@@ -167,13 +170,15 @@ append-only：每次结算抵扣（`payType=5`）在同一事务落一条，随�
 
 `herbs`（药材字典）：`name`（唯一，与处方药名精确同名比价）、`price`（每克分价，int，>0）、审计时间。处方计价按字典**实时试算**（不落库、无快照，未收录药名不计费）。
 
+`dispense_logs`（发药流水，单向追加）：`prescription_id`（非空，索引）+ `action`（1 发药，本链路只有一种动作）+ `staff_id`（操作人，自动带出为空）+ `note`（≤100 字，自动带出写来源如「代煎领取自动发药」）+ 审计时间。重复发药 400、不可撤销；发药不扣库存、不落金额快照，见 [药房与发药流转](../design/dispensing.md)。
+
 `herb_stock_logs`（饮片出入库流水）：`herb_id`（非空，索引）+ `type`（1 入库 / 0 出库）+ `quantity`（克，正整数）+ `expiry`（批次效期，入库可带，出库恒空）+ `supplier`（≤50 字）+ `note`（≤100 字）+ 审计时间。**库存 = 入库合计 - 出库合计（不落余额列，按流水重算）**；出库按效期先进先出（FEFO）消耗批次，余额接口据此给「最早未消耗批次效期 + 到期预警（默认 30 天）」；台账口径，不涉采购单据与结算，见 [api](/server/api) 饮片库存组。
 
 `prescription_templates` / `prescription_template_items`（病症模板，结构同下）：模板侧多 `doses`/`decoction`/`usage`/`remark` 建议值与 `enabled` 上架位。`formulas` / `formula_items`（方剂库）：`formulas` 为 `name`（方名唯一 1–20 字）、`pinyin`（全拼小写检索码，非空）、`source`（出处）、`indication`（功效主治）；`formula_items` 为 `formula_id`（非空，索引）+ 药味四件套 `herb`/`weight`/`special`/`sort`。两者均为开方参考数据——模板按病症套用、方剂按方名/拼音检索带出全方，带出后随处方自由增减、不写回；方剂为文献常用量口径，不参与计价与审方。
 
 `therapy_templates`（外治处方模板）：`name`（模板名唯一，1–20 字，索引）+ `method`（外治方法，非空，≤10 字，索引）+ `target`（建议取穴/部位，≤100 字，可空）+ `course`（建议疗程/频次，≤100 字，可空）+ `note`（注意事项，≤100 字，可空）+ `enabled`（0 停用 / 1 启用）+ 审计时间。单表无明细（外治组合是「方法 + 部位 + 疗程」的自由文本，不像药方有逐味剂量）。接诊页「套用外治模板」只取 `method`/`target`/`course` 三个建议值回填针灸处方区与取穴文本，回填后随诊疗单自由改，不写回模板。
 
-索引：`prescriptions` 顾客、接诊单；`prescription_items` 处方；`herb_stock_logs` 药材、类型。代煎领取与膏方领取流转已实装（两条独立单向链：待煎→可取→已取；待制作→可取→已取）；饮片出入库流水已实装（余额按流水重算）；配伍审方（十八反/十九畏）为静态规则比对（不落表），见 [api](/server/api) 处方组。
+索引：`prescriptions` 顾客、接诊单；`prescription_items` 处方；`herb_stock_logs` 药材、类型。代煎领取与膏方领取流转已实装（两条独立单向链：待煎→可取→已取；待制作→可取→已取）；药房发药已实装（`dispense_status` 0→1 单向 + `dispense_logs` 流水，代煎/膏方「已取」自动带出）；饮片出入库流水已实装（余额按流水重算）；配伍审方（十八反/十九畏）为静态规则比对（不落表），见 [api](/server/api) 处方组。
 
 ## staffs — 员工（登录主体，诊所运营）
 

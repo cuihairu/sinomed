@@ -150,7 +150,6 @@
 - [ ] 服务端接口层方法级权限强制（web.md:174：当前只做页面级隐藏）
 
 ## 在途工作（未提交，需先收口）
-- [ ] P1-32 药房与发药流转：服务端已写完（dispense 流转/自动发药/工作台分页 + DispenseTest/DispenseHttpTest 共 6 测试绿），待 web 药房工作台页 `/prescription/dispensary` + 文档更新 + 全量回归后提交推送（11 处改动 + 3 新文件）
 - [ ] web `pnpm test` 存量红（Node 24 下 umi core esbuild-register 解析 config 失败，唯一脚手架 login 快照测试，CI 不跑）——需单独修（jest.config.ts 绕开 umi 配置解析或移除脚手架测试）
 
 验收：对应页面可实跑 + 后端接口有权限校验；测试绿才 push，commit 英文简短。
