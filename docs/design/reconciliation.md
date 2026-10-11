@@ -1,6 +1,6 @@
 # 退费与日对账（口径设计稿）
 
-> 状态：**口径定稿，未实现**。按本稿实现后改为「已实装」并在 [调研 · 功能点清单](../research/features.md) 更新对应行。
+> 状态：**已实装（2026-10-11）**。与定稿口径的三处落地注记：① 充值段只算真实充值（正数流水且非退单 note）——储值支付扣减归收款侧、退款补回归退款侧，定稿未排负数行，按语义收窄；② `settlements.order_id` 唯一索引随「退款后重收产生新结算单」移除（新库不建、老库 `SettlementIndexMigration` 启动 DROP），防重复收款改判「最近一张结算单未退款」；③ 退款流水与对账明细行联出 `payTypeText`/`customerName`/`staffName` 展示字段。测试落点与第五节一致（`RefundReconciliationTest` 6 例 + `RefundHttpTest` 2 例）。
 > 关联：[服务端接口](../server/api.md) 结算组、[数据模型](../server/data-model.md) `settlements`/`recharges`/`card_usages`、月度收费报表 `GET /api/v1/settlement/report/month`、[药房与发药流转](./dispensing.md)、[对齐清单](./alignment.md) P1-33。
 
 ## 一、现状与缺口

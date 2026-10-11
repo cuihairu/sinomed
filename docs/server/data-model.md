@@ -87,20 +87,20 @@
 | 表 | 字段要点 | 现状 |
 | ---- | ---- | ---- |
 | `orders`（订单） | `user_id`（顾客）、`item_id`（卡项）、`staff_id`、`status`、`price` | 已接线：Kiosk 下单与前台建单均落 `status=0` 并快照卡项现价（前台建单记录 `staff_id`）；`status` 语义 `0` 已下单 → `1` 已确认 → `2` 已完成，`9` 已取消（`0/1→9`，仅 `9` 可删），管理端分页与流转见 [api](/server/api) 订单组；结算信息在 `settlements` 表（一单一结算），订单分页联出支付方式 |
-| `recharges`（储值流水） | `user_id`、`money` | 已接线：充值为正、储值支付扣减为负，余额 = 流水合计；接口见 [api](/server/api) 储值组 |
+| `recharges`（储值流水） | `user_id`、`money`、`note`（≤100 字可空，退款补回写「退单 #结算id」） | 已接线：充值为正、储值支付扣减为负，余额 = 流水合计；储值退款原路退回落正数流水（日对账不计入充值）；接口见 [api](/server/api) 储值组 |
 
 ## settlements — 结算单（收费结算）
 
 | 字段 | 类型 | 含义 |
 | ---- | ---- | ---- |
 | id | Long | 主键（结算单号，时间倒序展示） |
-| order_id | Long | 订单 id（非空，唯一索引——一单一结算，防重复收款） |
+| order_id | Long | 订单 id（非空；原唯一索引已随退费口径移除——退款后重收一单可多张结算单，防重复收款改由「最近一张未退款」校验兜底） |
 | user_id | Long | 顾客 id（非空，冗余自订单便于按顾客对账） |
 | pay_type | Integer | 支付方式：`1` 储值 / `2` 微信 / `3` 支付宝 / `4` 现金 / `5` 次卡抵扣 |
 | money | Integer | 实收金额（元，取订单价格快照；次卡抵扣记 0） |
 | create_time / update_time | Date | 审计时间 |
 
-索引：`order_id`（唯一）、`user_id`。结算动作把订单 `0/1 → 2` 已完成；储值支付同时在 `recharges` 落一条负数流水；次卡抵扣扣 `customer_cards` 余 1 次。微信/支付宝为演示口径（仅记录方式，无真实收银通道），见 [api](/server/api) 收费组。
+索引：`user_id`（`order_id` 唯一索引已随退费口径移除，启动迁移 DROP 老库遗留索引）。结算动作把订单 `0/1 → 2` 已完成；储值支付同时在 `recharges` 落一条负数流水；次卡抵扣扣 `customer_cards` 余 1 次。微信/支付宝为演示口径（仅记录方式，无真实收银通道），见 [api](/server/api) 收费组。
 
 ## customer_cards — 顾客持卡（次卡）
 
@@ -115,6 +115,21 @@
 | create_time / update_time | Date | 审计时间 |
 
 索引：顾客。抵扣按「同顾客 + 同卡项、有效且有余次」取**最早一张**扣 1 次；暂无有效期（规划）。接口见 [api](/server/api) 次卡组。
+
+## refund_logs — 退款流水（退费）
+
+| 字段 | 类型 | 含义 |
+| ---- | ---- | ---- |
+| id | Long | 主键 |
+| settlement_id | Long | 被退的结算单（非空，**唯一索引**——一笔结算只能退一次） |
+| order_id | Long | 订单 id（非空，索引，回退订单状态用） |
+| money | Integer | 退款金额（元，= 原结算实收；次卡为 0） |
+| pay_type | Integer | 原支付方式冗余：`1` 储值 / `2` 微信 / `3` 支付宝 / `4` 现金 / `5` 次卡抵扣 |
+| staff_id | Long | 操作人 staff id（可空） |
+| reason | String | 退款理由（≤100 字，非空——退款必须能答「为什么」） |
+| create_time / update_time | Date | 审计时间 |
+
+退款 = 退整单、原路退回，无软删（演示口径无留痕）；储值退回的正数流水随 `recharges` 天然留痕（note「退单 #结算id」，日对账不计入充值）；次卡退款作废该订单 `card_usages` 并回补 `customer_cards` 余次；退款后订单 `2 → 1` 可重收。口径见 [reconciliation.md](../design/reconciliation.md)。
 
 ## card_usages — 次卡核销流水
 
