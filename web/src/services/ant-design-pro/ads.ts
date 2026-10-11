@@ -3,6 +3,14 @@ import { request } from '@umijs/max';
 export interface AdMaterial {
   id?: number;
   name?: string;
+  /** 叠加层眉题（可空；四项文案全空即纯素材播放） */
+  kicker?: string;
+  /** 叠加层大标题（可空） */
+  title?: string;
+  /** 叠加层文案副题（可空） */
+  copy?: string;
+  /** 价格行，自由文本（可空） */
+  price?: string;
   /** 1 图片、2 视频 */
   type?: 1 | 2;
   /** 上传接口返回的相对地址，如 /media/202610/xxx.png */

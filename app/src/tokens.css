@@ -43,3 +43,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 .serif { font-family: var(--serif); }
+
+/* 小程序兜底（WXSS 不支持 :root 与属性选择器）：基础变量挂 page 选择器，
+   H5 端 page 不匹配任何元素、由 :root 继续生效，两端互不干扰。
+   四主题切换属管理端/桌面端能力，小程序白标单色（见 brand.ts），只落默认石墨。 */
+page {
+  --paper: #f7f7f4;
+  --card: #ffffff;
+  --ink: #262927;
+  --muted: #6b706d;
+  --faint: #979c99;
+  --line: #e5e7e4;
+  --amber: #c7a674;
+  --amber-deep: #8a6a35;
+  --amber-tint: #f4eee1;
+  --serif: "Noto Serif CJK SC", "Noto Serif SC", "Songti SC", serif;
+  --sans: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --brand: #353a37;
+  --brand-deep: #262a28;
+  --brand-tint: #eceeee;
+}

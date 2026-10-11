@@ -92,6 +92,8 @@ const Create: React.FC = () => {
   const treatId = searchParams.get('treatId');
   const [customer, setCustomer] = useState<API.Customer>();
   const [treats, setTreats] = useState<TreatRow[]>([]);
+  /** 是否运行在桌面壳内（tauri 注入全局；remote 能力只放事件监听，状态条据此如实标注） */
+  const [inShell] = useState(() => typeof window !== 'undefined' && !!(window as any).__TAURI__);
   const [treatTotal, setTreatTotal] = useState(0);
   const [todayTotal, setTodayTotal] = useState<number>();
   /** 穴位字典：接诊取穴选穴辅助（按穴名/拼音检索，选中即追加进取穴文本，仍可自由写） */
@@ -552,24 +554,48 @@ const Create: React.FC = () => {
 
             <section className="tc-panel">
               <h3>外设状态</h3>
-              <div className="dev">
-                <i className="st dim" />
-                <span className="nm">80mm 小票机（USB 串口）</span>
-                <span className="tag dim">桌面工作站</span>
-              </div>
-              <div className="dev">
-                <i className="st" />
-                <span className="nm">扫码枪（页顶扫码条）</span>
-                <span className="tag">已就绪</span>
-              </div>
-              <div className="dev">
-                <i className="st dim" />
-                <span className="nm">A5 处方笺打印机</span>
-                <span className="tag dim">系统打印</span>
-              </div>
+              {/* 壳内（tauri webview，remote 能力仅放事件监听）按事件通道标注；浏览器端按页面自身能力标注 */}
+              {inShell ? (
+                <>
+                  <div className="dev">
+                    <i className="st dim" />
+                    <span className="nm">80mm 小票机（USB 串口）</span>
+                    <span className="tag dim">escpos 待接入</span>
+                  </div>
+                  <div className="dev">
+                    <i className="st" />
+                    <span className="nm">扫码枪（串口事件通道）</span>
+                    <span className="tag">事件监听就绪</span>
+                  </div>
+                  <div className="dev">
+                    <i className="st dim" />
+                    <span className="nm">A5 处方笺打印机</span>
+                    <span className="tag dim">系统打印</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="dev">
+                    <i className="st dim" />
+                    <span className="nm">80mm 小票机（USB 串口）</span>
+                    <span className="tag dim">需桌面工作站</span>
+                  </div>
+                  <div className="dev">
+                    <i className="st" />
+                    <span className="nm">扫码枪（页顶扫码条）</span>
+                    <span className="tag">已就绪</span>
+                  </div>
+                  <div className="dev">
+                    <i className="st dim" />
+                    <span className="nm">A5 处方笺打印机</span>
+                    <span className="tag dim">系统打印</span>
+                  </div>
+                </>
+              )}
               <div className="plan-note">
-                外设物理状态由桌面壳上报（serialport 串口监听），浏览器端按当前可用能力如实标注；
-                小票打印待桌面壳外设链路接入。
+                {inShell
+                  ? '已检测到桌面壳：扫码枪串口事件通道就绪（收码即监听中）；壳侧未提供端口状态查询命令，连接态以实际收码为准；小票 escpos 链路待接入。'
+                  : '浏览器环境：按页面可用能力如实标注；进入桌面工作站后扫码枪走串口事件通道、小票机走 escpos 直连。'}
               </div>
             </section>
           </aside>

@@ -18,6 +18,57 @@
   object-fit: contain;
 }
 
+/* 排版层（原型 tablet-screen .copy 的适配版）：素材铺满舞台时，
+   文案以左下渐变底叠加，眉题 pill / 宋体大标题 / 说明行 / 价格行 */
+.player-copy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4.5vh 4vw 4vh;
+  background: linear-gradient(180deg, rgba(38, 42, 40, 0) 0%, rgba(38, 42, 40, 0.72) 58%);
+  color: #fff;
+  z-index: 3;
+}
+
+.pc-kicker {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 1.3vw;
+  letter-spacing: 0.35em;
+  color: var(--amber);
+  border: 1.5px solid rgba(199, 166, 116, 0.6);
+  border-radius: 999px;
+  padding: 0.5vw 1.6vw;
+}
+
+.pc-title {
+  font-family: var(--serif);
+  font-size: 4.6vw;
+  line-height: 1.25;
+  letter-spacing: 0.05em;
+  margin: 1.8vh 0 0;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+
+.pc-sub {
+  font-size: 1.5vw;
+  margin: 1.4vh 0 0;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.86);
+  max-width: 62%;
+}
+
+.pc-price {
+  font-family: var(--serif);
+  font-size: 3.4vw;
+  font-weight: 700;
+  margin-top: 1.6vh;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 轮播进度（对齐原型 .pager）：当前点加宽染 --brand */
 .player-pager {
   position: absolute;

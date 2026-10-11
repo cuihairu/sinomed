@@ -24,6 +24,18 @@ public class AdMaterialView {
     @Schema(title = "素材名", requiredMode = Schema.RequiredMode.REQUIRED, example = "冬季三九贴活动")
     private String name;
 
+    @Schema(title = "眉题（叠加层顶部小字，可空）", example = "冬病夏治")
+    private String kicker;
+
+    @Schema(title = "大标题（叠加层主文案，可空）", example = "三伏艾灸，借阳祛寒正当时")
+    private String title;
+
+    @Schema(title = "文案副题（叠加层说明行，可空）", example = "督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。")
+    private String copy;
+
+    @Schema(title = "价格行（自由文本，可空）", example = "¥880 / 10 次")
+    private String price;
+
     @NotNull
     @Schema(title = "类型", description = "1 图片、2 视频", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Integer type;
@@ -54,6 +66,10 @@ public class AdMaterialView {
         AdMaterialEntity entity = new AdMaterialEntity();
         entity.setId(id);
         entity.setName(name);
+        entity.setKicker(kicker);
+        entity.setTitle(title);
+        entity.setCopy(copy);
+        entity.setPrice(price);
         entity.setType(type);
         entity.setUrl(url);
         entity.setDurationMs(durationMs);
@@ -66,6 +82,10 @@ public class AdMaterialView {
         return AdMaterialView.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .kicker(entity.getKicker())
+                .title(entity.getTitle())
+                .copy(entity.getCopy())
+                .price(entity.getPrice())
                 .type(entity.getType())
                 .url(entity.getUrl())
                 .durationMs(entity.getDurationMs())

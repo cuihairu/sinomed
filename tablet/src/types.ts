@@ -2,6 +2,14 @@
 export interface PlaylistItem {
   materialId: number
   name: string
+  /** 叠加层眉题（可空；四项文案全空即纯素材播放） */
+  kicker?: string | null
+  /** 叠加层大标题（可空） */
+  title?: string | null
+  /** 叠加层文案副题（可空） */
+  copy?: string | null
+  /** 价格行，自由文本（可空） */
+  price?: string | null
   /** 1 图片、2 视频 */
   type: 1 | 2
   url: string

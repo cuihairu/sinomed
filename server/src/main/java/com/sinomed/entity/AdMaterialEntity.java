@@ -27,6 +27,22 @@ public class AdMaterialEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    /** 眉题（叠加层顶部小字，如「冬病夏治」；可空=无叠加层） */
+    @Column(name = "kicker")
+    private String kicker;
+
+    /** 大标题（叠加层主文案；可空） */
+    @Column(name = "title")
+    private String title;
+
+    /** 文案副题（叠加层说明行；可空） */
+    @Column(name = "copy")
+    private String copy;
+
+    /** 价格行（如「¥880 / 10 次」，自由文本；可空） */
+    @Column(name = "price")
+    private String price;
+
     /** 1 图片、2 视频 */
     @Column(name = "type", nullable = false)
     private Integer type;

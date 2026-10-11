@@ -36,6 +36,10 @@ web dash（素材/排期/屏/叫号管理） ──► server ads/calls 模块�
 | ---- | ---- | ---- |
 | id | Long | 主键 |
 | name | String | 素材名（非空） |
+| kicker | String | 叠加层眉题（可空；四项文案全空即纯素材播放） |
+| title | String | 叠加层大标题（可空） |
+| copy | String | 叠加层文案副题（可空） |
+| price | String | 价格行，自由文本（可空） |
 | type | Integer | 1 图片、2 视频 |
 | url | String | 文件相对路径（服务端落盘后由 Nginx 静态托管） |
 | duration_ms | Integer | 轮播停留时长（视频可取实际时长） |

@@ -38,6 +38,9 @@ export function Carousel({ items, mediaVersion }: { items: PlaylistItem[]; media
   }
 
   const current = items[index % items.length]
+  // 排版层：素材可带 眉题/大标题/文案/价格（原型 tablet-screen.html 整版设计的适配版——
+  // 媒体文件铺满舞台，文案以左下渐变底叠加；全空即纯素材播放）
+  const hasCopy = Boolean(current.kicker || current.title || current.copy || current.price)
   return (
     <div className="player-stage">
       {current.type === 2 ? (
@@ -60,6 +63,14 @@ export function Carousel({ items, mediaVersion }: { items: PlaylistItem[]; media
           onError={() => setIndex((i) => (i + 1) % items.length)}
         />
       )}
+      {hasCopy ? (
+        <div className="player-copy">
+          {current.kicker ? <span className="pc-kicker">{current.kicker}</span> : null}
+          {current.title ? <h1 className="pc-title">{current.title}</h1> : null}
+          {current.copy ? <p className="pc-sub">{current.copy}</p> : null}
+          {current.price ? <div className="pc-price">{current.price}</div> : null}
+        </div>
+      ) : null}
       <div className="player-pager">
         {items.map((_, i) => (
           <i key={i} className={i === index % items.length ? 'on' : ''} />

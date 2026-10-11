@@ -750,6 +750,23 @@ const AdsPage: React.FC = () => {
               ]}
             />
           </Form.Item>
+          {/* 叠加层文案（平板整版排版层，对齐原型 tablet-screen.html：眉题/大标题/文案/价格；全空即纯素材播放） */}
+          <Form.Item
+            name="kicker"
+            label="眉题"
+            tooltip="叠加层顶部小字，如「冬病夏治」；四项文案全空即纯素材播放"
+          >
+            <Input placeholder="如 冬病夏治" maxLength={12} />
+          </Form.Item>
+          <Form.Item name="title" label="大标题" tooltip="叠加层主文案，建议一句话">
+            <Input placeholder="如 三伏艾灸，借阳祛寒正当时" maxLength={30} />
+          </Form.Item>
+          <Form.Item name="copy" label="文案" tooltip="叠加层说明行">
+            <Input.TextArea rows={2} placeholder="如 督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。" maxLength={60} />
+          </Form.Item>
+          <Form.Item name="price" label="价格行" tooltip="自由文本，如「¥880 / 10 次」">
+            <Input placeholder="如 ¥880 / 10 次" maxLength={20} />
+          </Form.Item>
         </Form>
       </Modal>
 

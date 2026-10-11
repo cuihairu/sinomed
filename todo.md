@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 34 条（P0 2/2 + P1 17 + P2 15：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要、treat history 列扩、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 50 条（P1 8 / P2 42，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，另 customer 时间线 医师/时长/项目名 半条卡点；1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 37 条（P0 2/2 + P1 20 + P2 15：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要、treat history 列扩、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 47 条（P1 5 / P2 42，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -89,7 +89,7 @@
 - [ ] 四种支付图标配色统一 brand 单色（原型绿微/蓝支/褐现分色）｜原型 admin-billing.html:154 / 实现 web/src/pages/Billing/Settle/index.less:313｜P2
 
 ### desktop-workstation（7 条）
-- [ ] 外设状态条为写死静态文案（原型实时连接态；壳侧 print_html/print_escpos/scanner_start 无状态查询命令）｜原型 desktop-workstation.html:179 / 实现 web/src/pages/Treat/Create/index.tsx:532（壳命令 desktop/src-tauri/src/main.rs:70）｜P1
+- [x] 外设状态条为写死静态文案（原型实时连接态；壳侧 print_html/print_escpos/scanner_start 无状态查询命令）｜✅ 2026-10-12 部分清：状态条按运行环境如实标注——壳内（window.__TAURI__ 检测 index.tsx:96）出「串口事件通道就绪」（remote 能力只放事件监听，收码即监听中 index.tsx:557-596），浏览器出「页顶扫码条/需桌面工作站」，plan-note 分环境说明。余卡点：真实端口连接态需壳侧新增状态查询命令（Rust commands + tauri ACL 权限文件），本轮不动壳｜P1（部分，余壳侧命令）
 - [ ] 接诊单开单表项目行/从卡项添加为「规划功能」占位壳｜原型 desktop-workstation.html:133 / 实现 web/src/pages/Treat/Create/index.tsx:460｜P2
 - [ ] 应收合计+「收款并打印小票」为「规划功能」占位（收款在 Billing/Settle 页）｜原型 desktop-workstation.html:168 / 实现 web/src/pages/Treat/Create/index.tsx:481｜P2
 - [ ] 顾客条卡项余次「规划功能」占位｜原型 desktop-workstation.html:131 / 实现 web/src/pages/Treat/Create/index.tsx:249｜P2
@@ -98,7 +98,7 @@
 - [ ] 工作站默认窗口 1280×800（原型 1360×832@1440×900）｜原型 desktop-workstation.html:8 / 实现 desktop/src-tauri/src/config.rs:28｜P2
 
 ### admin-themes 设计系统（6 条）
-- [ ] 小程序 tokens 失效风险：变量挂 `:root`（WXSS 不支持）无 `page` 兜底，13 处 var(--brand) 在小程序构建不可解析（仅 H5 可靠）｜原型 tokens.css:5 / 实现 app/src/tokens.css:5、app/src/pages/index/index.css:60｜P1
+- [x] 小程序 tokens 失效风险：变量挂 `:root`（WXSS 不支持）无 `page` 兜底，13 处 var(--brand) 在小程序构建不可解析（仅 H5 可靠）｜✅ 2026-10-12 tokens.css 追加 `page` 选择器兜底块（app/src/tokens.css:50，全量基础变量+默认石墨主题；H5 端 page 不匹配元素、:root 继续生效，两端互不干扰）；weapp 构建过（taro build --type weapp compiled successfully）。四主题切换仍属 #102 P2 不动｜P1
 - [ ] 小程序无四主题切换（白标单色 BRAND_THEME，与四主题体系脱节）｜原型 tokens.css:23 / 实现 app/src/app.ts:21、app/config/brand.ts:13｜P2
 - [ ] Kiosk 写死 data-theme="pine" 无切换能力｜原型 tokens.css:3 / 实现 kiosk/index.html:2｜P2
 - [ ] Tablet 未设 data-theme 固定石墨，无切换机制｜原型 tokens.css:23 / 实现 tablet/src/main.tsx:5｜P2
@@ -120,7 +120,7 @@
 - [ ] 卡片封面由 flex 撑满（min-height 150px）改为固定 16:9｜原型 kiosk-menu.html:28 / 实现 kiosk/src/menu/menu.css:37｜P2
 
 ### tablet-screen（2 条）
-- [ ] 广告页排版层缺失：原型整版设计稿（眉题/110px 大标题/文案/价格/品牌渐变大字「灸」）未实现，仅 object-fit 播放素材文件（数据模型无文案字段）｜原型 tablet-screen.html:47 / 实现 tablet/src/player/Carousel.tsx:42、tablet/src/types.ts:2｜P1
+- [x] 广告页排版层缺失：原型整版设计稿（眉题/110px 大标题/文案/价格/品牌渐变大字「灸」）未实现，仅 object-fit 播放素材文件（数据模型无文案字段）｜✅ 2026-10-12 全链路：ad_materials 加 kicker/title/copy/price 四列（AdMaterialEntity.java:31-46，ddl-auto 建列）、view/playlist 透传（AdMaterialView.java、PlaylistView.PlaylistItem、AdsServiceImpl.java:209）、管理端素材表单四字段（Ads/Index/index.tsx:750-771）、平板 PlaylistItem 类型 + 播放叠加层（tablet/src/types.ts、Carousel.tsx:60-75，眉题 pill/宋体大标题/说明行/价格行，媒体铺满+左下渐变底，四项全空即纯素材播放）、回归 AdsMaterialCopyHttpTest（建+分页读回）。原型「灸」大字为该稿专属装饰、媒体素材自带视觉，未做｜P1
 - [ ] 叫号条文案「前往 X」与原型「到 3 号诊室」不一致｜原型 tablet-screen.html:66 / 实现 tablet/src/player/CallOverlay.tsx:35｜P2
 
 ### 逐页核对结论（15/15）

@@ -300,7 +300,7 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST/PUT | `/api/v1/ads/materials` | 新建 / 更新素材（name、type 1图2视频、url、durationMs、enabled、sort） |
+| POST/PUT | `/api/v1/ads/materials` | 新建 / 更新素材（name、type 1图2视频、url、durationMs、enabled、sort；叠加层文案 kicker 眉题 / title 大标题 / copy 文案 / price 价格行 均可空，四项全空即纯素材播放，随 playlist 下发平板排版层） |
 | DELETE | `/api/v1/ads/materials/{id}` | 删除素材 |
 | GET | `/api/v1/ads/materials/page` | 素材分页（current、pageSize） |
 | POST | `/api/v1/ads/materials/upload` | multipart 上传媒体，落盘 `data/ads/yyyyMM/`，返回 `{ url, originalName, size }` |
