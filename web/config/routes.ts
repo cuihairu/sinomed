@@ -189,6 +189,11 @@ export default [
         component: './Prescription/Template',
       },
       {
+        name: 'prescription-therapy-templates',
+        path: '/prescription/therapy-templates',
+        component: './Prescription/TherapyTemplate',
+      },
+      {
         name: 'prescription-formulas',
         path: '/prescription/formulas',
         component: './Prescription/Formula',

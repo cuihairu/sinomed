@@ -23,6 +23,7 @@ import { useSearchParams, history } from '@umijs/max';
 import moment from 'moment';
 import ScannerInput from '@/components/ScannerInput';
 import { queryAcupointPage, type Acupoint } from '@/services/ant-design-pro/acupoint';
+import { queryEnabledTherapyTemplates, type TherapyTemplate } from '@/services/ant-design-pro/therapy';
 import './index.less';
 
 type Treat = {
@@ -89,6 +90,8 @@ const Create: React.FC = () => {
   const [todayTotal, setTodayTotal] = useState<number>();
   /** 穴位字典：接诊取穴选穴辅助（按穴名/拼音检索，选中即追加进取穴文本，仍可自由写） */
   const [acupoints, setAcupoints] = useState<Acupoint[]>([]);
+  /** 外治模板：上架模板即点即套（方法/疗程回填针灸处方区，取穴追加进取穴文本，仍可随时改） */
+  const [therapyTemplates, setTherapyTemplates] = useState<TherapyTemplate[]>([]);
 
   const loadAcupoints = async () => {
     if (acupoints.length > 0) return;
@@ -100,6 +103,28 @@ const Create: React.FC = () => {
     const cur = ((formRef.current?.getFieldValue(field) as string) || '').trim();
     const next = cur ? `${cur}、${name}` : name;
     formRef.current?.setFieldsValue({ [field]: next });
+  };
+
+  const loadTherapyTemplates = async () => {
+    if (therapyTemplates.length > 0) return;
+    const list = await queryEnabledTherapyTemplates();
+    setTherapyTemplates(list || []);
+  };
+
+  /** 套用外治模板：方法/疗程直接回填，取穴建议追加进取穴-左；只回填一次建议值，不写回模板 */
+  const applyTherapyTemplate = (id?: number) => {
+    const tpl = therapyTemplates.find((t) => t.id === id);
+    if (!tpl) return;
+    const values: Record<string, string> = {};
+    if (tpl.method) values.acuMethod = tpl.method;
+    if (tpl.course) values.acuCourse = tpl.course;
+    const target = (tpl.target || '').trim();
+    if (target) {
+      const cur = ((formRef.current?.getFieldValue('acupointLeft') as string) || '').trim();
+      values.acupointLeft = cur ? `${cur}、${target}` : target;
+    }
+    formRef.current?.setFieldsValue(values);
+    message.success(`已套用「${tpl.name}」：方法/疗程/取穴按建议回填，可继续自由修改`);
   };
 
   // 顾客头卡数据：customerId 直取；编辑态（treatId）从单据反查；定位扫码经 onLocated 改写 customerId 后重跑
@@ -384,6 +409,23 @@ const Create: React.FC = () => {
 
             <section className="tc-panel">
               <h3>针灸处方</h3>
+              <div className="tc-row">
+                <Select
+                  className="tc-tpl-pick"
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                  value={undefined}
+                  placeholder="套用外治模板（带出方法/取穴/疗程）"
+                  options={therapyTemplates.map((t) => ({ label: `${t.name}｜${t.method}`, value: t.id! }))}
+                  onDropdownVisibleChange={loadTherapyTemplates}
+                  onFocus={loadTherapyTemplates}
+                  onChange={(v) => v && applyTherapyTemplate(v as number)}
+                />
+              </div>
+              <div className="tc-ap-note">
+                外治模板只存建议值：套用后方法/取穴/疗程可随时改，不会写回模板；维护见「中药处方 → 外治模板」
+              </div>
               <div className="tc-row cols-3">
                 <ProFormText name="acuMethod" label="针法" placeholder="如 毫针、电针、温针、耳针" />
                 <ProFormDigit

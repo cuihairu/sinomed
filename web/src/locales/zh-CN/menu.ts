@@ -48,6 +48,7 @@ export default {
   'menu.prescription.prescription-create':'开方',
   'menu.prescription.prescription-query':'处方查询',
   'menu.prescription.prescription-templates':'病症模板',
+  'menu.prescription.prescription-therapy-templates':'外治模板',
   'menu.prescription.prescription-formulas':'方剂库',
   'menu.prescription.prescription-herbs':'药材字典',
   'menu.prescription.herb-stock':'饮片库存',
