@@ -124,3 +124,33 @@
     color: var(--faint);
   }
 }
+
+/* 项目列明细串 */
+.its {
+  font-size: 13px;
+}
+
+/* 「查看」详情弹窗 */
+.od-detail {
+  .od-items {
+    margin-top: 14px;
+  }
+  .od-memo {
+    margin-top: 12px;
+    background: var(--amber-tint, #faf3e3);
+    border-left: 3px solid var(--amber, #c7a674);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--ink, #3a3d3b);
+
+    &::before {
+      content: '整单备注';
+      display: block;
+      font-size: 11px;
+      color: var(--brand-deep, #9a7b3f);
+      margin-bottom: 3px;
+      font-weight: 700;
+    }
+  }
+}

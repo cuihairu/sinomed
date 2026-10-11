@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Button, Select, message } from 'antd';
-import { createOrder } from '@/services/ant-design-pro/order';
+import { Button, InputNumber, Select, message } from 'antd';
+import { MinusOutlined } from '@ant-design/icons';
+import { createOrder, orderBusinessNo, type OrderItem } from '@/services/ant-design-pro/order';
 import { fetchCustomerByPhone } from '@/services/ant-design-pro/customer';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryItemByPage } from '@/services/ant-design-pro/item';
@@ -22,7 +23,8 @@ const Create: React.FC = () => {
   const [staffId, setStaffId] = useState<number | undefined>();
   const [itemOptions, setItemOptions] = useState<{ label: string; value: number }[]>([]);
   const [itemsById, setItemsById] = useState<Record<number, ItemBrief>>({});
-  const [itemId, setItemId] = useState<number | undefined>();
+  /** 已选明细行（多品项，每行可改数量） */
+  const [lines, setLines] = useState<OrderItem[]>([]);
   const [busy, setBusy] = useState(false);
 
   const loadOptions = async () => {
@@ -69,15 +71,19 @@ const Create: React.FC = () => {
       message.warning('请先按手机号定位顾客');
       return;
     }
-    if (!itemId) {
+    if (lines.length === 0) {
       message.warning('请选择卡项');
       return;
     }
     setBusy(true);
     try {
-      const created = await createOrder({ customerId: customer.id, itemId, staffId });
+      const created = await createOrder({
+        customerId: customer.id,
+        items: lines.map((l) => ({ itemId: l.itemId!, qty: l.qty ?? 1 })),
+        staffId,
+      });
       if (created?.id) {
-        message.success(`已下单 #${created.id}，可到结算台收款`);
+        message.success(`已下单 ${orderBusinessNo(created)}，可到结算台收款`);
         history.push('/order/query');
       }
     } finally {
@@ -85,7 +91,7 @@ const Create: React.FC = () => {
     }
   };
 
-  const picked = itemId != null ? itemsById[itemId] : undefined;
+  const total = lines.reduce((sum, l) => sum + (l.price ?? 0) * (l.qty ?? 1), 0);
 
   return (
     <PageContainer
@@ -125,13 +131,58 @@ const Create: React.FC = () => {
             <label>卡项</label>
             <Select
               className="item"
-              placeholder="选择卡项"
+              mode="multiple"
+              placeholder="选择卡项（可多选，每行可改数量）"
               options={itemOptions}
-              value={itemId}
+              value={lines.map((l) => l.itemId!)}
               onDropdownVisibleChange={loadOptions}
-              onChange={(v) => setItemId(v)}
+              onChange={(ids) =>
+                setLines(
+                  ids.map((id) => {
+                    const hit = itemsById[id];
+                    return {
+                      itemId: id,
+                      itemName: hit?.name,
+                      price: hit?.price,
+                      qty: lines.find((l) => l.itemId === id)?.qty ?? 1,
+                      subtotal: (hit?.price ?? 0) * (lines.find((l) => l.itemId === id)?.qty ?? 1),
+                    };
+                  }),
+                )
+              }
             />
           </div>
+          {lines.map((l, idx) => (
+            <div className="row line" key={l.itemId}>
+              <label>{idx + 1}</label>
+              <span className="lnm">
+                {l.itemName}
+                <i>¥{l.price ?? 0}/次</i>
+              </span>
+              <InputNumber
+                min={1}
+                max={99}
+                precision={0}
+                value={l.qty}
+                onChange={(v) =>
+                  setLines(lines.map((old) =>
+                    old.itemId === l.itemId
+                      ? { ...old, qty: v ?? 1, subtotal: (old.price ?? 0) * (v ?? 1) }
+                      : old,
+                  ))
+                }
+              />
+              <span className="lsub">¥{(l.price ?? 0) * (l.qty ?? 1)}</span>
+              <Button
+                type="text"
+                size="small"
+                className="lrm"
+                icon={<MinusOutlined />}
+                title="移除该行"
+                onClick={() => setLines(lines.filter((old) => old.itemId !== l.itemId))}
+              />
+            </div>
+          ))}
           <div className="row">
             <label>建单人</label>
             <Select
@@ -146,9 +197,10 @@ const Create: React.FC = () => {
           </div>
           <div className="foot">
             <span className="price">
-              {picked?.price != null ? (
+              {lines.length > 0 ? (
                 <>
-                  应收 <b>¥{picked.price}</b>
+                  应收 <b>¥{total}</b>
+                  <i className="dim">（{lines.length} 行，价格取现价快照）</i>
                 </>
               ) : (
                 '价格取卡项现价快照'

@@ -37,6 +37,10 @@ public class OrderEntity {
     @Column(name = "price")
     private Integer price;
 
+    /** 整单备注（结算台琥珀备忘块，可空） */
+    @Column(name = "remark", length = 200)
+    private String remark;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

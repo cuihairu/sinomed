@@ -97,6 +97,42 @@
       flex: 1;
       max-width: 320px;
     }
+
+    // 明细行：序号 + 名称/单价 + 数量 + 小计 + 移除
+    &.line {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-left: 68px;
+      margin-bottom: 8px;
+
+      label {
+        width: auto;
+        color: var(--faint);
+        font-size: 12px;
+      }
+      .lnm {
+        flex: 1;
+        font-size: 13.5px;
+
+        i {
+          margin-left: 8px;
+          color: var(--faint);
+          font-size: 12px;
+          font-style: normal;
+        }
+      }
+      .lsub {
+        width: 72px;
+        text-align: right;
+        font-weight: 700;
+        color: var(--brand-deep);
+      }
+      .lrm {
+        color: var(--faint);
+      }
+    }
   }
 
   .foot {
@@ -116,6 +152,11 @@
         font-size: 20px;
         font-family: var(--serif);
         margin-left: 2px;
+      }
+      .dim {
+        margin-left: 6px;
+        font-style: normal;
+        font-size: 12px;
       }
     }
   }

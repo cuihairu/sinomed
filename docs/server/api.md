@@ -145,13 +145,16 @@
 
 ## 订单 `/api/v1/order`（kiosk.md K3，需登录）
 
+> 多品项：订单明细落 `order_item` 表（name/price 为下单时刻快照，qty≥1，subtotal=单价×数量），订单接口统一联出 `items[]`；存量单无明细行时按 `itemId+price` 回退一行数量 1。`orders.price` 语义：单行=行小计，多行=各行小计合计。
+
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/order/` | 前台建单：`customerId` + `itemId` 必填（卡项须存在且启用），`staffId` 可选记录建单人；价格取卡项现价快照，落 `status=0` 待接待 |
-| GET | `/api/v1/order/page` | 分页（current、pageSize、status 可空、pending 可空 `true`=只看待结算 0/1），联出顾客名/手机号、卡项名与结算支付方式 `payType` |
-| GET | `/api/v1/order/{id}` | 详情（联顾客与卡项名） |
+| POST | `/api/v1/order/` | 前台建单：`customerId` 必填（顾客须存在），`staffId` 可选记录建单人；单品传 `itemId`（卡项须存在且启用），多品项传 `items[{itemId,qty}]`（qty≥1，逐行校验，`price`=各行小计合计，`itemId` 记首行）；价格取卡项现价快照，落 `status=0` 待接待 |
+| PUT | `/api/v1/order/remark` | 整单备注：body `{id, remark}`，≤200 字，空串/null 清空；超长报 400 |
+| GET | `/api/v1/order/page` | 分页（current、pageSize、status 可空、pending 可空 `true`=只看待结算 0/1），按创建时间倒序（同秒按 id 倒序），联出顾客名/手机号、卡项名、明细行 `items` 与结算支付方式 `payType` |
+| GET | `/api/v1/order/{id}` | 详情（联顾客名、卡项名与明细行 `items`、备注 `remark`） |
 | PUT | `/api/v1/order/status` | 状态流转：`0→1`、`1→2`，`0/1→9` 取消；其余组合报错（body 带 id 与 status） |
-| DELETE | `/api/v1/order/{id}` | 删除，仅 `status=9`（已取消）可删 |
+| DELETE | `/api/v1/order/{id}` | 删除，仅 `status=9`（已取消）可删，连同明细行 |
 
 ## 预约 `/api/v1/appointment`（需登录）
 

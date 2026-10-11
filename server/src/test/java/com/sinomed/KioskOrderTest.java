@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.sinomed.entity.ItemEntity;
 import com.sinomed.entity.OrderEntity;
 import com.sinomed.repository.ItemRepository;
+import com.sinomed.repository.OrderItemRepository;
 import com.sinomed.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class KioskOrderTest {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     private static Long itemA;
     private static Long itemB;
@@ -95,6 +99,11 @@ class KioskOrderTest {
             OrderEntity saved = orderRepository.findById(id.longValue()).orElseThrow();
             assertEquals(0, saved.getStatus());
         }
+        // 明细行落库：每单一行，名称/单价快照
+        var lines = orderItemRepository.findByOrderIdOrderByIdAsc(orderIds.get(0).longValue());
+        assertEquals(1, lines.size());
+        assertEquals("测试下单甲", lines.get(0).getName());
+        assertEquals(198, lines.get(0).getSubtotal());
     }
 
     @Test

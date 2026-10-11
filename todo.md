@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-11 续批）：已清 8 条（P0 2/2 + P1 2 + P2 4，含 admin-herbprescription 辨证条、mobile-home 全部 7 条），余 76 条（P1 22 / P2 54）。
+> 进度（2026-10-11 续批）：已清 17 条（P0 2/2 + P1 6 + P2 9：herbprescription 辨证条、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号），余 67 条（P1 18 / P2 49）。
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -40,12 +40,12 @@
 - [ ] 卡项列表未按「排序」字段排序（后端 PageRequest 无 Sort，顺序不确定）｜原型 admin-items.html:88 / 实现 web/src/pages/Item/Query/index.tsx:137（后端 server/src/main/java/com/sinomed/controller/ItemController.java:118）｜P2
 - [ ] 卡项无「时长」结构化字段（仅 description 自由文本）｜原型 admin-items.html:95 / 实现 web/src/pages/Item/Query/index.tsx:50｜P2
 
-### admin-orders（5 条）
-- [ ] 已完成/已取消订单缺「查看」详情入口（实现渲染「-」）｜原型 admin-orders.html:120 / 实现 web/src/pages/Order/Query/index.tsx:195｜P1
-- [ ] 「项目」列仅单卡项无数量（数据模型无多品项/数量字段）｜原型 admin-orders.html:101 / 实现 web/src/pages/Order/Query/index.tsx:120｜P1
-- [ ] 单号格式：原型业务单号「20261008-006」，实现裸 id「#6」｜原型 admin-orders.html:99 / 实现 web/src/pages/Order/Query/index.tsx:94｜P2
-- [ ] 订单列表未按时间倒序（page 查询无 ORDER BY）｜原型 admin-orders.html:99 / 实现 web/src/pages/Order/Query/index.tsx:225（后端 server/src/main/java/com/sinomed/service/impl/OrderServiceImpl.java:73）｜P2
-- [ ] 实现多出「下单时间」列（原型无，实现新增项）｜原型 admin-orders.html:95 / 实现 web/src/pages/Order/Query/index.tsx:137｜P2
+### admin-orders（5 条，全部已清）
+- [x] 已完成/已取消订单缺「查看」详情入口（实现渲染「-」）｜原型 admin-orders.html:120 / 实现 web/src/pages/Order/Query/index.tsx:196（done/cancelled 行「查看」开详情弹窗：明细表单价/数量/小计、合计、整单备注、支付方式、下单时间、来源）｜P1
+- [x] 「项目」列仅单卡项无数量（数据模型无多品项/数量字段）｜原型 admin-orders.html:101 / 实现 server/src/main/java/com/sinomed/entity/OrderItemEntity.java:15（order_item 明细行 name/price/qty/subtotal 快照）+ web/src/pages/Order/Query/index.tsx:50（项目列「名 ×数量」顿号串）+ 前台建单多选卡项带数量 web/src/pages/Order/Create/index.tsx:134；存量单回退一行数量 1（OrderController.hydrateItems）｜P1
+- [x] 单号格式：原型业务单号「20261008-006」，实现裸 id「#6」｜原型 admin-orders.html:99 / 实现 web/src/services/ant-design-pro/order.ts:47（orderBusinessNo=创建日期+流水号补零）｜P2
+- [x] 订单列表未按时间倒序（page 查询无 ORDER BY）｜原型 admin-orders.html:99 / 实现 server/src/main/java/com/sinomed/service/impl/OrderServiceImpl.java:79（createTime 倒序，同秒 id 倒序）｜P2
+- [x] 实现多出「下单时间」列（原型无，实现新增项）｜原型 admin-orders.html:95 / 实现 web/src/pages/Order/Query/index.tsx:144（列已删，下单时间挪进「查看」详情）｜P2
 
 ### admin-ads（4 条）
 - [ ] 素材子标题缺「分类」（原型「图片 · 门店活动」，实现只有类型）｜原型 admin-ads.html:112 / 实现 web/src/pages/Ads/Index/index.tsx:254｜P2
@@ -80,11 +80,11 @@
 - [ ] 过敏审方无「档案无药物过敏记录」✓ 常显态（命中才渲染）｜原型 admin-herbprescription.html:138 / 实现 web/src/pages/Prescription/Create/index.tsx:399｜P2
 
 ### admin-billing（7 条；处方饮片行按裁定不计）
-- [ ] 结算明细多行表：原型 项目/数量/小计 三列多行（含卡项抵扣行 ¥0），实现单行 itemName+price（OrderEntity 无数量字段）｜原型 admin-billing.html:122 / 实现 web/src/pages/Billing/Settle/index.tsx:226｜P1
-- [ ] 「整单备注」琥珀备忘块整块缺失（页面与 Order 模型均无 remark）｜原型 admin-billing.html:140 / 实现 web/src/pages/Billing/Settle/index.tsx:209｜P1
-- [ ] 结算头卡缺会员档位标签与接诊单号（仅掩码手机/内部单号/下单时间）｜原型 admin-billing.html:114 / 实现 web/src/pages/Billing/Settle/index.tsx:215｜P2
-- [ ] 应收合计缺「卡项抵扣已减；支付后余额」说明行｜原型 admin-billing.html:152 / 实现 web/src/pages/Billing/Settle/index.tsx:231｜P2
-- [ ] 队列单号格式：原型业务编号「20261008-006」，实现内部 id「#6」｜原型 admin-billing.html:144 / 实现 web/src/pages/Billing/Settle/index.tsx:149｜P2
+- [x] 结算明细多行表：原型 项目/数量/小计 三列多行（含卡项抵扣行 ¥0），实现单行 itemName+price（OrderEntity 无数量字段）｜原型 admin-billing.html:122 / 实现 web/src/pages/Billing/Settle/index.tsx:288（.lines 多行表联 order_item 明细，选次卡且有余次时加「卡项抵扣（次卡扣 1 次）¥0」行）｜P1
+- [x] 「整单备注」琥珀备忘块整块缺失（页面与 Order 模型均无 remark）｜原型 admin-billing.html:140 / 实现 server/src/main/java/com/sinomed/service/impl/OrderServiceImpl.java:187（orders.remark ≤200 字）+ web/src/pages/Billing/Settle/index.tsx:319（琥珀 TextArea 失焦保存 PUT /api/v1/order/remark）｜P1
+- [ ] 结算头卡缺会员档位标签与接诊单号（仅掩码手机/内部单号/下单时间）｜原型 admin-billing.html:114 / 实现 web/src/pages/Billing/Settle/index.tsx:277｜P2
+- [x] 应收合计缺「卡项抵扣已减；支付后余额」说明行｜原型 admin-billing.html:152 / 实现 web/src/pages/Billing/Settle/index.tsx:330（.sub 说明行：次卡实收 0/储值支付后余额/到店收银）｜P2
+- [x] 队列单号格式：原型业务编号「20261008-006」，实现内部 id「#6」｜原型 admin-billing.html:144 / 实现 web/src/pages/Billing/Settle/index.tsx:195（队列行与结算头卡均 orderBusinessNo）｜P2
 - [ ] 微信/支付宝仅记录支付方式（原型扫码收款；在线支付官方口径为规划）｜原型 admin-billing.html:155 / 实现 web/src/pages/Billing/Settle/index.tsx:257｜P2
 - [ ] 四种支付图标配色统一 brand 单色（原型绿微/蓝支/褐现分色）｜原型 admin-billing.html:154 / 实现 web/src/pages/Billing/Settle/index.less:313｜P2
 
@@ -128,12 +128,12 @@
 2. **admin-diagnosis**：6 条（P0 0/P1 2/P2 4）——差距中等，四诊/取穴/方案全对齐；核心缺口是寸关尺分部录入与五行生克可视化。
 3. **admin-dash-day**：4 条（P0 0/P1 1/P2 3）——三组中对齐最好，员工总结列模型按自有复盘数据模型重建。
 4. **admin-items**：2 条（P0 0/P1 0/P2 2）——五列表格/封面/开关/操作/分页全一致，仅排序显示与时长字段。
-5. **admin-orders**：5 条（P0 0/P1 2/P2 3）——骨架对齐但缺「查看」详情、项目列单卡项无数量，排序无保证。
+5. **admin-orders**：5 条（P0 0/P1 2/P2 3）——骨架对齐但缺「查看」详情、项目列单卡项无数量，排序无保证。✅ 2026-10-11 全部 5 条已清（order_item 明细模型 + 查看弹窗 + 业务单号 + 倒序 + 列清理）。
 6. **admin-ads**：4 条（P0 0/P1 0/P2 4）——单页四 tab + 左表右栏完全对齐，仅文案/交互呈现细节。
 7. **admin-appearance**：2 条（P0 0/P1 0/P2 2）——四主题卡+实时预览逐元素还原，仅两处皮肤级细节。
 8. **admin-booking**：7 条（P0 0/P1 3/P2 4）——原型单页看板被拆三页，缺「过号」状态与每时段限约规则。
 9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。✅ P0 辨证摘要条已清（2026-10-11，联接诊单 diagnose/plan/acuCourse）。
-10. **admin-billing**：7 条（P0 0/P1 2/P2 5）——结算主流程对齐；缺口集中在多项目单据数据模型（明细表退化单行、无整单备注）。
+10. **admin-billing**：7 条（P0 0/P1 2/P2 5）——结算主流程对齐；缺口集中在多项目单据数据模型（明细表退化单行、无整单备注）。✅ 2026-10-11 已清 4 条（明细多行表、整单备注、应收说明行、队列业务单号）；余会员档位/接诊单号头卡与支付图标配色 3 条 P2。
 11. **desktop-workstation**：7 条（P0 0/P1 1/P2 6）——薄壳+Web 页骨架完整，唯一实质差距是外设状态条静态文案。
 12. **admin-themes**：6 条（P0 0/P1 1/P2 5）——web 端四主题落地完整（tokens 同源+data-theme+antd token 双通道）；差距在非 web 端（小程序 :root 失效风险、kiosk/tablet 无切换）。
 13. **mobile-home**：7 条（P0 1/P1 2/P2 4）——主体四节结构对齐，唯一 P0 是底部 tabbar 及两个 tab 页整体缺失。✅ 2026-10-11 全部 7 条已清（tabbar+卡项/我的页、预约横幅提醒态、白标自检挪「我的」、铃铛、称呼、全部项目、卡项占位）。

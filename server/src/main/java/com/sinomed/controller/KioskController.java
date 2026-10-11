@@ -114,12 +114,8 @@ public class KioskController {
         List<KioskOrderResult.Line> lines = new ArrayList<>();
         int totalFee = 0;
         for (ItemEntity item : items) {
-            OrderEntity order = new OrderEntity();
-            order.setUserId(customer.getId());
-            order.setItemId(item.getId());
-            order.setStatus(0); // 已下单，待前台接待
-            order.setPrice(item.getPrice()); // 下单时刻价格快照
-            OrderEntity saved = orderService.save(order);
+            // 统一走前台建单（含明细行落库与价格快照），Kiosk 单无建单员工
+            OrderEntity saved = orderService.create(customer.getId(), item.getId(), null);
             totalFee += item.getPrice() == null ? 0 : item.getPrice();
             lines.add(KioskOrderResult.Line.builder()
                     .id(saved.getId())

@@ -3,7 +3,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { Button, Input, InputNumber, Modal, Tag, message } from 'antd';
 import { CheckCircleFilled, PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { Order, ORDER_STATUS, queryOrderPage } from '@/services/ant-design-pro/order';
+import { Order, ORDER_STATUS, orderBusinessNo, queryOrderPage, updateOrderRemark } from '@/services/ant-design-pro/order';
 import {
   PAY_TYPE,
   PAY_TYPE_TEXT,
@@ -20,6 +20,13 @@ import { listCardsByCustomer, type Card } from '@/services/ant-design-pro/card';
 import './index.less';
 
 const maskPhone = (p?: string) => (p ? p.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2') : '');
+
+/** 队列「谁 · 什么项目」：明细行「名 ×数量」顿号串（存量单回退一行） */
+const itemsBrief = (o: Order) => {
+  const rows = o.items || [];
+  if (rows.length === 0) return o.itemName || '';
+  return rows.map((r) => `${r.itemName || `卡项${r.itemId}`} ×${r.qty ?? 1}`).join('、');
+};
 
 /**
  * 小票接口需登录（api.md 口径），window.open 裸开新窗口带不上 Bearer；
@@ -56,6 +63,8 @@ const Settle: React.FC = () => {
   const [cardRest, setCardRest] = useState<number | undefined>();
   /** 刚收完的结算单：右栏给「打印小票」入口 */
   const [done, setDone] = useState<{ id: number; money: number; pay: string } | undefined>();
+  /** 整单备注（琥珀备忘块）：本地草稿，失焦写服务端 */
+  const [remark, setRemark] = useState('');
   /** 退单弹窗：目标结算单 + 退款理由（必填 ≤100 字，原路退回单向） */
   const [refunding, setRefunding] = useState<Settlement | undefined>();
   const [refundReason, setRefundReason] = useState('');
@@ -79,6 +88,7 @@ const Settle: React.FC = () => {
     setRechargeAmount(undefined);
     setCardRest(undefined);
     setDone(undefined);
+    setRemark(order.remark || '');
     if (order.customerId) {
       const b = await fetchRechargeBalance(order.customerId);
       setBalance(b?.balance ?? 0);
@@ -89,6 +99,17 @@ const Settle: React.FC = () => {
       setCardRest(hit?.remainingTimes ?? 0);
     } else {
       setCardRest(0);
+    }
+  };
+
+  /** 整单备注：失焦写入（≤200 字，服务端校验） */
+  const saveRemark = async (text: string) => {
+    if (!selected?.id || !text || text === (selected.remark || '')) return;
+    const saved = await updateOrderRemark({ id: selected.id, remark: text.slice(0, 200) });
+    if (saved?.id) {
+      setRemark(saved.remark || '');
+      setOrders(orders.map((o) => (o.id === selected.id ? { ...o, remark: saved.remark } : o)));
+      message.success('备注已保存');
     }
   };
 
@@ -171,11 +192,11 @@ const Settle: React.FC = () => {
                 className={`q-row ${selected?.id === o.id ? 'on' : ''}`}
                 onClick={() => choose(o)}
               >
-                <span className="oid">#{o.id}</span>
+                <span className="oid">{orderBusinessNo(o)}</span>
                 <span className="src">{o.staffId == null ? '自助机' : '前台'}</span>
                 <span className="who">
                   <b>{o.customerName}</b>
-                  <i>{o.itemName}</i>
+                  <i>{itemsBrief(o)}</i>
                 </span>
                 <span className="amt">¥{o.price}</span>
                 <span className={`st ${o.status === ORDER_STATUS.CONFIRMED ? 'serving' : 'wait'}`}>
@@ -253,7 +274,7 @@ const Settle: React.FC = () => {
                   <div className="who">
                     <div className="nm">{selected.customerName}</div>
                     <div className="mt">
-                      {maskPhone(selected.customerPhone)} · 单 #{selected.id} ·{' '}
+                      {maskPhone(selected.customerPhone)} · 单 {orderBusinessNo(selected)} ·{' '}
                       {selected.createTime ? moment(selected.createTime).format('HH:mm') : ''} 下单
                     </div>
                   </div>
@@ -263,13 +284,56 @@ const Settle: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="line">
-                  <div className="nm">{selected.itemName}</div>
-                  <div className="num">¥{selected.price}</div>
-                </div>
+                {/* 结算明细多行表（项目/数量/小计），次卡抵扣行实收 ¥0 */}
+                <table className="lines">
+                  <thead>
+                    <tr>
+                      <th>项目</th>
+                      <th className="c">数量</th>
+                      <th className="r">小计</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selected.items?.length
+                      ? selected.items
+                      : [{ itemName: selected.itemName, price: selected.price, qty: 1, subtotal: selected.price }]
+                    ).map((r, i) => (
+                      <tr key={i}>
+                        <td>{r.itemName || '-'}</td>
+                        <td className="c">×{r.qty ?? 1}</td>
+                        <td className="r">¥{r.subtotal ?? 0}</td>
+                      </tr>
+                    ))}
+                    {payType === PAY_TYPE.CARD && (cardRest ?? 0) > 0 && (
+                      <tr className="free">
+                        <td>卡项抵扣（次卡扣 1 次）</td>
+                        <td className="c">1</td>
+                        <td className="r">¥0</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {/* 整单备注（琥珀备忘块，失焦保存） */}
+                <Input.TextArea
+                  className="memo"
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  onBlur={(e) => saveRemark(e.target.value)}
+                  placeholder="整单备注：交代事项、约定、特殊要求（失焦保存，≤200 字）"
+                  maxLength={200}
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                />
 
                 <div className="k">应收合计</div>
                 <div className="total">¥{price}</div>
+                <div className="sub">
+                  {payType === PAY_TYPE.CARD && (cardRest ?? 0) > 0
+                    ? '卡项抵扣 ¥0 实收已含；支付后余次 -1'
+                    : payType === PAY_TYPE.STORED_VALUE && balance !== undefined
+                      ? `本单拟用储值支付，支付后余额 ¥${Math.max(balance - price, 0)}`
+                      : '到店收银，支付方式仅作记录'}
+                </div>
 
                 <div className="pays">
                   {[PAY_TYPE.STORED_VALUE, PAY_TYPE.WECHAT, PAY_TYPE.ALIPAY, PAY_TYPE.CASH, PAY_TYPE.CARD].map((t) => (
