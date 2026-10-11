@@ -1,9 +1,10 @@
 import { request } from '@umijs/max';
 
-/** 预约状态：0 待到店、1 已接待、9 已取消 */
+/** 预约状态：0 待到店、1 已接待、8 过号、9 已取消（8/9 为终态） */
 export const APPOINTMENT_STATUS = {
   BOOKED: 0,
   RECEIVED: 1,
+  NO_SHOW: 8,
   CANCELLED: 9,
 } as const;
 
@@ -57,7 +58,7 @@ export async function queryAppointmentPage(
   });
 }
 
-/** 状态流转：0→1 到店接待、0→9 取消（服务端校验非法流转） */
+/** 状态流转：0→1 到店接待、0→8 过号、0→9 取消（服务端校验非法流转，过号/取消为终态） */
 export async function updateAppointmentStatus(
   body: { id: number; status: number },
   options?: { [key: string]: any },

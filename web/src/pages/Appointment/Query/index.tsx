@@ -15,21 +15,24 @@ import {
 } from '@/services/ant-design-pro/appointment';
 import './index.less';
 
-/** 状态文案：0 待到店 / 1 已接待 / 9 已取消（接待后从接诊页建单） */
+/** 状态文案：0 待到店 / 1 已接待 / 8 过号 / 9 已取消（接待后从接诊页建单；过号/取消为终态） */
 const STATUS_TEXT: Record<number, string> = {
   [APPOINTMENT_STATUS.BOOKED]: '待到店',
   [APPOINTMENT_STATUS.RECEIVED]: '已接待',
+  [APPOINTMENT_STATUS.NO_SHOW]: '过号',
   [APPOINTMENT_STATUS.CANCELLED]: '已取消',
 };
 const STATUS_CLASS: Record<number, string> = {
   [APPOINTMENT_STATUS.BOOKED]: 'wait',
   [APPOINTMENT_STATUS.RECEIVED]: 'serving',
+  [APPOINTMENT_STATUS.NO_SHOW]: 'pass',
   [APPOINTMENT_STATUS.CANCELLED]: 'cancel',
 };
 const TABS = [
   { key: undefined, label: '全部' },
   { key: APPOINTMENT_STATUS.BOOKED, label: '待到店' },
   { key: APPOINTMENT_STATUS.RECEIVED, label: '已接待' },
+  { key: APPOINTMENT_STATUS.NO_SHOW, label: '过号' },
   { key: APPOINTMENT_STATUS.CANCELLED, label: '已取消' },
 ];
 
@@ -51,15 +54,19 @@ export default function AppointmentQuery() {
 
   // 原型 tab 带计数：按状态各查一次 total（pageSize=1 只取 total，数据全真实）
   const loadCounts = useCallback(async () => {
-    const [a, b, c] = await Promise.all(
-      [APPOINTMENT_STATUS.BOOKED, APPOINTMENT_STATUS.RECEIVED, APPOINTMENT_STATUS.CANCELLED].map((s) =>
-        queryAppointmentPage({ current: 1, pageSize: 1, status: s }),
-      ),
+    const [a, b, n, c] = await Promise.all(
+      [
+        APPOINTMENT_STATUS.BOOKED,
+        APPOINTMENT_STATUS.RECEIVED,
+        APPOINTMENT_STATUS.NO_SHOW,
+        APPOINTMENT_STATUS.CANCELLED,
+      ].map((s) => queryAppointmentPage({ current: 1, pageSize: 1, status: s })),
     );
     setCounts({
-      all: (a?.total || 0) + (b?.total || 0) + (c?.total || 0),
+      all: (a?.total || 0) + (b?.total || 0) + (n?.total || 0) + (c?.total || 0),
       0: a?.total || 0,
       1: b?.total || 0,
+      8: n?.total || 0,
       9: c?.total || 0,
     });
   }, []);
@@ -171,6 +178,13 @@ export default function AppointmentQuery() {
               到店接待
             </a>,
             <Popconfirm
+              key="noshow"
+              title="标记这条预约过号？"
+              onConfirm={() => flow(entity.id!, APPOINTMENT_STATUS.NO_SHOW, '已标记过号')}
+            >
+              <a className="op-stop">过号</a>
+            </Popconfirm>,
+            <Popconfirm
               key="cancel"
               title="取消这条预约？"
               onConfirm={() => flow(entity.id!, APPOINTMENT_STATUS.CANCELLED, '已取消')}
@@ -215,7 +229,7 @@ export default function AppointmentQuery() {
   return (
     <PageContainer
       title="预约排班"
-      content="前台/馆长建约，顾客到店点「到店接待」，再从接诊页建单；不做线上支付与时段冲突校验。"
+      content="前台/馆长建约，顾客到店点「到店接待」，再从接诊页建单；过号/取消为终态。每时段限约 1 位由后端校验（同医师同日同小时）。"
     >
       <div className="ap-toolbar">
         <div className="ap-tabs">

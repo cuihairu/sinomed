@@ -10,7 +10,7 @@ import java.util.Date;
 
 /**
  * 预约：顾客→卡项→时段一条待接待预约。
- * 状态：0 待到店、1 已接待（转接诊后置）、9 已取消。
+ * 状态：0 待到店、1 已接待（转接诊后置）、8 过号、9 已取消。
  */
 @Data
 @Entity
@@ -43,7 +43,7 @@ public class AppointmentEntity {
     @Column(name = "duration")
     private Integer duration;
 
-    /** 0 待到店、1 已接待、9 已取消 */
+    /** 0 待到店、1 已接待、8 过号、9 已取消 */
     @Column(name = "status")
     private Integer status;
 

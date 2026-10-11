@@ -12,7 +12,7 @@ import java.util.Date;
 
 /**
  * 预约视图：字段与 appointments 表对齐；customerName/customerPhone/itemName 是管理端列表联出的展示字段，落库不涉及。
- * 状态：0 待到店、1 已接待、9 已取消。
+ * 状态：0 待到店、1 已接待、8 过号、9 已取消。
  */
 @Builder
 @NoArgsConstructor
@@ -50,7 +50,7 @@ public class AppointmentView {
     @Schema(title = "时长（分钟）", example = "60")
     private Integer duration;
 
-    @Schema(title = "状态：0 待到店、1 已接待、9 已取消", example = "0")
+    @Schema(title = "状态：0 待到店、1 已接待、8 过号、9 已取消", example = "0")
     private Integer status;
 
     @Schema(title = "备注", example = "肩颈不适，想约王医生")

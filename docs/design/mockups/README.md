@@ -16,7 +16,7 @@
 | `admin-orders.html` | web | ✅ 已实现功能 | 订单管理：分页/状态流转（接单/完成/取消/删除）/查看详情/多品项明细（order_item 行，业务单号 `YYYYMMDD-NNN`、项目列「名 ×数量」、前台建单多选卡项带数量） |
 | `admin-ads.html` | web | ✅ 已实现功能 | 广告屏管理：素材/排期/屏幕/叫号四标签 |
 | `admin-appearance.html` | web | ✅ 已实现功能 | 外观设置：四主题卡即时切换 + 实时预览网格 |
-| `admin-booking.html` | web | ◐ **部分实现** | 预约排班：待到店列表/建约/到店接待转接诊与医师×时段排班网格（`/appointment/schedule`）已实装；小程序自助约期已实装（`POST /api/v1/kiosk/appointments` + 小程序 `pages/booking`） |
+| `admin-booking.html` | web | ◐ **部分实现** | 预约排班：待到店列表/建约/到店接待转接诊与医师×时段排班网格已实装（`/appointment/schedule`，右栏今日预约四格统计/待到店列表/小程序联动说明）；过号状态（0→8）与每时段限约 1 位（同医师同小时，后端校验）已实装；小程序自助约期已实装（`POST /api/v1/kiosk/appointments` + 小程序 `pages/booking`）；网格内「第 N 疗程/复诊/首诊」角标缺疗程字段，未做 |
 | `admin-herbprescription.html` | web | ◐ **部分实现** | 中药处方：处方笺开方/查询已实装（`/prescription/create`、`/prescription/query`，药材自由文本）+ 配伍审方已实装（`POST /prescription/compatibility` 十八反/十九畏静态规则）+ 计价已实装（`/api/v1/herb` 字典 + `POST /prescription/price` 试算，开方页随写随查，未收录药名不计费）；代煎领取已实装（开方勾选代煎袋数=剂数落待煎，查询页流转 待煎→可取→已取，服务费 ¥3/袋 仅提示，141f295/47e4828） |
 | `admin-billing.html` | web | ◐ **部分实现** | 收费结算：待结算队列/储值支付与充值/微信·支付宝·现金（记录口径）已实装（`/billing/settle`，结算台形态）+ 次卡抵扣已实装（payType 5，扣 1 次实收 0）+ 小票打印已实装（服务端套打 `GET /api/v1/print/receipt/{settlementId}`，收款后打印/最近结算补打，f57f10d/1b33703）+ 结算明细多行表/整单备注（`PUT /api/v1/order/remark`，≤200 字）/队列业务单号已实装（2026-10-11）；原型里的处方饮片行已裁定不做（依据「收费以卡项订单结算为准」，处方计价为试算/提示口径） |
 | `desktop-workstation.html` | desktop | ✅ 已实现功能 | 接诊开单 + 打印/扫码外设状态 |

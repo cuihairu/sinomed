@@ -15,21 +15,18 @@ import './index.less';
 const HOURS = Array.from({ length: 10 }, (_, i) => 9 + i);
 const UNASSIGNED = '未指派';
 
-const STATUS_TEXT: Record<number, string> = {
-  [APPOINTMENT_STATUS.BOOKED]: '待到店',
-  [APPOINTMENT_STATUS.RECEIVED]: '已接待',
-  [APPOINTMENT_STATUS.CANCELLED]: '已取消',
-};
 /** 网格里的短标签：已接待 = 已到店 */
 const SLOT_TEXT: Record<number, string> = {
   [APPOINTMENT_STATUS.BOOKED]: '待到店',
   [APPOINTMENT_STATUS.RECEIVED]: '已到店',
+  [APPOINTMENT_STATUS.NO_SHOW]: '过号',
   [APPOINTMENT_STATUS.CANCELLED]: '已取消',
 };
 const SLOT_CLASS: Record<number, string> = {
   [APPOINTMENT_STATUS.BOOKED]: 'wait',
   [APPOINTMENT_STATUS.RECEIVED]: 'in',
-  [APPOINTMENT_STATUS.CANCELLED]: 'pass',
+  [APPOINTMENT_STATUS.NO_SHOW]: 'pass',
+  [APPOINTMENT_STATUS.CANCELLED]: 'off',
 };
 
 export default function AppointmentSchedule() {
@@ -42,7 +39,7 @@ export default function AppointmentSchedule() {
   const load = useCallback(async (target: string) => {
     setLoading(true);
     try {
-      // 排班页看整日全部预约（含已取消），不做状态过滤
+      // 排班页看整日全部预约（含已取消/过号），不做状态过滤
       const res = await queryAppointmentPage({ current: 1, pageSize: 200, date: target });
       setList(res?.data || []);
     } finally {
@@ -70,7 +67,7 @@ export default function AppointmentSchedule() {
       if (!a.startTime) return;
       const hh = moment(a.startTime).hour();
       const key = `${hh}|${a.staffName || UNASSIGNED}`;
-      // 同格多条（时段冲突，后端不拦截）取第一条，其余在详情里看
+      // 同格多条（历史冲突数据）取第一条，其余在详情里看
       if (!map[key]) map[key] = a;
     });
     return map;
@@ -86,15 +83,25 @@ export default function AppointmentSchedule() {
     return map;
   }, [list]);
 
+  /** 右栏「今日预约」四格：总数 / 已到店 / 待到店 / 过号（对齐原型 stat4） */
   const counts = useMemo(() => {
     const c = { total: list.length, in: 0, wait: 0, pass: 0 };
     list.forEach((a) => {
       if (a.status === APPOINTMENT_STATUS.RECEIVED) c.in += 1;
       else if (a.status === APPOINTMENT_STATUS.BOOKED) c.wait += 1;
-      else if (a.status === APPOINTMENT_STATUS.CANCELLED) c.pass += 1;
+      else if (a.status === APPOINTMENT_STATUS.NO_SHOW) c.pass += 1;
     });
     return c;
   }, [list]);
+
+  /** 右栏「待到店」行：按开时段先后排 */
+  const pending = useMemo(
+    () =>
+      list
+        .filter((a) => a.status === APPOINTMENT_STATUS.BOOKED)
+        .sort((x, y) => (x.startTime || '').localeCompare(y.startTime || '')),
+    [list],
+  );
 
   const receive = async (a: Appointment) => {
     if (!a.id) return;
@@ -108,7 +115,7 @@ export default function AppointmentSchedule() {
   return (
     <PageContainer
       title="排班视图"
-      content="按日看医师×时段占用：建约留空档，到店在此一键接待。同一时段不冲突校验（演示边界），一格多条取第一条。"
+      content="按日看医师×时段占用：建约留空档，到店在此一键接待。每时段限约 1 位由后端校验（同医师同日同小时），一格多条为历史数据，取第一条。"
     >
       <div className="sch-toolbar">
         <div className="sch-nav">
@@ -126,77 +133,123 @@ export default function AppointmentSchedule() {
             title="刷新"
           />
         </div>
-        <div className="sch-stats">
-          <span className="s">
-            预约总数 <b>{counts.total}</b>
-          </span>
-          <span className="s">
-            已到店 <b className="in">{counts.in}</b>
-          </span>
-          <span className="s">
-            待到店 <b className="gd">{counts.wait}</b>
-          </span>
-          <span className="s">
-            已取消 <b>{counts.pass}</b>
-          </span>
-        </div>
       </div>
 
-      <div className="sch-grid-wrap">
-        <div className="sch-grid" style={{ gridTemplateColumns: `64px repeat(${Math.max(columns.length, 1)}, 1fr)` }}>
-          <span className="hd tm-hd" />
-          {columns.length === 0 ? (
-            <span className="hd">——</span>
-          ) : (
-            columns.map((name) => (
-              <span className={`hd${name === UNASSIGNED ? ' unassigned' : ''}`} key={name}>
-                {name}
-              </span>
-            ))
-          )}
+      <div className="sch-cols">
+        <div className="sch-grid-wrap">
+          <div
+            className="sch-grid"
+            style={{ gridTemplateColumns: `64px repeat(${Math.max(columns.length, 1)}, 1fr)` }}
+          >
+            <span className="hd tm-hd" />
+            {columns.length === 0 ? (
+              <span className="hd">——</span>
+            ) : (
+              columns.map((name) => (
+                <span className={`hd${name === UNASSIGNED ? ' unassigned' : ''}`} key={name}>
+                  {name}
+                </span>
+              ))
+            )}
 
-          {HOURS.map((h) => (
-            <Fragment key={h}>
-              <span className="tm">{String(h).padStart(2, '0')}:00</span>
-              {(columns.length === 0 ? [UNASSIGNED] : columns).map((name) => {
-                const a = cell[`${h}|${name}`];
-                if (!a) {
+            {HOURS.map((h) => (
+              <Fragment key={h}>
+                <span className="tm">{String(h).padStart(2, '0')}:00</span>
+                {(columns.length === 0 ? [UNASSIGNED] : columns).map((name) => {
+                  const a = cell[`${h}|${name}`];
+                  if (!a) {
+                    return (
+                      <div className="slot empty" key={`${h}-${name}`}>
+                        可预约
+                      </div>
+                    );
+                  }
+                  const more = (totalInCell[`${h}|${name}`] || 1) - 1;
+                  const off = a.status === APPOINTMENT_STATUS.CANCELLED;
                   return (
-                    <div className="slot empty" key={`${h}-${name}`}>
-                      可预约
+                    <div className={`slot${off ? ' off' : ''}`} key={`${h}-${name}`}>
+                      <div className="bk">
+                        <div className="n">
+                          {a.customerName || `顾客${a.customerId}`}
+                          <span className={`st ${SLOT_CLASS[a.status ?? 0]}`}>{SLOT_TEXT[a.status ?? 0]}</span>
+                          {more > 0 ? <span className="more">+{more}</span> : null}
+                        </div>
+                        <div className="s">{a.itemName || '到店再定'}</div>
+                      </div>
+                      {a.status === APPOINTMENT_STATUS.BOOKED ? (
+                        <button type="button" className="go" onClick={() => receive(a)}>
+                          接待
+                        </button>
+                      ) : null}
                     </div>
                   );
-                }
-                const more = (totalInCell[`${h}|${name}`] || 1) - 1;
-                return (
-                  <div className={`slot${a.status === APPOINTMENT_STATUS.CANCELLED ? ' off' : ''}`} key={`${h}-${name}`}>
-                    <div className="bk">
-                      <div className="n">
-                        {a.customerName || `顾客${a.customerId}`}
-                        <span className={`st ${SLOT_CLASS[a.status ?? 0]}`}>{SLOT_TEXT[a.status ?? 0]}</span>
-                        {more > 0 ? <span className="more">+{more}</span> : null}
-                      </div>
-                      <div className="s">{a.itemName || '到店再定'}</div>
-                    </div>
-                    {a.status === APPOINTMENT_STATUS.BOOKED ? (
-                      <button type="button" className="go" onClick={() => receive(a)}>
-                        接待
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </Fragment>
-          ))}
+                })}
+              </Fragment>
+            ))}
+          </div>
+          <div className="sch-legend">
+            {Object.entries(SLOT_TEXT).map(([k, text]) => (
+              <span key={k} className={`lg ${SLOT_CLASS[Number(k)]}`}>
+                {text}
+              </span>
+            ))}
+            <span className="lg-empty">虚线 = 可预约空档</span>
+          </div>
         </div>
-      </div>
-      <div className="sch-legend">
-        {Object.entries(SLOT_TEXT).map(([k, text]) => (
-          <span key={k} className={`lg ${SLOT_CLASS[Number(k)]}`}>
-            {text}
-          </span>
-        ))}
-        <span className="lg-empty">虚线 = 可预约空档</span>
+
+        <div className="sch-stack">
+          <section className="sch-panel">
+            <h3>今日预约</h3>
+            <div className="stat4">
+              <div className="s">
+                <div className="k">预约总数</div>
+                <div className="v">{counts.total}</div>
+              </div>
+              <div className="s">
+                <div className="k">已到店</div>
+                <div className="v">{counts.in}</div>
+              </div>
+              <div className="s">
+                <div className="k">待到店</div>
+                <div className="v gd">{counts.wait}</div>
+              </div>
+              <div className="s">
+                <div className="k">过号</div>
+                <div className="v">{counts.pass}</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="sch-panel">
+            <h3>
+              待到店<span className="hint">到店后一键转接诊</span>
+            </h3>
+            {pending.length === 0 ? (
+              <div className="sch-none">本日暂无待到店预约</div>
+            ) : (
+              pending.map((a) => (
+                <div className="rv" key={a.id}>
+                  <span className="tm">{a.startTime ? moment(a.startTime).format('HH:mm') : '--'}</span>
+                  <span className="n">{a.customerName || `顾客${a.customerId}`}</span>
+                  <span className="it">{a.itemName || '到店再定'}</span>
+                  <span className="pill">{a.staffName || UNASSIGNED}</span>
+                  <button type="button" className="go" onClick={() => receive(a)}>
+                    接待
+                  </button>
+                </div>
+              ))
+            )}
+          </section>
+
+          <section className="sch-panel">
+            <h3>
+              小程序联动<span className="hint">规划</span>
+            </h3>
+            <div className="sch-note">
+              顾客可在小程序自助约时段、改期与取消；到店扫码打卡自动转「已到店」并进入接诊队列。
+            </div>
+          </section>
+        </div>
       </div>
     </PageContainer>
   );

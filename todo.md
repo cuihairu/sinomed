@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-11 续批）：已清 17 条（P0 2/2 + P1 6 + P2 9：herbprescription 辨证条、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号），余 67 条（P1 18 / P2 49）。
+> 进度（2026-10-12 续批）：已清 22 条（P0 2/2 + P1 9 + P2 11：herbprescription 辨证条、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板），余 62 条（P1 15 / P2 47，其中 2 条卡点：booking 疗程角标、booking 医师名单——均缺模型字段）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -58,12 +58,12 @@
 - [ ] 预览网格未固定高 356px（随内容自适应）｜原型 admin-appearance.html:42 / 实现 web/src/pages/Appearance/Index/index.less:101｜P2
 
 ### admin-booking（7 条）
-- [ ] 「待到店」紧凑面板（到店一键转接诊）被拆成独立预约查询整页表格｜原型 admin-booking.html:130 / 实现 web/src/pages/Appointment/Query/index.tsx:216｜P1
-- [ ] 「过号」状态缺失（以「已取消」顶替，爽约与主动取消混同）｜原型 admin-booking.html:100 / 实现 web/src/pages/Appointment/Schedule/index.tsx:27｜P1
-- [ ] 「每时段限约 1 位」规则未实现（同格多条 +N 并列，无冲突校验）｜原型 admin-booking.html:90 / 实现 web/src/pages/Appointment/Schedule/index.tsx:111｜P1
-- [ ] 今日预约统计为工具栏内联文字（原型 2×2 统计卡面板，第四项应为「过号」）｜原型 admin-booking.html:122 / 实现 web/src/pages/Appointment/Schedule/index.tsx:130｜P2
-- [ ] 格位次行缺「第 N 疗程/复诊/首诊」限定（仅项目名）｜原型 admin-booking.html:94 / 实现 web/src/pages/Appointment/Schedule/index.tsx:179｜P2
-- [ ] 「小程序联动」面板未做（原型已标注规划，P2 信息项）｜原型 admin-booking.html:140 / 实现 web/config/routes.ts:126｜P2
+- [x] 「待到店」紧凑面板（到店一键转接诊）被拆成独立预约查询整页表格｜原型 admin-booking.html:130 / 实现 web/src/pages/Appointment/Schedule/index.tsx:231（右栏「待到店」面板：时段·顾客·项目·医师 + 一键「接待」，排班页就近接待，预约查询页保留整页表格）｜P1
+- [x] 「过号」状态缺失（以「已取消」顶替，爽约与主动取消混同）｜原型 admin-booking.html:100 / 实现 web/src/services/ant-design-pro/appointment.ts:7（NO_SHOW=8）、web/src/pages/Appointment/Schedule/index.tsx:21、web/src/pages/Appointment/Query/index.tsx:35+183（0→8 Popconfirm）、server/src/main/java/com/sinomed/service/impl/AppointmentServiceImpl.java:104（0→1/8/9，8/9 终态）｜P1
+- [x] 「每时段限约 1 位」规则未实现（同格多条 +N 并列，无冲突校验）｜原型 admin-booking.html:90 / 实现 server/src/main/java/com/sinomed/service/impl/AppointmentServiceImpl.java:57（floor 到整点桶，同医师 status IN(0,1) 互斥，staffId 空归空组）、server/src/main/java/com/sinomed/controller/KioskController.java:201（自助约期同规则）、回归 server/src/test/java/com/sinomed/AppointmentSlotTest.java + KioskAppointmentTest.sameSlotSecondBookingRejectedBySlotCap｜P1
+- [x] 今日预约统计为工具栏内联文字（原型 2×2 统计卡面板，第四项应为「过号」）｜原型 admin-booking.html:122 / 实现 web/src/pages/Appointment/Schedule/index.tsx:208（右栏「今日预约」2×2 stat4：总数/已到店/待到店/过号）｜P2
+- [ ] 格位次行缺「第 N 疗程/复诊/首诊」限定（仅项目名）【卡点：无数据源】预约/卡项模型没有疗程次数字段（orders 也不带卡项剩余次数），第 N 疗程无从推算；需要「顾客×卡项已完成次数」账本才能落地｜原型 admin-booking.html:94 / 实现 web/src/pages/Appointment/Schedule/index.tsx:179｜P2
+- [x] 「小程序联动」面板未做（原型已标注规划，P2 信息项）｜原型 admin-booking.html:140 / 实现 web/src/pages/Appointment/Schedule/index.tsx:252（右栏面板含原型规划文案）｜P2
 - [ ] 医师列仅按当日有约动态生成（原型当日医师名单全列占位）｜原型 admin-booking.html:92 / 实现 web/src/pages/Appointment/Schedule/index.tsx:62｜P2
 
 ### admin-herbprescription（11 条）
@@ -131,7 +131,7 @@
 5. **admin-orders**：5 条（P0 0/P1 2/P2 3）——骨架对齐但缺「查看」详情、项目列单卡项无数量，排序无保证。✅ 2026-10-11 全部 5 条已清（order_item 明细模型 + 查看弹窗 + 业务单号 + 倒序 + 列清理）。
 6. **admin-ads**：4 条（P0 0/P1 0/P2 4）——单页四 tab + 左表右栏完全对齐，仅文案/交互呈现细节。
 7. **admin-appearance**：2 条（P0 0/P1 0/P2 2）——四主题卡+实时预览逐元素还原，仅两处皮肤级细节。
-8. **admin-booking**：7 条（P0 0/P1 3/P2 4）——原型单页看板被拆三页，缺「过号」状态与每时段限约规则。
+8. **admin-booking**：7 条（P0 0/P1 3/P2 4）——原型单页看板被拆三页，缺「过号」状态与每时段限约规则。✅ 2026-10-12 P1 全清 + P2 2 条（stat4 面板、小程序联动面板），余 2 条卡点（疗程角标、医师名单无字段）
 9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。✅ P0 辨证摘要条已清（2026-10-11，联接诊单 diagnose/plan/acuCourse）。
 10. **admin-billing**：7 条（P0 0/P1 2/P2 5）——结算主流程对齐；缺口集中在多项目单据数据模型（明细表退化单行、无整单备注）。✅ 2026-10-11 已清 4 条（明细多行表、整单备注、应收说明行、队列业务单号）；余会员档位/接诊单号头卡与支付图标配色 3 条 P2。
 11. **desktop-workstation**：7 条（P0 0/P1 1/P2 6）——薄壳+Web 页骨架完整，唯一实质差距是外设状态条静态文案。

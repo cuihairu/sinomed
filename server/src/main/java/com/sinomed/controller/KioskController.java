@@ -7,6 +7,7 @@ import com.sinomed.entity.OrderEntity;
 import com.sinomed.repository.AppointmentRepository;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.ItemRepository;
+import com.sinomed.service.AppointmentService;
 import com.sinomed.service.OrderService;
 import com.sinomed.vo.ExceptionView;
 import com.sinomed.vo.KioskAppointmentRequest;
@@ -49,15 +50,18 @@ public class KioskController {
     private final CustomerRepository customerRepository;
     private final OrderService orderService;
     private final AppointmentRepository appointmentRepository;
+    private final AppointmentService appointmentService;
 
     public KioskController(ItemRepository itemRepository,
                            CustomerRepository customerRepository,
                            OrderService orderService,
-                           AppointmentRepository appointmentRepository) {
+                           AppointmentRepository appointmentRepository,
+                           AppointmentService appointmentService) {
         this.itemRepository = itemRepository;
         this.customerRepository = customerRepository;
         this.orderService = orderService;
         this.appointmentRepository = appointmentRepository;
+        this.appointmentService = appointmentService;
     }
 
     @Operation(summary = "浏览上架卡项", description = "Kiosk 首页网格：enabled=1 的卡项按 sort、name 升序，只含展示字段",
@@ -133,7 +137,7 @@ public class KioskController {
     }
 
     @Operation(summary = "自助约期", description = "小程序/自助机顾客免登录约期：按手机号找/建顾客（幂等），落一条待到店预约（duration=60、status=0、remark「小程序自助」）；"
-                    + "频控同手机号当日 status IN (0,1) 限 1 条；时段限 09:00–17:00 整点且晚于当前时刻；不做支付",
+                    + "频控同手机号当日 status IN (0,1) 限 1 条；时段限 09:00–17:00 整点且晚于当前时刻；每时段限约 1 位（未指派医师空组互斥，冲突报 400）；不做支付",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = KioskAppointmentRequest.class)
@@ -192,6 +196,10 @@ public class KioskController {
         if (activeCount > 0) {
             throw new IllegalArgumentException("当日已有预约，请到店或致电改约");
         }
+
+        // 每时段限约 1 位：自助约期未指派医师（staffId 空，到店分配），空组互斥
+        appointmentService.ensureSlotFree(
+                Date.from(start.atZone(ZoneId.systemDefault()).toInstant()), null);
 
         AppointmentEntity appointment = new AppointmentEntity();
         appointment.setCustomerId(customer.getId());

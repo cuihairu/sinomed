@@ -160,13 +160,13 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/appointment/` | 新建预约：`customerId` + `startTime` 必填，`itemId`/`staffId`/`duration`/`remark` 可选；新预约一律 `status=0` 待到店 |
+| POST | `/api/v1/appointment/` | 新建预约：`customerId` + `startTime` 必填，`itemId`/`staffId`/`duration`/`remark` 可选；新预约一律 `status=0` 待到店；**每时段限约 1 位**——同医师同日同小时（floor 到整点桶）已有 `status IN (0,1)` 预约报 400「该时段已约满（每时段限约 1 位），请换医师或时段」，`staffId` 为空（自助约期，到店分配）归同一空组互斥 |
 | GET | `/api/v1/appointment/page` | 分页（current、pageSize、status 可空、date 可空 `yyyy-MM-dd` 按日过滤），联出顾客名/手机号、卡项名、员工名 |
-| PUT | `/api/v1/appointment/status` | 状态流转：只允许 `0→1`（到店接待，随后从接诊页建单）与 `0→9`（取消）；其余组合报错 |
+| PUT | `/api/v1/appointment/status` | 状态流转：只允许 `0→1`（到店接待，随后从接诊页建单）、`0→8`（过号）与 `0→9`（取消）；过号/取消为终态，其余组合报错 |
 | DELETE | `/api/v1/appointment/{id}` | 删除，仅 `status=9`（已取消）可删 |
 
 ::: tip 预约口径
-时段为开始时刻 + 时长（分钟），不做同时段冲突校验（演示边界，同一员工同刻重复约不会拦截）；到店接待后请从接诊页发起接诊，预约状态不随接诊单自动回写。
+时段为开始时刻 + 时长（分钟）；状态：`0` 待到店、`1` 已接待、`8` 过号、`9` 已取消（8/9 为终态）。每时段限约 1 位（原型 admin-booking 口径）：同医师同日同小时已有待到店/已接待预约即拒，取消/过号后时段自动释放；自助约期（staffId 空）与已指派医师分属不同组互不影响。到店接待后请从接诊页发起接诊，预约状态不随接诊单自动回写。
 :::
 
 ## 储值 `/api/v1/recharge`（需登录）

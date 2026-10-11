@@ -81,7 +81,7 @@ class KioskAppointmentTest {
     void happyPathBooksPendingAppointment() {
         var resp = book("{\"phone\":\"13900001001\",\"name\":\"测试甲\",\"itemId\":" + testItemId
                 + ",\"startTime\":\"" + at(1, 10, 0) + "\"}");
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(HttpStatus.OK, resp.getStatusCode(), "自助约期应成功：" + resp.getBody());
         String body = resp.getBody();
         assertEquals(0, ((Number) JsonPath.read(body, "$.status")).intValue());
         assertTrue(((Number) JsonPath.read(body, "$.appointmentId")).longValue() > 0);
@@ -108,6 +108,16 @@ class KioskAppointmentTest {
         Number firstId = JsonPath.read(first.getBody(), "$.customerId");
         Number secondId = JsonPath.read(second.getBody(), "$.customerId");
         assertEquals(firstId.longValue(), secondId.longValue());
+    }
+
+    @Test
+    void sameSlotSecondBookingRejectedBySlotCap() {
+        // 每时段限约 1 位：自助约期未指派医师，空组互斥——不同手机号约同一整点，第二条 400
+        // 用 16 点独占整点：跨零点跑测试时 LocalDate 漂移会让 plusDays(1)==plusDays(2) 同日，独占小时避免与其他用例撞格
+        assertEquals(HttpStatus.OK, book("{\"phone\":\"13900002001\",\"startTime\":\"" + at(2, 16, 0) + "\"}").getStatusCode());
+        var resp = book("{\"phone\":\"13900002002\",\"startTime\":\"" + at(2, 16, 0) + "\"}");
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("该时段已约满（每时段限约 1 位），请换医师或时段", JsonPath.read(resp.getBody(), "$.errorMessage"));
     }
 
     @Test

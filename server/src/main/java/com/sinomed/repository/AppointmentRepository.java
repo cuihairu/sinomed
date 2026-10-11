@@ -16,6 +16,14 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity,L
     /** Kiosk 自助约期频控：同顾客同日在给定状态集合内的预约数（status IN (0,1) 限 1 条） */
     long countByCustomerIdAndStartTimeBetweenAndStatusIn(Long customerId, Date start, Date end, Collection<Integer> statusList);
 
+    /** 每时段限约 1 位：同医师在 [start, end) 半开区间内的预约数（BETWEEN 含端点，会把下一整点的预约算进上一格） */
+    long countByStaffIdAndStartTimeGreaterThanEqualAndStartTimeLessThanAndStatusIn(
+            Long staffId, Date start, Date end, Collection<Integer> statusList);
+
+    /** 每时段限约 1 位：同医师在 [start, end) 半开区间内的预约数（staffId 为空，Kiosk 自助约期到店分配） */
+    long countByStaffIdIsNullAndStartTimeGreaterThanEqualAndStartTimeLessThanAndStatusIn(
+            Date start, Date end, Collection<Integer> statusList);
+
     /** 按时段过滤分页（date 参数落到 [day 00:00, 次日 00:00) 区间） */
     Page<AppointmentEntity> findByStartTimeBetween(Date start, Date end, Pageable pageable);
 

@@ -60,7 +60,7 @@ public class AppointmentController {
     }
 
 
-    @Operation(summary = "新建预约", description = "顾客+时段必填，卡项/员工/备注可选；新预约一律 status=0 待到店",
+    @Operation(summary = "新建预约", description = "顾客+时段必填，卡项/员工/备注可选；新预约一律 status=0 待到店；每时段限约 1 位（同医师同日同小时已有待到店/已接待预约报 400）",
             responses = {
                     @ApiResponse(responseCode = "200", description = "创建后的预约", content = @Content(
                             mediaType = "application/json",
@@ -96,7 +96,7 @@ public class AppointmentController {
         return AppointmentView.FromAppointmentEntity(appointmentService.save(view));
     }
 
-    @Operation(summary = "预约分页", description = "管理端列表：联出顾客名/手机号、卡项名；status 可选过滤（0 待到店、1 已接待、9 已取消），date 可选按日过滤",
+    @Operation(summary = "预约分页", description = "管理端列表：联出顾客名/手机号、卡项名；status 可选过滤（0 待到店、1 已接待、8 过号、9 已取消），date 可选按日过滤",
             responses = {
                     @ApiResponse(responseCode = "200", description = "分页预约", content = @Content(
                             mediaType = "application/json",
@@ -141,7 +141,7 @@ public class AppointmentController {
         return resp;
     }
 
-    @Operation(summary = "状态流转", description = "只允许 0→1（到店接待，随后从接诊页建单）与 0→9（取消）",
+    @Operation(summary = "状态流转", description = "只允许 0→1（到店接待，随后从接诊页建单）、0→8（过号）与 0→9（取消）；过号/取消为终态",
             responses = {
                     @ApiResponse(responseCode = "200", description = "流转后的预约", content = @Content(
                             mediaType = "application/json",
