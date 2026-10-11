@@ -258,6 +258,11 @@ export default [
         path: '/billing/settle',
         component: './Billing/Settle',
       },
+      {
+        name: 'billing-reconciliation',
+        path: '/billing/reconciliation',
+        component: './Billing/Reconciliation',
+      },
     ],
   },
   {

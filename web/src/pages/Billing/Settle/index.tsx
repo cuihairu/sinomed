@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { Button, InputNumber, message } from 'antd';
+import { Button, Input, InputNumber, Modal, Tag, message } from 'antd';
 import { CheckCircleFilled, PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import { Order, ORDER_STATUS, queryOrderPage } from '@/services/ant-design-pro/order';
@@ -13,6 +13,7 @@ import {
   fetchRechargeBalance,
   querySettlementPage,
   receiptPrintUrl,
+  refundSettlement,
   settleOrder,
 } from '@/services/ant-design-pro/billing';
 import { listCardsByCustomer, type Card } from '@/services/ant-design-pro/card';
@@ -55,6 +56,10 @@ const Settle: React.FC = () => {
   const [cardRest, setCardRest] = useState<number | undefined>();
   /** 刚收完的结算单：右栏给「打印小票」入口 */
   const [done, setDone] = useState<{ id: number; money: number; pay: string } | undefined>();
+  /** 退单弹窗：目标结算单 + 退款理由（必填 ≤100 字，原路退回单向） */
+  const [refunding, setRefunding] = useState<Settlement | undefined>();
+  const [refundReason, setRefundReason] = useState('');
+  const [refundBusy, setRefundBusy] = useState(false);
 
   const loadQueue = async () => {
     const [queue, recent] = await Promise.all([
@@ -84,6 +89,26 @@ const Settle: React.FC = () => {
       setCardRest(hit?.remainingTimes ?? 0);
     } else {
       setCardRest(0);
+    }
+  };
+
+  /** 退单：原路退回、订单回退可重收（理由必填，单向不可撤销） */
+  const doRefund = async () => {
+    if (!refunding?.id) return;
+    const reason = refundReason.trim();
+    if (!reason) {
+      message.warning('请填写退款理由');
+      return;
+    }
+    setRefundBusy(true);
+    try {
+      await refundSettlement(refunding.id, reason);
+      message.success(`已退款 S-${refunding.id}，订单已回退待结算`);
+      setRefunding(undefined);
+      setRefundReason('');
+      await loadQueue();
+    } finally {
+      setRefundBusy(false);
     }
   };
 
@@ -172,6 +197,21 @@ const Settle: React.FC = () => {
                 <span className="pay">{PAY_TYPE_TEXT[s.payType ?? 0]}</span>
                 <span className="amt">¥{s.money}</span>
                 <span className="tm">{s.createTime ? moment(s.createTime).format('MM-DD HH:mm') : ''}</span>
+                {s.refunded ? (
+                  <Tag className="s-refunded">已退款</Tag>
+                ) : (
+                  <Button
+                    type="text"
+                    size="small"
+                    className="s-refund"
+                    onClick={() => {
+                      setRefundReason('');
+                      setRefunding(s);
+                    }}
+                  >
+                    退款
+                  </Button>
+                )}
                 <Button
                   type="text"
                   size="small"
@@ -296,6 +336,37 @@ const Settle: React.FC = () => {
           </section>
         </div>
       </div>
+
+      <Modal
+        title={refunding ? `退单确认 · S-${refunding.id}` : '退单确认'}
+        open={refunding != null}
+        onCancel={() => setRefunding(undefined)}
+        confirmLoading={refundBusy}
+        okText="确认退款"
+        okButtonProps={{ disabled: !refundReason.trim() }}
+        onOk={doRefund}
+        width={420}
+      >
+        {refunding ? (
+          <div className="refund-confirm">
+            <div className="line">
+              {refunding.customerName || '-'}
+              <span className="sub">
+                {PAY_TYPE_TEXT[refunding.payType ?? 0]} · ¥{refunding.money}
+              </span>
+            </div>
+            <Input.TextArea
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="退款理由（必填，退款必须能答「为什么」）"
+              maxLength={100}
+              showCount
+              autoSize={{ minRows: 2, maxRows: 4 }}
+            />
+            <div className="hp">原路退回：储值补回余额、次卡回补次数、现金当面退回；订单回退后可重新收款。单向操作，不可撤销。</div>
+          </div>
+        ) : null}
+      </Modal>
     </PageContainer>
   );
 };

@@ -24,6 +24,8 @@ export interface Recharge {
   customerName?: string;
   /** 金额（元，充值为正、储值支付为负） */
   money?: number;
+  /** 备注（可空，储值退款补回为「退单 #结算id」） */
+  note?: string;
   createTime?: string;
 }
 
@@ -43,6 +45,70 @@ export interface Settlement {
   /** 实收金额（元） */
   money?: number;
   createTime?: string;
+  /** 是否已退款（列表联出，undefined 视为未退） */
+  refunded?: boolean;
+}
+
+/** 退款单（refund_logs） */
+export interface RefundRecord {
+  id?: number;
+  settlementId?: number;
+  orderId?: number;
+  customerId?: number;
+  /** 联出展示字段 */
+  customerName?: string;
+  /** 退款金额（元，= 原结算实收；次卡为 0） */
+  money?: number;
+  /** 原支付方式 */
+  payType?: number;
+  payTypeText?: string;
+  /** 退款理由（≤100 字） */
+  reason?: string;
+  staffId?: number;
+  /** 联出展示字段 */
+  staffName?: string;
+  createTime?: string;
+}
+
+/** 日对账·充值行（只含真实充值，不含储值支付扣减与退款补回） */
+export interface ReconRecharge {
+  id?: number;
+  customerId?: number;
+  customerName?: string;
+  money?: number;
+  note?: string;
+  createTime?: string;
+}
+
+/** 日对账·支付方式构成 */
+export interface ReconPayRow {
+  payType?: number;
+  payTypeText?: string;
+  count?: number;
+  money?: number;
+}
+
+/** 日对账单：收款/充值/退款三段 + 净额与现金净额 */
+export interface Reconciliation {
+  date?: string;
+  /** 收款段 */
+  incomeCount?: number;
+  incomeMoney?: number;
+  cardCount?: number;
+  incomePayTypes?: ReconPayRow[];
+  /** 充值段（单列不计入营收） */
+  rechargeCount?: number;
+  rechargeMoney?: number;
+  recharges?: ReconRecharge[];
+  /** 退款段 */
+  refundCount?: number;
+  refundMoney?: number;
+  refundPayTypes?: ReconPayRow[];
+  refunds?: RefundRecord[];
+  /** 净额 = 实收 - 退款 */
+  netMoney?: number;
+  /** 现金净额 = 现金收款 - 现金退款（钱箱核对用） */
+  cashNetMoney?: number;
 }
 
 export interface BillingPageResult<T> {
@@ -146,6 +212,31 @@ export async function fetchSettlementMonthReport(
   return request<SettlementMonthReport>('/api/v1/settlement/report/month', {
     method: 'GET',
     params: { month },
+    ...(options || {}),
+  });
+}
+
+/** 退单：一笔结算只能退一次；reason 必填 ≤100 字；原路退回，订单回退可重收 */
+export async function refundSettlement(
+  id: number,
+  reason: string,
+  options?: { [key: string]: any },
+) {
+  return request<RefundRecord>(`/api/v1/settlement/${id}/refund`, {
+    method: 'POST',
+    data: { reason },
+    ...(options || {}),
+  });
+}
+
+/** 日对账单：date=yyyy-MM-dd */
+export async function fetchReconciliation(
+  date: string,
+  options?: { [key: string]: any },
+) {
+  return request<Reconciliation>('/api/v1/settlement/reconciliation', {
+    method: 'GET',
+    params: { date },
     ...(options || {}),
   });
 }

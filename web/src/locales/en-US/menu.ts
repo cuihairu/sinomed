@@ -43,6 +43,7 @@ export default {
   'menu.order.order-create': 'New Order',
   'menu.billing': 'Billing',
   'menu.billing.billing-settle': 'Settlement Desk',
+  'menu.billing.billing-reconciliation': 'Daily Reconciliation',
   'menu.review': 'Review',
   'menu.review.staff': 'Staff Review',
   'menu.review.customer': 'Customer Feedback',
