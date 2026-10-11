@@ -17,6 +17,15 @@ export const PAY_TYPE_TEXT: Record<number, string> = {
   5: '次卡',
 };
 
+/** 支付图标底色：储值走主题 brand，微信/支付宝/现金按原型分色（admin-billing 口径；次卡取同族灰绿） */
+export const PAY_ICON_BG: Record<number, string> = {
+  1: 'var(--brand)',
+  2: '#5f9e6e',
+  3: '#5b7fa6',
+  4: '#9a8f7a',
+  5: '#8a938c',
+};
+
 export interface Recharge {
   id?: number;
   customerId?: number;

@@ -7,6 +7,7 @@ import { Order, ORDER_STATUS, orderBusinessNo, queryOrderPage, updateOrderRemark
 import {
   PAY_TYPE,
   PAY_TYPE_TEXT,
+  PAY_ICON_BG,
   Recharge,
   Settlement,
   createRecharge,
@@ -342,7 +343,9 @@ const Settle: React.FC = () => {
                       className={`pay ${payType === t ? 'on' : ''} ${t === PAY_TYPE.STORED_VALUE && storedShort ? 'short' : ''}`}
                       onClick={() => setPayType(t)}
                     >
-                      <span className="pi">{PAY_TYPE_TEXT[t].slice(0, 1)}</span>
+                      <span className="pi" style={{ background: PAY_ICON_BG[t] }}>
+                        {PAY_TYPE_TEXT[t].slice(0, 1)}
+                      </span>
                       <div>
                         <div className="pn">{PAY_TYPE_TEXT[t]}</div>
                         <div className="ps">

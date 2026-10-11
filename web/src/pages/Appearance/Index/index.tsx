@@ -48,7 +48,7 @@ const AppearancePage: React.FC = () => {
         <h3>
           主题色
           <span className="hint">
-            当前：{themeDef(current).label}（{themeDef(current).desc}）
+            当前：{themeDef(current).label}（{themeDef(current).desc.split(' · ')[0]}）
           </span>
         </h3>
         <div className="ap-themes">

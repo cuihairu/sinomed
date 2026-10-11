@@ -138,7 +138,8 @@
       object-fit: cover;
 
       &.g1 {
-        background: linear-gradient(135deg, #353a37, #565d59);
+        /* 石墨渐变走主题变量：data-theme 切换后随主题变色（白字在四套主色上均可读） */
+        background: linear-gradient(135deg, var(--brand-deep), var(--brand));
         color: #fff;
       }
       &.g2 {

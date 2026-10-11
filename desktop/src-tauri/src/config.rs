@@ -26,11 +26,11 @@ pub struct AppConfig {
 }
 
 fn default_width() -> u32 {
-    1280
+    1360
 }
 
 fn default_height() -> u32 {
-    800
+    832
 }
 
 fn default_channel() -> String {

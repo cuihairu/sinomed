@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 48 条（P0 2/2 + P1 20 + P2 26：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序），余 36 条（P1 5 / P2 31，其中 5 条卡点：booking 疗程角标、diagnosis 第 N 疗程、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 55 条（P0 2/2 + P1 20 + P2 33：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832），余 29 条（P1 5 / P2 24，其中 5 条卡点：booking 疗程角标、diagnosis 第 N 疗程、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -54,8 +54,8 @@
 - [ ] 素材操作多出「删除」入口（实现新增项）｜原型 admin-ads.html:116 / 实现 web/src/pages/Ads/Index/index.tsx:290｜P2
 
 ### admin-appearance（2 条）
-- [ ] 主题面板提示文案拼接错误（「石墨 × 古金（默认 · 取自 logo）」）｜原型 admin-appearance.html:108 / 实现 web/src/pages/Appearance/Index/index.tsx:51｜P2
-- [ ] 预览网格未固定高 356px（随内容自适应）｜原型 admin-appearance.html:42 / 实现 web/src/pages/Appearance/Index/index.less:101｜P2
+- [x] 主题面板提示文案拼接错误（「石墨 × 古金（默认 · 取自 logo）」）｜✅ 2026-10-12 hint 改取 desc 首段（ Appearance/Index/index.tsx:51，「石墨 × 古金（默认）」/「松烟绿（清雅）」与原型口径一致）｜P2
+- [x] 预览网格未固定高 356px（随内容自适应）｜✅ 2026-10-12 .pv 固定 height 356px（Appearance/Index/index.less）｜P2
 
 ### admin-booking（7 条）
 - [x] 「待到店」紧凑面板（到店一键转接诊）被拆成独立预约查询整页表格｜原型 admin-booking.html:130 / 实现 web/src/pages/Appointment/Schedule/index.tsx:231（右栏「待到店」面板：时段·顾客·项目·医师 + 一键「接待」，排班页就近接待，预约查询页保留整页表格）｜P1
@@ -86,7 +86,7 @@
 - [x] 应收合计缺「卡项抵扣已减；支付后余额」说明行｜原型 admin-billing.html:152 / 实现 web/src/pages/Billing/Settle/index.tsx:330（.sub 说明行：次卡实收 0/储值支付后余额/到店收银）｜P2
 - [x] 队列单号格式：原型业务编号「20261008-006」，实现内部 id「#6」｜原型 admin-billing.html:144 / 实现 web/src/pages/Billing/Settle/index.tsx:195（队列行与结算头卡均 orderBusinessNo）｜P2
 - [ ] 微信/支付宝仅记录支付方式（原型扫码收款；在线支付官方口径为规划）｜原型 admin-billing.html:155 / 实现 web/src/pages/Billing/Settle/index.tsx:257｜P2
-- [ ] 四种支付图标配色统一 brand 单色（原型绿微/蓝支/褐现分色）｜原型 admin-billing.html:154 / 实现 web/src/pages/Billing/Settle/index.less:313｜P2
+- [x] 四种支付图标配色统一 brand 单色（原型绿微/蓝支/褐现分色）｜✅ 2026-10-12 图标底色按原型分色：储=brand、微=#5f9e6e、支=#5b7fa6、现=#9a8f7a、次卡=#8a938c（billing.ts PAY_ICON_BG + Settle/index.tsx pi 内联底色，与原型同款内联口径）｜P2
 
 ### desktop-workstation（7 条）
 - [x] 外设状态条为写死静态文案（原型实时连接态；壳侧 print_html/print_escpos/scanner_start 无状态查询命令）｜✅ 2026-10-12 部分清：状态条按运行环境如实标注——壳内（window.__TAURI__ 检测 index.tsx:96）出「串口事件通道就绪」（remote 能力只放事件监听，收码即监听中 index.tsx:557-596），浏览器出「页顶扫码条/需桌面工作站」，plan-note 分环境说明。余卡点：真实端口连接态需壳侧新增状态查询命令（Rust commands + tauri ACL 权限文件），本轮不动壳｜P1（部分，余壳侧命令）
@@ -95,15 +95,15 @@
 - [ ] 顾客条卡项余次「规划功能」占位｜原型 desktop-workstation.html:131 / 实现 web/src/pages/Treat/Create/index.tsx:249｜P2
 - [ ] 今日工作站统计：打印/扫码计数「规划」占位（仅接诊数落地）｜原型 desktop-workstation.html:175 / 实现 web/src/pages/Treat/Create/index.tsx:526｜P2
 - [ ] 近三次诊疗署名显示顾客姓名（原型为诊疗医师）｜原型 desktop-workstation.html:161 / 实现 web/src/pages/Treat/Create/index.tsx:510｜P2
-- [ ] 工作站默认窗口 1280×800（原型 1360×832@1440×900）｜原型 desktop-workstation.html:8 / 实现 desktop/src-tauri/src/config.rs:28｜P2
+- [x] 工作站默认窗口 1280×800（原型 1360×832@1440×900）｜✅ 2026-10-12 默认宽高改 1360×832（desktop/src-tauri/src/config.rs default_width/default_height；存量 config.json 已存值不受影响）｜P2
 
 ### admin-themes 设计系统（6 条）
 - [x] 小程序 tokens 失效风险：变量挂 `:root`（WXSS 不支持）无 `page` 兜底，13 处 var(--brand) 在小程序构建不可解析（仅 H5 可靠）｜✅ 2026-10-12 tokens.css 追加 `page` 选择器兜底块（app/src/tokens.css:50，全量基础变量+默认石墨主题；H5 端 page 不匹配元素、:root 继续生效，两端互不干扰）；weapp 构建过（taro build --type weapp compiled successfully）。四主题切换仍属 #102 P2 不动｜P1
 - [ ] 小程序无四主题切换（白标单色 BRAND_THEME，与四主题体系脱节）｜原型 tokens.css:23 / 实现 app/src/app.ts:21、app/config/brand.ts:13｜P2
 - [ ] Kiosk 写死 data-theme="pine" 无切换能力｜原型 tokens.css:3 / 实现 kiosk/index.html:2｜P2
 - [ ] Tablet 未设 data-theme 固定石墨，无切换机制｜原型 tokens.css:23 / 实现 tablet/src/main.tsx:5｜P2
-- [ ] Ads 素材卡渐变硬编码 #353a37 不随主题变｜原型 tokens.css:19 / 实现 web/src/pages/Ads/Index/index.less:141｜P2
-- [ ] Settle 页硬编码警示色 #a3542e/#f7ede4（tokens 体系外）｜原型 admin-billing.html:62 / 实现 web/src/pages/Billing/Settle/index.less:124｜P2
+- [x] Ads 素材卡渐变硬编码 #353a37 不随主题变｜✅ 2026-10-12 g1 渐变改 var(--brand-deep)→var(--brand)（Ads/Index/index.less，四主题切换即随动，白字在四套主色上均可读）｜P2
+- [x] Settle 页硬编码警示色 #a3542e/#f7ede4（tokens 体系外）｜✅ 2026-10-12 tokens.css 新增 --warn/--warn-deep/--warn-tint（警示语义全主题恒定），10 个 less 文件的硬编码 #a3542e/#f7ede4/#7c3a1a 全量替换为变量｜P2
 
 ### mobile-home（7 条，全部已清）
 - [x] 底部 tabbar（首页/预约/卡项/我的）整条缺失，app.config 无 tabBar、无「卡项」「我的」页面｜原型 mobile-home.html:119 / 实现 app/src/app.config.ts:16、app/src/app.config.ts:24、app/src/pages/card/index.tsx:10、app/src/pages/me/index.tsx:14（无图标纯文字标签；卡项/我的为规划占位与身份页）｜P0
@@ -121,7 +121,7 @@
 
 ### tablet-screen（2 条）
 - [x] 广告页排版层缺失：原型整版设计稿（眉题/110px 大标题/文案/价格/品牌渐变大字「灸」）未实现，仅 object-fit 播放素材文件（数据模型无文案字段）｜✅ 2026-10-12 全链路：ad_materials 加 kicker/title/copy/price 四列（AdMaterialEntity.java:31-46，ddl-auto 建列）、view/playlist 透传（AdMaterialView.java、PlaylistView.PlaylistItem、AdsServiceImpl.java:209）、管理端素材表单四字段（Ads/Index/index.tsx:750-771）、平板 PlaylistItem 类型 + 播放叠加层（tablet/src/types.ts、Carousel.tsx:60-75，眉题 pill/宋体大标题/说明行/价格行，媒体铺满+左下渐变底，四项全空即纯素材播放）、回归 AdsMaterialCopyHttpTest（建+分页读回）。原型「灸」大字为该稿专属装饰、媒体素材自带视觉，未做｜P1
-- [ ] 叫号条文案「前往 X」与原型「到 3 号诊室」不一致｜原型 tablet-screen.html:66 / 实现 tablet/src/player/CallOverlay.tsx:35｜P2
+- [x] 叫号条文案「前往 X」与原型「到 3 号诊室」不一致｜✅ 2026-10-12 文案改「到 {room}」（tablet/src/player/CallOverlay.tsx）｜P2
 
 ### 逐页核对结论（15/15）
 1. **admin-customer**：11 条（P0 0/P1 1/P2 10）——骨架高度对齐（头卡/四格统计/时间线/持卡卡项均超原型），缺口在时间线字段与回访域细节。

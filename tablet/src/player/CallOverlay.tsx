@@ -32,7 +32,7 @@ export function CallOverlay({
         {call.number} 号{call.patientMasked ? ` ${call.patientMasked}` : ''}
       </span>
       <span className="call-room">
-        前往<b>{call.room}</b>
+        到<b>{call.room}</b>
       </span>
     </div>
   )
