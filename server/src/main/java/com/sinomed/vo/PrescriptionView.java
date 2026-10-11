@@ -80,6 +80,12 @@ public class PrescriptionView {
     @Schema(title = "收膏方式（仅膏方，可空）", example = "炼蜜")
     private String craft;
 
+    @Schema(title = "发药状态：0 待发药 / 1 已发药（代煎/膏方「已取」自动置 1）", example = "0")
+    private Integer dispenseStatus;
+
+    @Schema(title = "发药时间（待发药为空）", example = "2026-10-11 11:00:00")
+    private Date dispenseTime;
+
     @Schema(title = "开方时间", example = "2026-10-09 11:00:00")
     private Date createTime;
 
@@ -103,6 +109,8 @@ public class PrescriptionView {
                 .prescriptionType(entity.getPrescriptionType())
                 .pasteStatus(entity.getPasteStatus())
                 .craft(entity.getCraft())
+                .dispenseStatus(entity.getDispenseStatus())
+                .dispenseTime(entity.getDispenseTime())
                 .createTime(entity.getCreateTime())
                 .build();
     }

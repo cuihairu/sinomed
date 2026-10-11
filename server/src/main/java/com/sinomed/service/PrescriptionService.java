@@ -35,4 +35,16 @@ public interface PrescriptionService {
      * 膏方领取流转：待制作(1)→可取(2)→已取(3) 顺序推进，非膏方(0)与回退/跳跃拒绝
      */
     PrescriptionEntity setPasteStatus(Long id, Integer status);
+
+    /**
+     * 药房发药：待发药(0)→已发药(1) 单向，落发药流水（note ≤100 字可空）。
+     * 操作人 staffId 可空（自动带出的路径不传）。
+     */
+    PrescriptionEntity dispense(Long id, Long staffId, String note);
+
+    /**
+     * 药房工作台分页：dispenseStatus 可空（0 待发药 / 1 已发药）；
+     * customerKeyword 按顾客姓名/手机模糊，可空；id 倒序
+     */
+    Page<PrescriptionEntity> findDispensePage(Integer dispenseStatus, String customerKeyword, Pageable pageable);
 }

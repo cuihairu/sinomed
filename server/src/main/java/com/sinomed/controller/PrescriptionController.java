@@ -8,10 +8,12 @@ import com.sinomed.service.AllergyService;
 import com.sinomed.service.CompatibilityService;
 import com.sinomed.service.PrescriptionService;
 import com.sinomed.service.PricingService;
+import com.sinomed.service.StaffService;
 import com.sinomed.vo.CompatibilityCheckView;
 import com.sinomed.vo.CompatibilityResultView;
 import com.sinomed.vo.AllergyCheckView;
 import com.sinomed.vo.AllergyResultView;
+import com.sinomed.vo.DispenseView;
 import com.sinomed.vo.MessageView;
 import com.sinomed.vo.PageResp;
 import com.sinomed.vo.PrescriptionItemView;
@@ -27,6 +29,8 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,6 +56,7 @@ public class PrescriptionController {
     private final CompatibilityService compatibilityService;
     private final PricingService pricingService;
     private final AllergyService allergyService;
+    private final StaffService staffService;
 
     public PrescriptionController(PrescriptionService prescriptionService,
                                   PrescriptionItemRepository prescriptionItemRepository,
@@ -59,7 +64,8 @@ public class PrescriptionController {
                                   StaffRepository staffRepository,
                                   CompatibilityService compatibilityService,
                                   PricingService pricingService,
-                                  AllergyService allergyService) {
+                                  AllergyService allergyService,
+                                  StaffService staffService) {
         this.prescriptionService = prescriptionService;
         this.prescriptionItemRepository = prescriptionItemRepository;
         this.customerRepository = customerRepository;
@@ -67,6 +73,7 @@ public class PrescriptionController {
         this.compatibilityService = compatibilityService;
         this.pricingService = pricingService;
         this.allergyService = allergyService;
+        this.staffService = staffService;
     }
 
     @Operation(summary = "开方", description = "customerId + herbs（至少 1 味：herb 药名 + weight 剂量克，special 特殊煎法可选）必填；"
@@ -281,6 +288,115 @@ public class PrescriptionController {
         PrescriptionView view = prescriptionService.findById(id);
         view.setPricing(pricingService.price(view.getHerbs(), view.getDoses()));
         return view;
+    }
+
+    @Operation(summary = "药房发药", description = "待发药(0)→已发药(1) 单向：确认「药交出去了」，落发药流水；"
+            + "操作人取当前登录账号；note ≤100 字可选。已发药再发报 400（不开放撤销，与代煎/膏方领取单向口径一致）；"
+            + "代煎/膏方走「已取」领取时自动置已发药，无需重复点发药",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "药房工作台行（联顾客/类型/状态）", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DispenseView.class)
+                    )),
+                    @ApiResponse(responseCode = "400", description = "处方不存在 / 已发药 / 备注超长", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    )),
+                    @ApiResponse(responseCode = "401", description = "没有权限", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @PostMapping("/{id}/dispense")
+    public DispenseView dispense(@PathVariable Long id,
+                                 @RequestBody(required = false) Map<String, Object> body) {
+        String note = body == null || body.get("note") == null ? null : body.get("note").toString();
+        PrescriptionEntity saved = prescriptionService.dispense(id, currentStaffId(), note);
+        return toDispenseView(saved);
+    }
+
+    @Operation(summary = "药房工作台分页", description = "dispenseStatus 可空（0 待发药 / 1 已发药）；"
+            + "customerKeyword 按顾客姓名/手机模糊，可空；id 倒序，联顾客、代煎/膏方状态与药味数",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "药房工作台分页", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DispenseView.class)
+                    )),
+                    @ApiResponse(responseCode = "401", description = "没有权限", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @GetMapping("/dispense/page")
+    public PageResp<DispenseView> findDispensePage(
+            @Parameter(description = "页码，1 起始") @Validated @NotNull @RequestParam int current,
+            @Parameter(description = "每页条数") @Validated @NotNull @RequestParam int pageSize,
+            @Parameter(description = "发药状态过滤：0 待发药 / 1 已发药，可空") @RequestParam(required = false) Integer dispenseStatus,
+            @Parameter(description = "顾客姓名/手机模糊，可空") @RequestParam(required = false) String customerKeyword) {
+        PageRequest pageRequest = PageRequest.of(current > 0 ? current - 1 : 0, pageSize > 0 ? pageSize : 10,
+                Sort.by(Sort.Direction.DESC, "id"));
+        Page<PrescriptionEntity> result = prescriptionService.findDispensePage(dispenseStatus, customerKeyword, pageRequest);
+        PageResp<DispenseView> resp = new PageResp<>();
+        resp.data = result.map(this::toDispenseView).getContent();
+        resp.pages = result.getTotalPages();
+        resp.total = result.getTotalElements();
+        resp.success = true;
+        return resp;
+    }
+
+    /** 发药操作人：取当前登录账号对应的员工（查无留空，不阻断发药） */
+    private Long currentStaffId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null) {
+            return null;
+        }
+        return staffService.findByAccount(auth.getName()).map(s -> s.getId()).orElse(null);
+    }
+
+    /** 工作台行组装：联顾客姓名手机、代煎/膏方状态文案与药味数 */
+    private DispenseView toDispenseView(PrescriptionEntity prescription) {
+        return customerRepository.findById(prescription.getCustomerId())
+                .map(customer -> DispenseView.builder()
+                        .id(prescription.getId())
+                        .customerName(customer.getName())
+                        .customerPhone(customer.getPhone())
+                        .prescriptionType(prescription.getPrescriptionType())
+                        .doses(prescription.getDoses())
+                        .itemCount((int) prescriptionItemRepository.countByPrescriptionId(prescription.getId()))
+                        .decoctionText(decoctionText(prescription.getDecoctionStatus()))
+                        .pasteText(pasteText(prescription.getPasteStatus()))
+                        .dispenseStatus(prescription.getDispenseStatus())
+                        .dispenseTime(prescription.getDispenseTime())
+                        .createTime(prescription.getCreateTime())
+                        .build())
+                .orElseGet(() -> DispenseView.builder().id(prescription.getId())
+                        .prescriptionType(prescription.getPrescriptionType())
+                        .doses(prescription.getDoses())
+                        .itemCount((int) prescriptionItemRepository.countByPrescriptionId(prescription.getId()))
+                        .decoctionText(decoctionText(prescription.getDecoctionStatus()))
+                        .pasteText(pasteText(prescription.getPasteStatus()))
+                        .dispenseStatus(prescription.getDispenseStatus())
+                        .dispenseTime(prescription.getDispenseTime())
+                        .createTime(prescription.getCreateTime())
+                        .build());
+    }
+
+    private static String decoctionText(Integer status) {
+        return switch (status == null ? 0 : status) {
+            case 0 -> "无需代煎";
+            case 1 -> "待煎";
+            case 2 -> "可取";
+            default -> "已取";
+        };
+    }
+
+    private static String pasteText(Integer status) {
+        return switch (status == null ? 0 : status) {
+            case 0 -> "非膏方";
+            case 1 -> "待制作";
+            case 2 -> "可取";
+            default -> "已取";
+        };
     }
 
     @Operation(summary = "删除处方", description = "连同药味一并删除（演示环境口径，无留痕）",

@@ -1,19 +1,27 @@
 package com.sinomed.service.impl;
 
+import com.sinomed.entity.CustomerEntity;
+import com.sinomed.entity.DispenseLogEntity;
 import com.sinomed.entity.PrescriptionEntity;
 import com.sinomed.entity.PrescriptionItemEntity;
+import com.sinomed.repository.CustomerRepository;
+import com.sinomed.repository.DispenseLogRepository;
 import com.sinomed.repository.PrescriptionItemRepository;
 import com.sinomed.repository.PrescriptionRepository;
 import com.sinomed.service.PrescriptionService;
 import com.sinomed.vo.PrescriptionItemView;
 import com.sinomed.vo.PrescriptionView;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -23,6 +31,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     private final PrescriptionRepository prescriptionRepository;
     private final PrescriptionItemRepository prescriptionItemRepository;
+    private final DispenseLogRepository dispenseLogRepository;
+    private final CustomerRepository customerRepository;
 
     /**
      * 开方：顾客必填、至少 1 味药、剂数 ≥ 1、剂量 > 0；创建/更新时间由审计维护。
@@ -58,6 +68,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         prescription.setPrescriptionType(paste ? 1 : 0);
         prescription.setPasteStatus(paste ? 1 : 0);
         prescription.setCraft(paste ? view.getCraft() : null);
+        prescription.setDispenseStatus(0);
         prescription = prescriptionRepository.save(prescription);
 
         for (int i = 0; i < herbs.size(); i++) {
@@ -136,6 +147,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             throw new IllegalArgumentException("代煎状态流转无效：只能 待煎→可取→已取，当前为「" + decoctionText(current) + "」");
         }
         prescription.setDecoctionStatus(status);
+        if (status == 3) {
+            markAutoDispensed(prescription, "代煎领取自动发药");
+        }
         log.info("代煎流转：处方 {} → {}", id, decoctionText(status));
         return prescriptionRepository.save(prescription);
     }
@@ -161,8 +175,87 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             throw new IllegalArgumentException("膏方状态流转无效：只能 待制作→可取→已取，当前为「" + pasteText(current) + "」");
         }
         prescription.setPasteStatus(status);
+        if (status == 3) {
+            markAutoDispensed(prescription, "膏方领取自动发药");
+        }
         log.info("膏方流转：处方 {} → {}", id, pasteText(status));
         return prescriptionRepository.save(prescription);
+    }
+
+    /**
+     * 药房发药：待发药(0)→已发药(1) 单向，落发药流水。
+     * 操作人 staffId 可空（自动带出的路径不传）；note ≤100 字可空。
+     */
+    @Override
+    @Transactional
+    public PrescriptionEntity dispense(Long id, Long staffId, String note) {
+        PrescriptionEntity prescription = prescriptionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("处方不存在：" + id));
+        if (prescription.getDispenseStatus() != null && prescription.getDispenseStatus() == 1) {
+            throw new IllegalArgumentException("处方已发药：" + id);
+        }
+        if (note != null && note.trim().length() > 100) {
+            throw new IllegalArgumentException("备注限 100 字内");
+        }
+        prescription.setDispenseStatus(1);
+        prescription.setDispenseTime(new Date());
+        prescription.setDispenseBy(staffId);
+        DispenseLogEntity entry = new DispenseLogEntity();
+        entry.setPrescriptionId(id);
+        entry.setAction(1);
+        entry.setStaffId(staffId);
+        entry.setNote(note == null ? null : note.trim());
+        dispenseLogRepository.save(entry);
+        PrescriptionEntity saved = prescriptionRepository.save(prescription);
+        log.info("发药：处方 {}", id);
+        return saved;
+    }
+
+    /**
+     * 药房工作台分页：dispenseStatus 可空（0 待发药 / 1 已发药）；
+     * customerKeyword 按顾客姓名/手机模糊，可空；id 倒序。
+     */
+    @Override
+    public Page<PrescriptionEntity> findDispensePage(Integer dispenseStatus, String customerKeyword,
+                                                      Pageable pageable) {
+        List<Long> customerIds = (customerKeyword != null && !customerKeyword.isBlank())
+                ? customerRepository.findAll((root, query, cb) -> cb.or(
+                                cb.like(root.get("name"), "%" + customerKeyword.trim() + "%"),
+                                cb.like(root.get("phone"), "%" + customerKeyword.trim() + "%")))
+                        .stream().map(CustomerEntity::getId).toList()
+                : null;
+        boolean hasKeyword = customerIds != null;
+        if (hasKeyword && customerIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        Specification<PrescriptionEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (dispenseStatus != null) {
+                predicates.add(cb.equal(root.get("dispenseStatus"), dispenseStatus));
+            }
+            if (hasKeyword) {
+                predicates.add(root.get("customerId").in(customerIds));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return prescriptionRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * 代煎/膏方「已取」自动带出发药：只补一次，流水 note 写明来源，操作人留空。
+     */
+    private void markAutoDispensed(PrescriptionEntity prescription, String note) {
+        if (prescription.getDispenseStatus() != null && prescription.getDispenseStatus() == 1) {
+            return;
+        }
+        prescription.setDispenseStatus(1);
+        prescription.setDispenseTime(new Date());
+        prescription.setDispenseBy(null);
+        DispenseLogEntity entry = new DispenseLogEntity();
+        entry.setPrescriptionId(prescription.getId());
+        entry.setAction(1);
+        entry.setNote(note);
+        dispenseLogRepository.save(entry);
     }
 
     private static String decoctionText(int status) {

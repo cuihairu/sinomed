@@ -10,5 +10,7 @@ public interface PrescriptionItemRepository extends JpaRepository<PrescriptionIt
 
     List<PrescriptionItemEntity> findByPrescriptionIdInOrderBySortAsc(List<Long> prescriptionIds);
 
+    long countByPrescriptionId(Long prescriptionId);
+
     void deleteByPrescriptionId(Long prescriptionId);
 }

@@ -64,6 +64,18 @@ public class PrescriptionEntity {
     @Column(name = "craft")
     private String craft;
 
+    /** 发药状态：0 待发药 / 1 已发药（列默认 0；代煎/膏方「已取」自动置 1） */
+    @Column(name = "dispense_status", nullable = false, columnDefinition = "integer default 0")
+    private Integer dispenseStatus;
+
+    /** 发药时间（待发药为空） */
+    @Column(name = "dispense_time")
+    private Date dispenseTime;
+
+    /** 发药操作人 staff id（自动带出为空，流水 note 注明来源；可空） */
+    @Column(name = "dispense_by")
+    private Long dispenseBy;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

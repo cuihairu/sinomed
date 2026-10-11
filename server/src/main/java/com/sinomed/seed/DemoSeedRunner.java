@@ -4,6 +4,7 @@ import com.sinomed.entity.AppointmentEntity;
 import com.sinomed.entity.CardUsageEntity;
 import com.sinomed.entity.CustomerEntity;
 import com.sinomed.entity.CustomerHistoryEntity;
+import com.sinomed.entity.DispenseLogEntity;
 import com.sinomed.entity.ItemEntity;
 import com.sinomed.entity.OrderEntity;
 import com.sinomed.entity.PrescriptionEntity;
@@ -27,6 +28,7 @@ import com.sinomed.repository.AppointmentRepository;
 import com.sinomed.repository.CardUsageRepository;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.CustomerHistoryRepository;
+import com.sinomed.repository.DispenseLogRepository;
 import com.sinomed.repository.ItemRepository;
 import com.sinomed.repository.PrescriptionTemplateItemRepository;
 import com.sinomed.repository.PrescriptionTemplateRepository;
@@ -108,6 +110,7 @@ public class DemoSeedRunner implements ApplicationRunner {
     private final StaffShiftRepository shiftRepository;
     private final HerbStockLogRepository herbStockLogRepository;
     private final TherapyTemplateRepository therapyTemplateRepository;
+    private final DispenseLogRepository dispenseLogRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewCustomerRepository reviewCustomerRepository;
     private final ReviewStaffRepository reviewStaffRepository;
@@ -138,6 +141,7 @@ public class DemoSeedRunner implements ApplicationRunner {
             seedCards(customers);
             seedSettlements(customers);
             seedPrescriptions(customers);
+            seedDispense();
             seedHistories(customers);
             log.info("演示种子数据检查完成（逐表幂等，已有数据自动跳过）；"
                     + "广告素材/排期/屏幕为运营自建数据，无种子");
@@ -855,6 +859,30 @@ public class DemoSeedRunner implements ApplicationRunner {
         log.info("种子·病史：检查完成");
     }
 
+    /** 药房发药演示：最早一张处方置「已发药」（今日 11:00，操作人=开方医师），其余留给药房工作台走流转 */
+    private void seedDispense() {
+        if (dispenseLogRepository.count() > 0) {
+            return;
+        }
+        PrescriptionEntity first = prescriptionRepository.findAll(
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"))
+                .stream().findFirst().orElse(null);
+        if (first == null) {
+            return;
+        }
+        first.setDispenseStatus(1);
+        first.setDispenseTime(at(0, 11, 0));
+        first.setDispenseBy(first.getStaffId());
+        prescriptionRepository.save(first);
+        DispenseLogEntity entry = new DispenseLogEntity();
+        entry.setPrescriptionId(first.getId());
+        entry.setAction(1);
+        entry.setStaffId(first.getStaffId());
+        dispenseLogRepository.save(entry);
+        backdateRow("dispense_logs", entry.getId(), at(0, 11, 0));
+        log.info("种子·药房发药：检查完成");
+    }
+
     private void seedPrescriptions(Map<String, Long> customers) {
         record HerbSeed(String herb, double weight, String special) {}
         Long customerId = customers.get("13900000001");
@@ -879,6 +907,7 @@ public class DemoSeedRunner implements ApplicationRunner {
             prescription.setDoses(7);
             prescription.setPrescriptionType(0);
             prescription.setPasteStatus(0);
+            prescription.setDispenseStatus(0); // 列 NOT NULL 需显式置 0（待发药）
             // 昨日开方今日可取（0 无需/1 待煎/2 可取/3 已取），留给演示走「已取」流转
             prescription.setDecoctionStatus(2);
             prescription.setDecoctionBags(7);
@@ -919,6 +948,7 @@ public class DemoSeedRunner implements ApplicationRunner {
         paste.setPrescriptionType(1);
         paste.setPasteStatus(2); // 三日可取，留给演示走「已取」流转
         paste.setDecoctionStatus(0); // 膏方按料计，不走代煎（列 NOT NULL 需显式置 0）
+        paste.setDispenseStatus(0); // 列 NOT NULL 需显式置 0（待发药）
         paste.setCraft("炼蜜");
         paste.setUsage("温水冲服，日 2 次，每次 15g；一料服约 30 日");
         paste.setRemark("空腹服用，忌生冷；服期间停用峻补之品");
