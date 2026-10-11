@@ -171,9 +171,9 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 ## 权限与角色
 
-- `canAdmin`：管理端创建 / 查询员工入口（对应服务端 `role < 10` 的管理层）；
+- `canAdmin`：管理端创建 / 查询员工入口（对应服务端 `role == 0` 的管理员，登录响应 `currentAuthority=admin`）；
 - `canUser`：签到与今日考勤入口（任何已登录员工）；
-- 服务端接口层暂未强制方法级权限，页面级隐藏是当前主要控制手段。
+- 服务端方法级权限已强制：员工管理写接口（`POST`/`PUT`/`DELETE` /api/v1/staff）加 `@PreAuthorize("hasRole('ADMIN')")`，与页面级 `canAdmin` 同口径；服务端角色映射 `role 0 → ADMIN`、`1-9 管理层 → MANAGER`、`≥10 普通员工 → USER`（StaffEntity.getAuthorities），越权写返回 403（ResponseExceptionAdvice 对 AccessDeniedException 出 403，不落 500；回归 StaffPermissionHttpTest）。其余业务接口仍为登录即可用（未按方法分权）。
 
 ## 前端遗留项（如实说明）
 

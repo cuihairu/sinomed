@@ -11,6 +11,7 @@ import com.sinomed.util.DateUtil;
 import com.sinomed.util.PhoneValidationUtil;
 import com.sinomed.util.TimesheetUtil;
 import com.sinomed.vo.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -66,6 +67,8 @@ public class StaffController {
                             schema = @Schema(implementation = ExceptionView.class)
                     ))
             })
+    /** 员工管理写接口限管理员（role 0，与 web canAdmin 页面级口径一致，服务端方法级强制） */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/")
     public StaffView createStaff(@Validated @RequestBody StaffView staffView) {
         String account = staffView.getAccount();
@@ -142,6 +145,7 @@ public class StaffController {
                             schema = @Schema(implementation = ExceptionView.class)
                     ))
             })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/")
     public StaffView updateStaffById(@Validated @RequestBody StaffView staffView) {
         StaffEntity staffEntity = staffService.findById(staffView.getId()).orElseThrow(() -> new IllegalArgumentException("员工不存在"));
@@ -260,6 +264,7 @@ public class StaffController {
                     schema = @Schema(implementation = ExceptionView.class)
             ))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public StaffView deleteStaffById(@PathVariable("id") Long id) {
         StaffEntity staffEntity = staffService.findById(id).orElseThrow(() -> new IllegalArgumentException("员工不存在"));

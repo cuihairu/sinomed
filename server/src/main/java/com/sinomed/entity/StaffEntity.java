@@ -13,6 +13,7 @@ import java.util.Date;
 
 import static com.sinomed.security.Role.ADMIN;
 import static com.sinomed.security.Role.MANAGER;
+import static com.sinomed.security.Role.USER;
 
 @Data
 @Entity
@@ -81,11 +82,15 @@ public class StaffEntity implements UserDetails  {
     }
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if (isManager()) {
+        // 0 boss=ADMIN，1-9 管理层=MANAGER，其余（>=10 普通员工）=USER；
+        // 方法级 @PreAuthorize（如员工管理写接口）据此判定
+        if (role != null && role == 0) {
             return ADMIN.getAuthorities();
-        }else{
+        }
+        if (isManager()) {
             return MANAGER.getAuthorities();
         }
+        return USER.getAuthorities();
     }
 
     public String getAccess(){

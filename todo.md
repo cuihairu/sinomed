@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 72 条（P0 2/2 + P1 20 + P2 50：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9、customer 卡项有效期+建档月份（补 valid_until 列）、herbprescription 炮制列+用法三格（补 process/take_method 列）、app 四主题（H5 端切换+本机记忆，小程序端如实固定石墨）），余 13 条（P1 2 / P2 11）：可做 1 条（接口层方法级权限）；卡点 6 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、herbprescription 拼音检索、desktop 署名医师——均缺数据源）；1 条口径待定夺（herbprescription 代煎费三行账）；4 条规划占位（desktop-workstation 开单表/收款/余次/统计）；1 条禁碰（在线支付真实通道）
+> 进度（2026-10-12 续批）：已清 73 条（P0 2/2 + P1 20 + P2 51：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9、customer 卡项有效期+建档月份（补 valid_until 列）、herbprescription 炮制列+用法三格（补 process/take_method 列）、app 四主题（H5 端切换+本机记忆，小程序端如实固定石墨）、接口层方法级权限（员工管理写接口 ADMIN 强制+角色映射修正）），余 12 条（P1 2 / P2 10，全部卡点/待定夺/规划占位/禁碰）：卡点 6 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、herbprescription 拼音检索、desktop 署名医师——均缺数据源）；1 条口径待定夺（herbprescription 代煎费三行账）；4 条规划占位（desktop-workstation 开单表/收款/余次/统计）；1 条禁碰（在线支付真实通道）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -148,7 +148,7 @@
 - [ ] 收费结算（设计原型：/screenshots/…）
 
 ## 安全与技术债
-- [ ] 服务端接口层方法级权限强制（web.md:174：当前只做页面级隐藏）
+- [x] 服务端接口层方法级权限强制（web.md:174：当前只做页面级隐藏）｜✅ 2026-10-12 员工管理写接口（POST/PUT/DELETE /api/v1/staff）@PreAuthorize("hasRole('ADMIN')")（StaffController.java:75+152+272），与 web canAdmin（role==0）同口径；服务端权威映射修正 role 0→ADMIN / 1-9→MANAGER / ≥10→USER（原 1-9 全给 ADMIN、99 员工给 MANAGER 的错位，StaffEntity.getAuthorities:85-96）；越权写 403、读列表不受限，回归 StaffPermissionHttpTest（admin 建删 + clerk 越权 403 + clerk 读 page 200）；web.md 权限节同步｜P2
 
 ## 在途工作（未提交，需先收口）
 - 无（web `pnpm test` 存量红已于 2026-10-11 修复：jest.config.ts 改用 createConfig 手工别名绕开 configUmiAlias 的 esbuild-register（Node 24 崩溃点），移除脚手架 login 快照测试，新增 billing 请求契约测试 6 例，测试全绿）
