@@ -16,7 +16,7 @@
 
 ## 演示站点
 
-**演示站点 https://sinomed.cuihairu.site/ （域名待定，暂为占位）｜ 演示账号 `admin` / `123`**（沙箱体验用，数据定期重置）
+**演示站点 https://sinomed.cuihairu.site/ ｜ 演示账号 `admin` / `123`**（沙箱体验用，数据定期重置）
 
 > 演示环境由根目录 `compose.yml` 一键起：服务端 + 管理端 + SQLite 持久卷，`DEMO_SEED=true` 幂等播种一套全虚构脱敏的演示数据（顾客、中医诊疗记录、卡项、复盘回访、预约、储值与待结算单）。员工演示账号 `gu`（馆长）、`shen`（中医师）、`su`（前台），密码均为 `123`。镜像由 CI 推送 ghcr.io（`latest` + `sha-<短提交>`）。
 

@@ -16,7 +16,7 @@
 
 ## Demo Site
 
-**Demo site https://sinomed.cuihairu.site/ (domain TBD, placeholder for now) | Demo account `admin` / `123`** (for sandbox exploration; data is reset periodically)
+**Demo site https://sinomed.cuihairu.site/ | Demo account `admin` / `123`** (for sandbox exploration; data is reset periodically)
 
 > The demo environment starts with a single `compose.yml` at the repo root: server + admin frontend + a persistent SQLite volume. With `DEMO_SEED=true`, it idempotently seeds a fully fictional, de-identified demo dataset (customers, TCM treatment records, service packages, review and follow-up, appointments, stored-value ledger, and pending-checkout orders). Staff demo accounts: `gu` (director), `shen` (TCM physician), `su` (front desk), all with the password `123`. Images are published to ghcr.io by CI (`latest` + `sha-<short commit>`).
 
