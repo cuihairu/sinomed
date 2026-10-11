@@ -24,6 +24,9 @@ public class AdMaterialView {
     @Schema(title = "素材名", requiredMode = Schema.RequiredMode.REQUIRED, example = "冬季三九贴活动")
     private String name;
 
+    @Schema(title = "分类（素材子标题用，可空）", example = "门店活动")
+    private String category;
+
     @Schema(title = "眉题（叠加层顶部小字，可空）", example = "冬病夏治")
     private String kicker;
 
@@ -66,6 +69,7 @@ public class AdMaterialView {
         AdMaterialEntity entity = new AdMaterialEntity();
         entity.setId(id);
         entity.setName(name);
+        entity.setCategory(category);
         entity.setKicker(kicker);
         entity.setTitle(title);
         entity.setCopy(copy);
@@ -82,6 +86,7 @@ public class AdMaterialView {
         return AdMaterialView.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .category(entity.getCategory())
                 .kicker(entity.getKicker())
                 .title(entity.getTitle())
                 .copy(entity.getCopy())

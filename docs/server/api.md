@@ -78,7 +78,7 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/item/` | 创建卡项（名称唯一、价格、描述） |
+| POST | `/api/v1/item/` | 创建卡项（名称唯一、价格、描述；`durationMinutes` 单次时长分钟可空，展示用不参与结算） |
 | PUT | `/api/v1/item/` | 更新卡项 |
 | GET | `/api/v1/item/page` | 分页查询（当前实现未按条件过滤，返回全部） |
 | GET | `/api/v1/item/{id}` | 按 id 查询 |
@@ -301,11 +301,11 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST/PUT | `/api/v1/ads/materials` | 新建 / 更新素材（name、type 1图2视频、url、durationMs、enabled、sort；叠加层文案 kicker 眉题 / title 大标题 / copy 文案 / price 价格行 均可空，四项全空即纯素材播放，随 playlist 下发平板排版层） |
+| POST/PUT | `/api/v1/ads/materials` | 新建 / 更新素材（name、type 1图2视频、url、durationMs、enabled、sort；`category` 分类（素材子标题，可空）；叠加层文案 kicker 眉题 / title 大标题 / copy 文案 / price 价格行 均可空，四项全空即纯素材播放，随 playlist 下发平板排版层） |
 | DELETE | `/api/v1/ads/materials/{id}` | 删除素材 |
 | GET | `/api/v1/ads/materials/page` | 素材分页（current、pageSize） |
 | POST | `/api/v1/ads/materials/upload` | multipart 上传媒体，落盘 `data/ads/yyyyMM/`，返回 `{ url, originalName, size }` |
-| POST/PUT | `/api/v1/ads/schedules` | 新建 / 更新排期（screenId、materialId、weekdays `1=周一…7=周日` 逗号分隔可空、start/end `HH:mm` 可空、enabled） |
+| POST/PUT | `/api/v1/ads/schedules` | 新建 / 更新排期（screenId、materialId、`name` 排期名可空（屏幕状态展示）、weekdays `1=周一…7=周日` 逗号分隔可空、start/end `HH:mm` 可空、enabled） |
 | DELETE | `/api/v1/ads/schedules/{id}` | 删除排期 |
 | GET | `/api/v1/ads/schedules/page` | 排期分页 |
 | POST/PUT | `/api/v1/ads/screens` | 新建 / 更新屏（code 唯一、name、location、enabled） |

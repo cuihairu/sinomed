@@ -40,6 +40,9 @@ public class ItemView {
     @Schema(title = "展示顺序",description = "Kiosk 展示顺序，小者在前，缺省 0",example = "0")
     private Integer sort;
 
+    @Schema(title = "单次时长",description = "分钟，可空；展示用「N 分钟」，不参与结算",example = "40")
+    private Integer durationMinutes;
+
     @Schema(title = "商品创建时间",description = "商品的创建时间",example = "2021-01-01 12:00:00")
     private Date createTime;
 
@@ -55,6 +58,7 @@ public class ItemView {
         itemEntity.setEnabled(enabled != null ? enabled : 1);
         itemEntity.setCover(cover);
         itemEntity.setSort(sort != null ? sort : 0);
+        itemEntity.setDurationMinutes(durationMinutes);
         return itemEntity;
     }
 
@@ -67,6 +71,7 @@ public class ItemView {
                 .enabled(itemEntity.getEnabled())
                 .cover(itemEntity.getCover())
                 .sort(itemEntity.getSort())
+                .durationMinutes(itemEntity.getDurationMinutes())
                 .createTime(itemEntity.getCreateTime())
                 .updateTime(itemEntity.getUpdateTime())
                 .build();

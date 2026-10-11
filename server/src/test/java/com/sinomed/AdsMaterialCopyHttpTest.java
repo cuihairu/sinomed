@@ -52,15 +52,23 @@ class AdsMaterialCopyHttpTest {
     void materialCopyFieldsSavedAndReadBack() {
         String token = token();
         String name = "三九贴活动" + System.nanoTime();
+        // Map.of 上限 10 对，字段多改用 HashMap
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("name", name);
+        body.put("type", 1);
+        body.put("url", "/media/202610/test.png");
+        body.put("durationMs", 8000);
+        body.put("enabled", 1);
+        body.put("sort", 10);
+        body.put("category", "门店活动");
+        body.put("kicker", "冬病夏治");
+        body.put("title", "三伏艾灸，借阳祛寒正当时");
+        body.put("copy", "督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。");
+        body.put("price", "¥880 / 10 次");
         Map<String, Object> created = rest.exchange(url("/api/v1/ads/materials"), HttpMethod.POST,
-                authEntity(Map.of(
-                        "name", name, "type", 1, "url", "/media/202610/test.png",
-                        "durationMs", 8000, "enabled", 1, "sort", 10,
-                        "kicker", "冬病夏治",
-                        "title", "三伏艾灸，借阳祛寒正当时",
-                        "copy", "督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。",
-                        "price", "¥880 / 10 次"), token), Map.class).getBody();
+                authEntity(body, token), Map.class).getBody();
         assertTrue(created.get("id") != null, "建素材应返回 id：" + created);
+        assertEquals("门店活动", created.get("category"), "分类应存档：" + created);
         assertEquals("冬病夏治", created.get("kicker"), "眉题应存档：" + created);
         assertEquals("¥880 / 10 次", created.get("price"), "价格行应存档：" + created);
 
@@ -74,6 +82,7 @@ class AdsMaterialCopyHttpTest {
                 .orElseThrow(() -> new AssertionError("分页应含新建素材：" + page));
         assertEquals("三伏艾灸，借阳祛寒正当时", found.get("title"));
         assertEquals("督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。", found.get("copy"));
+        assertEquals("门店活动", found.get("category"));
         assertEquals("冬病夏治", found.get("kicker"));
         assertEquals("¥880 / 10 次", found.get("price"));
     }

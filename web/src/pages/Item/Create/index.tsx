@@ -91,6 +91,16 @@ const Create: React.FC = () => {
         <ProFormText name="id" hidden />
         <ProFormText colProps={{ md: 4, xl: 4 }} name="name" label="卡项姓名" tooltip="长度范围2-20字符,选填项" placeholder="输入卡项名字" required={true} />
         <ProFormText colProps={{ md: 4, xl: 2 }} name="price" label="价格" tooltip="价格" placeholder="20"/>
+        <ProFormDigit
+          colProps={{ md: 4, xl: 2 }}
+          name="durationMinutes"
+          label="时长（分钟）"
+          placeholder="40"
+          min={1}
+          max={600}
+          fieldProps={{ precision: 0 }}
+          tooltip="单次服务时长，仅展示用，选填"
+        />
         <ProFormTextArea colProps={{ md: 12, xl: 6 }} name="description" label="描述卡项的服务" tooltip="给顾客介绍卡项的内容" placeholder="养生专家"/>
         <ProFormSelect
           colProps={{ md: 4, xl: 2 }}

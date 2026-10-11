@@ -33,6 +33,10 @@ public class AdScheduleEntity {
     @Column(name = "material_id", nullable = false)
     private Long materialId;
 
+    /** 排期名（屏幕状态展示用，如「10 月常规排期」；可空） */
+    @Column(name = "name")
+    private String name;
+
     /** 生效星期，逗号分隔，1=周一 … 7=周日；空 = 每天 */
     @Column(name = "weekdays")
     private String weekdays;

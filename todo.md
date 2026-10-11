@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 55 条（P0 2/2 + P1 20 + P2 33：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832），余 29 条（P1 5 / P2 24，其中 5 条卡点：booking 疗程角标、diagnosis 第 N 疗程、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 59 条（P0 2/2 + P1 20 + P2 37：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留），余 25 条（P1 5 / P2 20，其中 7 条卡点：booking 疗程角标、diagnosis 第 N 疗程、booking 医师名单、dash-day 提醒推送、desktop 署名医师、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段（提醒推送缺通知通道），2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -32,13 +32,13 @@
 
 ### admin-dash-day（4 条）
 - [x] 员工总结表列结构：原型 员工(带角色)/今日小结/状态/提醒操作，实现 员工/耗卡/卡项已做/成单建议/状态，无角色列无操作列｜✅ 2026-10-12 员工列加角色副行（已提交/未填写行都有，index.tsx:206+220，ROLE_TEXT 管理员/领导/员工 index.tsx:31，staffRoles map index.tsx:104 区间）；「提醒操作」列见下条卡点；小结列保持自有复盘模型 耗卡/已做/建议（item 129 既定口径）｜P1
-- [ ] 未填行「提醒」操作缺失（提醒推送属规划域，面板 hint 已注明）｜原型 admin-dash-day.html:139 / 实现 web/src/pages/Dashboard/Day/index.tsx:159｜P2
+- [ ] 未填行「提醒」操作缺失【规划域】：提醒推送需通知接口（短信/微信订阅消息），全库无此通道；面板 hint 已如实注明，不做假按钮｜原型 admin-dash-day.html:139 / 实现 web/src/pages/Dashboard/Day/index.tsx:159｜P2
 - [x] 员工在岗统计「5 人」为「规划功能」占位｜✅ 2026-10-12 真实口径：周排班 fetchWeekTimesheet 里该日有签到记录的员工数（index.tsx:54+103-108，stat 真值 index.tsx:155-160），删规划占位与 .hold 样式｜P2
 - [x] 今日回访行缺脱敏手机号与「明日到期」置灰态（显示「最近到店」替代）｜✅ 2026-10-12 脱敏手机号已加：customer id→phone map（index.tsx:36+94-98）行内 138****2211（index.tsx:233-236）。「明日到期」不适用：回访面板按所选日查询（fetchReviewCustomerBulk(day)），行本来就是当日到期，无「明日行」可置灰｜P2
 
 ### admin-items（2 条）
 - [x] 卡项列表未按「排序」字段排序（后端 PageRequest 无 Sort，顺序不确定）｜✅ 2026-10-12 /item/page 改 sort 升序 + 同序号 id 倒序稳定分页（server/src/main/java/com/sinomed/controller/ItemController.java:119-121），小序号在前（原型 admin-items 口径）｜P2
-- [ ] 卡项无「时长」结构化字段（仅 description 自由文本）｜原型 admin-items.html:95 / 实现 web/src/pages/Item/Query/index.tsx:50｜P2
+- [x] 卡项无「时长」结构化字段（仅 description 自由文本）｜✅ 2026-10-12 新增 items.duration_minutes 列（ItemEntity.java:49，ddl-auto 建列，可空展示字段不参与结算）+ ItemView 映射 + 表单「时长（分钟）」（Item/Create/index.tsx:94-102）+ 列表副标题「描述 · N 分钟」（Item/Query/index.tsx:50-54）+ 回归 ItemDurationHttpTest｜P2
 
 ### admin-orders（5 条，全部已清）
 - [x] 已完成/已取消订单缺「查看」详情入口（实现渲染「-」）｜原型 admin-orders.html:120 / 实现 web/src/pages/Order/Query/index.tsx:196（done/cancelled 行「查看」开详情弹窗：明细表单价/数量/小计、合计、整单备注、支付方式、下单时间、来源）｜P1
@@ -48,10 +48,10 @@
 - [x] 实现多出「下单时间」列（原型无，实现新增项）｜原型 admin-orders.html:95 / 实现 web/src/pages/Order/Query/index.tsx:144（列已删，下单时间挪进「查看」详情）｜P2
 
 ### admin-ads（4 条）
-- [ ] 素材子标题缺「分类」（原型「图片 · 门店活动」，实现只有类型）｜原型 admin-ads.html:112 / 实现 web/src/pages/Ads/Index/index.tsx:254｜P2
-- [ ] 屏幕状态在线文案缺排期名｜原型 admin-ads.html:145 / 实现 web/src/pages/Ads/Index/index.tsx:593｜P2
+- [x] 素材子标题缺「分类」（原型「图片 · 门店活动」，实现只有类型）｜✅ 2026-10-12 新增 ad_materials.category 列（AdMaterialEntity.java:31）+ 表单「分类」（Ads/Index/index.tsx:693）+ 子标题「类型 · 分类」join（index.tsx:257）+ 回归 AdsMaterialCopyHttpTest 增断言｜P2
+- [x] 屏幕状态在线文案缺排期名｜✅ 2026-10-12 排期新增 name 字段（AdScheduleEntity.java:38 + 表单 + 排期名列），屏幕状态改「正在播 {排期名}（N 条素材轮播）」，无命中回退默认轮播（Ads/Index/index.tsx:135-152,602-605）｜P2
 - [ ] 快捷叫号交互：原型已就绪号码一键上屏，实现为手填表单（手动叫号口径内）｜原型 admin-ads.html:158 / 实现 web/src/pages/Ads/Index/index.tsx:623｜P2
-- [ ] 素材操作多出「删除」入口（实现新增项）｜原型 admin-ads.html:116 / 实现 web/src/pages/Ads/Index/index.tsx:290｜P2
+- [x] 素材操作多出「删除」入口（实现新增项）【裁定保留】：误传媒体需清理手段，playlist 仅取启用+命中排期素材、删除不影响在播编排口径（删除有 Popconfirm 二次确认），属管理页合理超集（Ads/Index/index.tsx:290）｜P2
 
 ### admin-appearance（2 条）
 - [x] 主题面板提示文案拼接错误（「石墨 × 古金（默认 · 取自 logo）」）｜✅ 2026-10-12 hint 改取 desc 首段（ Appearance/Index/index.tsx:51，「石墨 × 古金（默认）」/「松烟绿（清雅）」与原型口径一致）｜P2
@@ -94,7 +94,7 @@
 - [ ] 应收合计+「收款并打印小票」为「规划功能」占位（收款在 Billing/Settle 页）｜原型 desktop-workstation.html:168 / 实现 web/src/pages/Treat/Create/index.tsx:481｜P2
 - [ ] 顾客条卡项余次「规划功能」占位｜原型 desktop-workstation.html:131 / 实现 web/src/pages/Treat/Create/index.tsx:249｜P2
 - [ ] 今日工作站统计：打印/扫码计数「规划」占位（仅接诊数落地）｜原型 desktop-workstation.html:175 / 实现 web/src/pages/Treat/Create/index.tsx:526｜P2
-- [ ] 近三次诊疗署名显示顾客姓名（原型为诊疗医师）｜原型 desktop-workstation.html:161 / 实现 web/src/pages/Treat/Create/index.tsx:510｜P2
+- [ ] 近三次诊疗署名显示顾客姓名（原型为诊疗医师）【卡点：无数据源】与顾客时间线医师缺口同源——接诊单模型无 staffId（医师落谁涉及接诊归属语义，待定夺再加），现以顾客名如实标注｜原型 desktop-workstation.html:161 / 实现 web/src/pages/Treat/Create/index.tsx:510｜P2
 - [x] 工作站默认窗口 1280×800（原型 1360×832@1440×900）｜✅ 2026-10-12 默认宽高改 1360×832（desktop/src-tauri/src/config.rs default_width/default_height；存量 config.json 已存值不受影响）｜P2
 
 ### admin-themes 设计系统（6 条）

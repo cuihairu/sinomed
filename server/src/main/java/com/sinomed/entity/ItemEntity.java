@@ -44,6 +44,10 @@ public class ItemEntity {
     @Column(name = "sort", nullable = false, columnDefinition = "integer default 0")
     private Integer sort;
 
+    /** 单次服务时长（分钟，可空；展示用「N 分钟」，不参与结算） */
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

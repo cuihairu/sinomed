@@ -131,8 +131,8 @@ const AdsPage: React.FC = () => {
     history.replace(`/ads?tab=${key}`);
   };
 
-  /** 该屏当前生效素材数（客户端镜像 playlist 口径：命中排期取素材并集，无命中回退全部启用素材） */
-  const playingCount = (screenId?: number) => {
+  /** 该屏当前生效素材数与排期名（客户端镜像 playlist 口径：命中排期取素材并集，无命中回退全部启用素材） */
+  const playingInfo = (screenId?: number) => {
     const weekday = String(moment().isoWeekday());
     const hhmm = moment().format('HH:mm');
     const enabled = materials.filter((m) => m.enabled === 1);
@@ -144,9 +144,11 @@ const AdsPage: React.FC = () => {
         (!s.startTime || hhmm >= s.startTime) &&
         (!s.endTime || hhmm <= s.endTime),
     );
-    if (hits.length === 0) return enabled.length;
+    if (hits.length === 0) return { count: enabled.length, name: '默认轮播' };
     const ids = new Set(hits.map((h) => h.materialId));
-    return enabled.filter((m) => ids.has(m.id!)).length;
+    const mats = enabled.filter((m) => ids.has(m.id!));
+    const schedName = hits.find((h) => h.name?.trim())?.name?.trim();
+    return { count: mats.length, name: schedName || mats[0]?.name || '默认轮播' };
   };
 
   // ---------- 素材 ----------
@@ -251,7 +253,9 @@ const AdsPage: React.FC = () => {
           )}
           <div>
             <div className="nm">{entity.name || '-'}</div>
-            <div className="tp">{TYPE_TEXT[entity.type || TYPE_IMAGE]}</div>
+            <div className="tp">
+              {[TYPE_TEXT[entity.type || TYPE_IMAGE], entity.category].filter(Boolean).join(' · ')}
+            </div>
           </div>
         </div>
       ),
@@ -303,6 +307,12 @@ const AdsPage: React.FC = () => {
   ];
 
   const scheduleColumns = [
+    {
+      title: '排期名',
+      dataIndex: 'name',
+      width: 150,
+      render: (_: any, entity: AdSchedule) => entity.name || '—',
+    },
     {
       title: '屏',
       dataIndex: 'screenId',
@@ -590,7 +600,8 @@ const AdsPage: React.FC = () => {
                   <div className="sm">
                     {isOnline(s.lastSeenAt) ? (
                       <>
-                        在线 · 正在播 <b>{playingCount(s.id)} 条素材轮播</b>
+                        在线 · 正在播{' '}
+                        <b>{playingInfo(s.id).name || '默认轮播'}</b>（{playingInfo(s.id).count} 条素材轮播）
                       </>
                     ) : s.lastSeenAt ? (
                       <>离线 · 上次在线 {moment(s.lastSeenAt).format('M-DD HH:mm')}，本地缓存续播中</>
@@ -678,6 +689,9 @@ const AdsPage: React.FC = () => {
         <Form form={matForm} layout="vertical">
           <Form.Item name="name" label="素材名" rules={[{ required: true, message: '请填写素材名' }]}>
             <Input placeholder="如 三伏灸疗程卡" />
+          </Form.Item>
+          <Form.Item name="category" label="分类" tooltip="素材子标题用，如「门店活动」，选填">
+            <Input placeholder="门店活动" maxLength={20} />
           </Form.Item>
           <Form.Item name="type" label="类型" rules={[{ required: true }]}>
             <Select
@@ -797,6 +811,9 @@ const AdsPage: React.FC = () => {
                 value: m.id,
               }))}
             />
+          </Form.Item>
+          <Form.Item name="name" label="排期名" tooltip="屏幕状态「正在播」展示用，如「10 月常规排期」，选填">
+            <Input placeholder="10 月常规排期" maxLength={20} />
           </Form.Item>
           <Form.Item
             name="weekdays"

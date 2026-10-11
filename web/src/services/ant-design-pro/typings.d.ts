@@ -237,6 +237,7 @@ declare namespace API {
     name?: string;
     price?: number;
     description?: string;
+    durationMinutes?: number;
     createTime?: string;
     updateTime?: string;
   };

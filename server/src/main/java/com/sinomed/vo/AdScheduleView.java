@@ -28,6 +28,9 @@ public class AdScheduleView {
     @Schema(title = "素材id", requiredMode = Schema.RequiredMode.REQUIRED, example = "3")
     private Long materialId;
 
+    @Schema(title = "排期名", description = "屏幕状态展示用，如「10 月常规排期」；可空", example = "10 月常规排期")
+    private String name;
+
     @Schema(title = "生效星期", description = "逗号分隔 1=周一 … 7=周日；空 = 每天", example = "1,2,3,4,5")
     private String weekdays;
 
@@ -52,6 +55,7 @@ public class AdScheduleView {
         entity.setId(id);
         entity.setScreenId(screenId);
         entity.setMaterialId(materialId);
+        entity.setName(name);
         entity.setWeekdays(weekdays);
         entity.setStartTime(startTime);
         entity.setEndTime(endTime);
@@ -64,6 +68,7 @@ public class AdScheduleView {
                 .id(entity.getId())
                 .screenId(entity.getScreenId())
                 .materialId(entity.getMaterialId())
+                .name(entity.getName())
                 .weekdays(entity.getWeekdays())
                 .startTime(entity.getStartTime())
                 .endTime(entity.getEndTime())

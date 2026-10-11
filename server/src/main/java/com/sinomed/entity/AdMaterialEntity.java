@@ -27,6 +27,10 @@ public class AdMaterialEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    /** 分类（素材子标题用，如「门店活动」；可空） */
+    @Column(name = "category")
+    private String category;
+
     /** 眉题（叠加层顶部小字，如「冬病夏治」；可空=无叠加层） */
     @Column(name = "kicker")
     private String kicker;

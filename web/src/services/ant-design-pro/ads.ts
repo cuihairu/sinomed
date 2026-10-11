@@ -3,6 +3,8 @@ import { request } from '@umijs/max';
 export interface AdMaterial {
   id?: number;
   name?: string;
+  /** 分类（素材子标题用，可空） */
+  category?: string;
   /** 叠加层眉题（可空；四项文案全空即纯素材播放） */
   kicker?: string;
   /** 叠加层大标题（可空） */
@@ -41,6 +43,8 @@ export interface AdSchedule {
   id?: number;
   screenId?: number;
   materialId?: number;
+  /** 排期名（屏幕状态展示用，可空） */
+  name?: string;
   /** 逗号分隔 1=周一…7=周日；空 = 每天 */
   weekdays?: string;
   /** HH:mm；空 = 全天 */

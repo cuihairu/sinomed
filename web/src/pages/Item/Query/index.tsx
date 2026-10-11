@@ -47,7 +47,11 @@ export default () => {
           )}
           <div>
             <div className="nm">{record.name || '-'}</div>
-            <div className="ds">{record.description || '—'}</div>
+            <div className="ds">
+              {[record.description || '', record.durationMinutes ? `${record.durationMinutes} 分钟` : '']
+                .filter(Boolean)
+                .join(' · ') || '—'}
+            </div>
           </div>
         </div>
       ),
