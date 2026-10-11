@@ -32,6 +32,10 @@ public class PrescriptionItemEntity {
     @Column(name = "special")
     private String special;
 
+    /** 炮制：麸炒/蜜炙/切段生用等，可空 */
+    @Column(name = "process")
+    private String process;
+
     /** 展示顺序，小者在前 */
     @Column(name = "sort", nullable = false)
     private Integer sort;

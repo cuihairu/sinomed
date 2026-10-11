@@ -50,6 +50,9 @@ public class PrescriptionView {
     @Schema(title = "用法：煎服法/频次/代煎说明等", example = "水煎服，日一剂，早晚温服")
     private String usage;
 
+    @Schema(title = "服法：分早晚温服等，可空", example = "分早晚温服")
+    private String takeMethod;
+
     @Schema(title = "备注", example = "代煎 7 袋")
     private String remark;
 
@@ -111,6 +114,7 @@ public class PrescriptionView {
                 .staffId(entity.getStaffId())
                 .doses(entity.getDoses())
                 .usage(entity.getUsage())
+                .takeMethod(entity.getTakeMethod())
                 .remark(entity.getRemark())
                 .decoctionStatus(entity.getDecoctionStatus())
                 .decoctionBags(entity.getDecoctionBags())

@@ -63,15 +63,21 @@ class PrescriptionServiceSaveTest {
     void savePersistsHerbsWithSortAndTrim() {
         PrescriptionView view = new PrescriptionView();
         view.setCustomerId(customerId);
-        view.setHerbs(List.of(herb(" 黄芪 ", 30.0, null), herb("当归", 10.0, "后下")));
+        var danggui = herb("当归", 10.0, "后下");
+        danggui.setProcess("麸炒");
+        view.setHerbs(List.of(herb(" 黄芪 ", 30.0, null), danggui));
+        view.setUsage("水煎服，日一剂");
+        view.setTakeMethod("分早晚温服");
         var saved = prescriptionService.save(view);
         assertTrue(saved.getId() > 0);
-        // 主单 + 药味逐条落库，药名 trim、sort 按顺序
+        // 主单 + 药味逐条落库，药名 trim、sort 按顺序；炮制/服法随单存档
         var items = prescriptionItemRepository.findAll().stream()
                 .filter(i -> i.getPrescriptionId().equals(saved.getId())).toList();
         assertEquals(2, items.size());
         assertEquals("黄芪", items.get(0).getHerb());
         assertEquals("后下", items.get(1).getSpecial());
+        assertEquals("麸炒", items.get(1).getProcess());
+        assertEquals("分早晚温服", saved.getTakeMethod());
     }
 
     @Test

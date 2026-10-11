@@ -37,9 +37,13 @@ public class PrescriptionEntity {
     @Column(name = "doses", nullable = false)
     private Integer doses;
 
-    /** 用法：煎服法/频次/代煎说明等自由文本 */
+    /** 煎法：水煎服，日一剂等 */
     @Column(name = "`usage`")
     private String usage;
+
+    /** 服法：分早晚温服等，可空 */
+    @Column(name = "take_method")
+    private String takeMethod;
 
     @Column(name = "remark")
     private String remark;

@@ -63,6 +63,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         prescription.setStaffId(view.getStaffId());
         prescription.setDoses(doses);
         prescription.setUsage(view.getUsage());
+        prescription.setTakeMethod(view.getTakeMethod());
         prescription.setRemark(view.getRemark());
         prescription.setDecoctionStatus(decoction ? 1 : 0);
         prescription.setDecoctionBags(decoction ? doses : null);
@@ -88,6 +89,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             item.setHerb(herb.getHerb().trim());
             item.setWeight(herb.getWeight());
             item.setSpecial(herb.getSpecial());
+            item.setProcess(herb.getProcess());
             item.setSort(i);
             prescriptionItemRepository.save(item);
         }

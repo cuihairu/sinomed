@@ -64,6 +64,7 @@ const Create: React.FC = () => {
   const [tplName, setTplName] = useState('');
   const [savingTpl, setSavingTpl] = useState(false);
   const [usage, setUsage] = useState('');
+  const [takeMethod, setTakeMethod] = useState('');
   const [remark, setRemark] = useState('');
   const [busy, setBusy] = useState(false);
   const [compat, setCompat] = useState<CompatibilityResult | undefined>();
@@ -341,8 +342,14 @@ const Create: React.FC = () => {
         decoction: ptype === 0 && decoction ? true : undefined,
         deliveryType: ptype === 0 && decoction ? delivery : undefined,
         usage: usage.trim() || undefined,
+        takeMethod: takeMethod.trim() || undefined,
         remark: remark.trim() || undefined,
-        herbs: rows.map((r) => ({ herb: (r.herb || '').trim(), weight: r.weight, special: r.special || undefined })),
+        herbs: rows.map((r) => ({
+          herb: (r.herb || '').trim(),
+          weight: r.weight,
+          special: r.special || undefined,
+          process: r.process || undefined,
+        })),
       });
       if (created?.id) {
         message.success(
@@ -486,7 +493,13 @@ const Create: React.FC = () => {
                 />
                 <Input
                   className="special"
-                  placeholder="特殊煎法，如 先煎/后下（选填）"
+                  placeholder="炮制，如 麸炒（选填）"
+                  value={row.process}
+                  onChange={(e) => setHerb(i, { process: e.target.value })}
+                />
+                <Input
+                  className="special"
+                  placeholder="煎法，如 先煎 30 分钟（选填）"
                   value={row.special}
                   onChange={(e) => setHerb(i, { special: e.target.value })}
                 />
@@ -636,10 +649,6 @@ const Create: React.FC = () => {
                 />
               ) : null}
             </label>
-            <label>
-              剂数
-              <InputNumber min={1} precision={0} value={doses} onChange={(v) => setDoses(v ?? 7)} /> 付
-            </label>
             {ptype === 0 ? (
               <label>
                 <Checkbox checked={decoction} onChange={(e) => setDecoction(e.target.checked)}>
@@ -707,13 +716,35 @@ const Create: React.FC = () => {
               />
             </label>
           </div>
-          <Input.TextArea
-            className="usage"
-            placeholder="用法：煎服法/频次/代煎说明，如「水煎服，日一剂，早晚温服；代煎 7 袋」"
-            rows={2}
-            value={usage}
-            onChange={(e) => setUsage(e.target.value)}
-          />
+          {/* 用法三格（原型 .usage：剂数/煎法/服法） */}
+          <div className="usage-row">
+            <div className="u">
+              <div className="k">剂数</div>
+              <div className="v">
+                <InputNumber min={1} precision={0} value={doses} onChange={(v) => setDoses(v ?? 7)} /> 付
+              </div>
+            </div>
+            <div className="u">
+              <div className="k">煎法</div>
+              <div className="v">
+                <Input
+                  placeholder="如 水煎服，日一剂"
+                  value={usage}
+                  onChange={(e) => setUsage(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="u">
+              <div className="k">服法</div>
+              <div className="v">
+                <Input
+                  placeholder="如 分早晚温服"
+                  value={takeMethod}
+                  onChange={(e) => setTakeMethod(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
           <Input
             className="remark"
             placeholder="备注（选填）：复诊提醒、禁忌等"

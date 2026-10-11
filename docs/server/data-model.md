@@ -178,11 +178,11 @@ append-only：每次结算抵扣（`payType=5`）在同一事务落一条，随�
 | dispense_status | Integer | 发药状态：0 待发药（默认）/ 1 已发药（开方落 0，单向不回退；代煎/膏方推进「已取」自动置 1） |
 | dispense_time | Date | 发药时间（待发药为空） |
 | dispense_by | Long | 发药操作人 staff_id（自动带出路径留空） |
-| usage | String | 用法：煎服法/频次/代煎说明 |
+| usage / take_method | String | 煎法（水煎服，日一剂等）/ 服法（分早晚温服等，可空） |
 | remark | String | 备注 |
 | create_time / update_time | Date | 审计时间 |
 
-`prescription_items`（药味）：`prescription_id`（非空，索引）、`herb`（药名，非空，自由文本）、`weight`（单剂克数，Double，非空）、`special`（特殊煎法，可空）、`sort`（顺序，非空）。
+`prescription_items`（药味）：`prescription_id`（非空，索引）、`herb`（药名，非空，自由文本）、`weight`（单剂克数，Double，非空）、`special`（特殊煎法，可空）、`process`（炮制，可空）、`sort`（顺序，非空）。
 
 `herbs`（药材字典）：`name`（唯一，与处方药名精确同名比价）、`price`（每克分价，int，>0）、审计时间。处方计价按字典**实时试算**（不落库、无快照，未收录药名不计费）。
 

@@ -164,11 +164,11 @@ export default function PrescriptionQuery() {
         ),
     },
     {
-      title: '用法',
+      title: '煎法/服法',
       dataIndex: 'usage',
       ellipsis: true,
       hideInSearch: true,
-      render: (_, entity) => entity.usage || '-',
+      render: (_, entity) => [entity.usage, entity.takeMethod].filter(Boolean).join('，') || '-',
     },
     {
       title: '开方时间',
@@ -252,7 +252,7 @@ export default function PrescriptionQuery() {
                   <th className="no">#</th>
                   <th className="nm">药名</th>
                   <th className="wt">克/付</th>
-                  <th className="sp">特殊煎法</th>
+                  <th className="sp">炮制 / 煎法</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,15 +261,21 @@ export default function PrescriptionQuery() {
                     <td className="no">{i + 1}</td>
                     <td className="nm">{h.herb}</td>
                     <td className="wt">{h.weight}</td>
-                    <td className="sp">{h.special || '—'}</td>
+                    <td className="sp">{[h.process, h.special].filter(Boolean).join(' / ') || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {detail.usage ? (
               <div className="field">
-                <span className="k">用法</span>
+                <span className="k">煎法</span>
                 <span className="v">{detail.usage}</span>
+              </div>
+            ) : null}
+            {detail.takeMethod ? (
+              <div className="field">
+                <span className="k">服法</span>
+                <span className="v">{detail.takeMethod}</span>
               </div>
             ) : null}
             {detail.remark ? (

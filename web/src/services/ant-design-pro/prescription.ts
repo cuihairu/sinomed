@@ -7,6 +7,8 @@ export interface PrescriptionHerb {
   weight?: number;
   /** 特殊煎法：先煎/后下/包煎等，可空 */
   special?: string;
+  /** 炮制：麸炒/蜜炙/切段生用等，可空 */
+  process?: string;
   sort?: number;
 }
 
@@ -21,8 +23,10 @@ export interface Prescription {
   staffName?: string;
   /** 剂数（几付） */
   doses?: number;
-  /** 煎服法/频次/代煎说明等 */
+  /** 煎法：水煎服，日一剂等 */
   usage?: string;
+  /** 服法：分早晚温服等，可空 */
+  takeMethod?: string;
   remark?: string;
   /** 详情/列表联出的药味（按 sort 排序） */
   herbs?: PrescriptionHerb[];
@@ -96,6 +100,8 @@ export async function createPrescription(
     /** 收膏方式（仅膏方：炼蜜/清膏/糖膏/阿胶收膏等） */
     craft?: string;
     usage?: string;
+    /** 服法（可空） */
+    takeMethod?: string;
     remark?: string;
     herbs: PrescriptionHerb[];
   },

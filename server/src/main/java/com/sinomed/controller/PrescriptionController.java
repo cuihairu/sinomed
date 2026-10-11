@@ -77,8 +77,8 @@ public class PrescriptionController {
         this.staffService = staffService;
     }
 
-    @Operation(summary = "开方", description = "customerId + herbs（至少 1 味：herb 药名 + weight 剂量克，special 特殊煎法可选）必填；"
-            + "treatId/staffId/reviewStaffId（药师审核）/checkStaffId（调配复核）/doses（默认 7）/usage/remark 可选；"
+    @Operation(summary = "开方", description = "customerId + herbs（至少 1 味：herb 药名 + weight 剂量克，special 特殊煎法/process 炮制可选）必填；"
+            + "treatId/staffId/reviewStaffId（药师审核）/checkStaffId（调配复核）/doses（默认 7）/usage（煎法）/takeMethod（服法）/remark 可选；"
             + "decoction=true 时代煎，袋数=剂数、落「待煎」，deliveryType 0 自取 / 1 同城配送（不代煎忽略）；"
             + "prescriptionType=1 时膏方（落「待制作」，craft 记收膏方式）",
             responses = {

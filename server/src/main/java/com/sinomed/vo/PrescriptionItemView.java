@@ -29,6 +29,9 @@ public class PrescriptionItemView {
     @Schema(title = "特殊煎法：先煎/后下/包煎/烊化/冲服等，可空", example = "先煎")
     private String special;
 
+    @Schema(title = "炮制：麸炒/蜜炙/切段生用等，可空", example = "麸炒")
+    private String process;
+
     @Schema(title = "展示顺序", example = "1")
     private Integer sort;
 
@@ -38,11 +41,12 @@ public class PrescriptionItemView {
                 .herb(entity.getHerb())
                 .weight(entity.getWeight())
                 .special(entity.getSpecial())
+                .process(entity.getProcess())
                 .sort(entity.getSort())
                 .build();
     }
 
-    /** 模板药味 → 处方药味视图（两表同构：herb/weight/special/sort） */
+    /** 模板药味 → 处方药味视图（两表同构：herb/weight/special/sort；模板无炮制列） */
     public static PrescriptionItemView FromTemplateItemEntity(com.sinomed.entity.PrescriptionTemplateItemEntity entity) {
         return PrescriptionItemView.builder()
                 .id(entity.getId())
@@ -53,7 +57,7 @@ public class PrescriptionItemView {
                 .build();
     }
 
-    /** 方剂药味 → 处方药味视图（两表同构：herb/weight/special/sort） */
+    /** 方剂药味 → 处方药味视图（两表同构：herb/weight/special/sort；方剂无炮制列） */
     public static PrescriptionItemView FromFormulaItemEntity(com.sinomed.entity.FormulaItemEntity entity) {
         return PrescriptionItemView.builder()
                 .id(entity.getId())
