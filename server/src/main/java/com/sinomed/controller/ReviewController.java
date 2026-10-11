@@ -7,6 +7,7 @@ import com.sinomed.service.ReviewService;
 import com.sinomed.util.DateUtil;
 import com.sinomed.vo.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -205,6 +206,26 @@ public class ReviewController {
     public List<ReviewCustomerView> getCustomerReviewListByDay(@RequestParam("day") @DateTimeFormat(pattern="yyyy-MM-dd hh:mm:ss")Date day){
         String d = DateUtil.stdFormat(day);
         List<ReviewCustomerEntity> list = reviewService.findCustomerViewByDate(day);
+        ArrayList<ReviewCustomerView> data = new ArrayList<>();
+        list.forEach(entity -> {
+            ReviewCustomerView view = ReviewCustomerView.fromReviewCustomerEntity(entity);
+            data.add(view);
+        });
+        return data;
+    }
+
+    @Operation(summary = "按顾客查回访计划", description = "返回该顾客全部回访计划/记录，回访日倒序（首条即最近安排）；供档案页下次回访统计与回访提醒使用",
+            parameters = {
+                    @Parameter(name = "customerId", description = "顾客Id")
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "回访计划列表", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = ReviewCustomerView.class)
+                    ))
+            })
+    @GetMapping("/customer/list/customer")
+    public List<ReviewCustomerView> getCustomerReviewListByCustomer(@RequestParam("customerId") Long customerId){
+        List<ReviewCustomerEntity> list = reviewService.findCustomerViewsByCustomer(customerId);
         ArrayList<ReviewCustomerView> data = new ArrayList<>();
         list.forEach(entity -> {
             ReviewCustomerView view = ReviewCustomerView.fromReviewCustomerEntity(entity);

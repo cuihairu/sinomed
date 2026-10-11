@@ -66,6 +66,7 @@
 | POST | `/api/v1/review/customer` | 新建顾客回访记录（只传 `name` 可自动回填顾客 id，`day` 为回访日） |
 | GET | `/api/v1/review/staff/list/day?day=` | 按日查询全部员工复盘 |
 | GET | `/api/v1/review/customer/list/day?day=` | 按日查询全部顾客回访 |
+| GET | `/api/v1/review/customer/list/customer?customerId=` | 按顾客查询全部回访计划（回访日倒序，首条即最近安排；`advice` 为回访原因，供档案页下次回访统计/回访提醒） |
 | POST | `/api/v1/review/staff/bulk` | 批量保存员工复盘（逐条写入） |
 | POST | `/api/v1/review/customer/bulk` | 批量保存顾客回访 |
 | DELETE | `/api/v1/review/staff/{id}` | 删除员工复盘 |

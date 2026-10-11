@@ -16,6 +16,7 @@ public interface ReviewService {
     List<ReviewStaffEntity> findStaffViewByDate(Date date);
     Optional<ReviewEntity> findViewByDate(Date date);
     List<ReviewCustomerEntity> findCustomerViewByDate(Date date);
+    List<ReviewCustomerEntity> findCustomerViewsByCustomer(Long customerId);
 
     boolean deleteStaffViewById(Long id);
     boolean deleteCustomerViewById(Long id);

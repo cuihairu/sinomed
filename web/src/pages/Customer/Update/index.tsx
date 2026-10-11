@@ -12,6 +12,7 @@ import { fetchOrderSummary } from '@/services/ant-design-pro/order';
 import type { OrderSummary } from '@/services/ant-design-pro/order';
 import { issueCard, listCardsByCustomer, setCardStatus, listCardUsages, type Card, type CardUsage } from '@/services/ant-design-pro/card';
 import { queryItemByPage } from '@/services/ant-design-pro/item';
+import { fetchCustomerReviews } from '@/services/ant-design-pro/review';
 import {
   PageContainer,
   ProForm,
@@ -54,6 +55,8 @@ const Update: React.FC = () => {
   const [hisType, setHisType] = useState<number>(0);
   const [hisText, setHisText] = useState('');
   const [hisBusy, setHisBusy] = useState(false);
+  /** 回访计划：按顾客倒序，首条即最近安排 */
+  const [reviews, setReviews] = useState<API.ReviewCustomer[]>([]);
 
   const loadHistories = useCallback(async () => {
     if (!customerId) return;
@@ -74,6 +77,8 @@ const Update: React.FC = () => {
     setSummary(s);
     const cs = await listCardsByCustomer(Number(customerId));
     setCards(cs || []);
+    const rv = await fetchCustomerReviews(Number(customerId));
+    setReviews(rv || []);
   }, [customerId]);
 
   useEffect(() => {
@@ -167,6 +172,14 @@ const Update: React.FC = () => {
       : `最近到店 ${moment().diff(moment(lastVisit), 'days')} 天前`
     : '暂无到店记录';
 
+  // 下次回访：今天起最近一条计划；无未来计划则如实显示「无计划」（接口按回访日倒序返回）
+  const todayStart = moment().startOf('day');
+  const upcomingReview = reviews
+    .filter((r) => r.day && moment(r.day as any).isSameOrAfter(todayStart))
+    .sort((a, b) => moment(a.day as any).valueOf() - moment(b.day as any).valueOf())[0];
+  const nextReviewText = upcomingReview?.day ? moment(upcomingReview.day as any).format('MM-DD') : '无计划';
+  const reviewNoteText = upcomingReview?.advice || '到店回访，可提前一天确认到店时间';
+
   return (
     <PageContainer title={customer ? `${customer.name || ''} · 顾客档案` : '顾客档案'}>
       <div className="cu-head">
@@ -218,7 +231,7 @@ const Update: React.FC = () => {
         </div>
         <div className="stat">
           <div className="k">下次回访</div>
-          <div className="v hold">规划功能 · 无按顾客回访查询</div>
+          <div className={`v${upcomingReview ? ' amber' : ' hold'}`}>{nextReviewText}</div>
         </div>
       </div>
 
@@ -304,6 +317,12 @@ const Update: React.FC = () => {
               </div>
             ))
           )}
+          {upcomingReview ? (
+            <div className="plan-note">
+              <b>回访提醒 · {nextReviewText}</b>
+              {reviewNoteText}
+            </div>
+          ) : null}
         </aside>
       </div>
 

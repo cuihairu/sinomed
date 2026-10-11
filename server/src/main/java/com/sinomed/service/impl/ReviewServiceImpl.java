@@ -117,6 +117,11 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    public List<ReviewCustomerEntity> findCustomerViewsByCustomer(Long customerId) {
+        return reviewCustomerRepository.findByCustomerIdOrderByDayDesc(customerId);
+    }
+
+    @Override
     public boolean deleteStaffViewById(Long id) {
         reviewStaffRepository.deleteById(id);
         return true;

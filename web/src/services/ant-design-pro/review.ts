@@ -119,3 +119,16 @@ export async function fetchReviewCustomerBulk(day:Date ,options?: { [key: string
     ...(options || {}),
   });
 }
+
+export async function fetchCustomerReviews(customerId: number, options?: { [key: string]: any }) {
+  return request<API.ReviewCustomer[]>('/api/v1/review/customer/list/customer', {
+    method: 'GET',
+    params: {
+      customerId,
+    },
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    ...(options || {}),
+  });
+}

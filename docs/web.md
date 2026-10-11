@@ -84,7 +84,7 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 | `/review/day` | 每日总结 | 填写 / 查看当天做得好的与待改进 |
 | `/review/staff` | 员工总结 | 批量维护员工日复盘 |
 | `/review/customer` | 顾客反馈 | 批量维护顾客回访记录 |
-| `/review/plan` | 回访计划 | 为顾客设定回访日与建议 |
+| `/review/plan` | 回访计划 | 为顾客设定回访日、最近到店与回访原因（存回访记录 `advice`；档案页据此显示下次回访与回访提醒） |
 
 ### 报表系统（/dash）
 
