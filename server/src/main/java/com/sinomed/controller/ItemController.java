@@ -14,6 +14,7 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -115,7 +116,9 @@ public class ItemController {
 
     @GetMapping("/page")
     public PageResp<ItemView> findByPage(@Validated @NotNull @RequestParam int current, @Validated @NotNull @RequestParam int pageSize, @Validated @Nullable @RequestParam String name, @Validated @Nullable @RequestParam Integer price){
-        PageRequest page = PageRequest.of(current>0?current-1:0, pageSize>0?pageSize:1);
+        // 排序字段小者在前（原型 admin-items 口径），同序号 id 倒序稳定分页
+        PageRequest page = PageRequest.of(current>0?current-1:0, pageSize>0?pageSize:1,
+                Sort.by(Sort.Direction.ASC, "sort").and(Sort.by(Sort.Direction.DESC, "id")));
         ItemEntity itemEntity = new ItemEntity();
         Page<ItemEntity> allByPage = itemService.finAll(itemEntity,page);
         List<ItemView> data = new ArrayList<>();

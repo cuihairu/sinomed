@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 37 条（P0 2/2 + P1 20 + P2 15：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要、treat history 列扩、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 47 条（P1 5 / P2 42，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 41 条（P0 2/2 + P1 20 + P2 19：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接、treat history 列扩、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序），余 43 条（P1 5 / P2 38，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -15,12 +15,12 @@
 - [ ] 持卡卡项面板缺「回访提醒」整块 note（含回访原因文案）｜原型 admin-customer.html:157 / 实现 web/src/pages/Customer/Update/index.tsx:254｜P2
 - [ ] 卡项行缺「购入日期 · 有效期至」（Card 模型无有效期字段）｜原型 admin-customer.html:150 / 实现 web/src/pages/Customer/Update/index.tsx:265｜P2
 - [ ] 头卡缺建档时间（API.Customer 无 createTime）｜原型 admin-customer.html:100 / 实现 web/src/pages/Customer/Update/index.tsx:180｜P2
-- [ ] 新建顾客表单文案错误：「年纪」应为年龄、占位「输入员工名字」应为顾客｜原型 admin-customer.html:85 / 实现 web/src/pages/Customer/Create/index.tsx:31｜P2
-- [ ] 会员等级为裸数字输入，原型为「金卡会员」档位徽标（无 普通/银卡/金卡 枚举）｜原型 admin-customer.html:99 / 实现 web/src/pages/Customer/Create/index.tsx:39｜P2
+- [x] 新建顾客表单文案错误：「年纪」应为年龄、占位「输入员工名字」应为顾客｜✅ 2026-10-12 文案修正：label/tooltip「年龄」、placeholder 38、姓名 placeholder「输入顾客姓名」、性别 placeholder 女（Customer/Create/index.tsx:30-32）｜P2
+- [x] 会员等级为裸数字输入，原型为「金卡会员」档位徽标（无 普通/银卡/金卡 枚举）｜✅ 2026-10-12 改 ProFormSelect 档位选择 1 普通会员/2 银卡会员/3 金卡会员，placeholder 普通会员（Customer/Create/index.tsx:39-46；存量库 level 数值直接落入档位语义）｜P2
 - [ ] 回访计划缺「回访原因」结构化字段（/review/plan 仅 姓名/最近访问/计划回访）｜原型 admin-customer.html:157 / 实现 web/src/pages/Review/Plan/index.tsx:58｜P2
 - [x] 诊疗历史全量列表仅 ID/主述/创建时间 三列，信息少于档案页时间线｜✅ 2026-10-12 列扩为 ID/主述/辨证/治法方案/疗程/取穴(join acupointLeft/Right)/创建时间/操作（index.tsx:42-100），与档案页时间线同源字段对齐｜P2
 - [ ] 缺面包屑导航（原型「顾客 / 顾客查询 / 王女士」三级）｜原型 admin-customer.html:95 / 实现 web/src/pages/Customer/Update/index.tsx:171｜P2
-- [ ] 顾客查询操作列「跟访」与原型「复盘回访/回访」措辞不一致｜原型 admin-customer.html:92 / 实现 web/src/pages/Customer/Query/index.tsx:194｜P2
+- [x] 顾客查询操作列「跟访」与原型「复盘回访/回访」措辞不一致｜✅ 2026-10-12 操作链接改「回访」（Customer/Query/index.tsx:194）｜P2
 
 ### admin-diagnosis（6 条）
 - [x] 脉象缺寸关尺分部：原型左右手各 寸/关/尺 三格共 6 格，实现仅左右手两个自由文本框（全库无寸/关/尺分字段）｜原型 admin-diagnosis.html:149 / 实现 server/src/main/java/com/sinomed/entity/TreatEntity.java:63（pulse_cun/guan/chi_left/right 六列，ddl-auto 建列）、web/src/pages/Treat/Create/index.tsx:302（左手/右手 寸·关·尺 三格 ×2，总述保留）、回归 server/src/test/java/com/sinomed/TreatAcuHttpTest（建/读 6 分部字段）｜P1
@@ -37,7 +37,7 @@
 - [x] 今日回访行缺脱敏手机号与「明日到期」置灰态（显示「最近到店」替代）｜✅ 2026-10-12 脱敏手机号已加：customer id→phone map（index.tsx:36+94-98）行内 138****2211（index.tsx:233-236）。「明日到期」不适用：回访面板按所选日查询（fetchReviewCustomerBulk(day)），行本来就是当日到期，无「明日行」可置灰｜P2
 
 ### admin-items（2 条）
-- [ ] 卡项列表未按「排序」字段排序（后端 PageRequest 无 Sort，顺序不确定）｜原型 admin-items.html:88 / 实现 web/src/pages/Item/Query/index.tsx:137（后端 server/src/main/java/com/sinomed/controller/ItemController.java:118）｜P2
+- [x] 卡项列表未按「排序」字段排序（后端 PageRequest 无 Sort，顺序不确定）｜✅ 2026-10-12 /item/page 改 sort 升序 + 同序号 id 倒序稳定分页（server/src/main/java/com/sinomed/controller/ItemController.java:119-121），小序号在前（原型 admin-items 口径）｜P2
 - [ ] 卡项无「时长」结构化字段（仅 description 自由文本）｜原型 admin-items.html:95 / 实现 web/src/pages/Item/Query/index.tsx:50｜P2
 
 ### admin-orders（5 条，全部已清）

@@ -191,7 +191,7 @@ const columns: ProColumns<Customer>[] = [
           }
         }}
       >
-        跟访
+        回访
       </a>,
       <a
         key="delete"
