@@ -12,6 +12,7 @@ import com.sinomed.entity.PrescriptionItemEntity;
 import com.sinomed.entity.PrescriptionTemplateEntity;
 import com.sinomed.entity.PrescriptionTemplateItemEntity;
 import com.sinomed.entity.RechargeEntity;
+import com.sinomed.entity.RefundLogEntity;
 import com.sinomed.entity.ReviewCustomerEntity;
 import com.sinomed.entity.FormulaEntity;
 import com.sinomed.entity.FormulaItemEntity;
@@ -42,6 +43,7 @@ import com.sinomed.repository.OrderRepository;
 import com.sinomed.repository.PrescriptionItemRepository;
 import com.sinomed.repository.PrescriptionRepository;
 import com.sinomed.repository.RechargeRepository;
+import com.sinomed.repository.RefundLogRepository;
 import com.sinomed.repository.SettlementRepository;
 import com.sinomed.repository.FormulaRepository;
 import com.sinomed.repository.FormulaItemRepository;
@@ -111,6 +113,7 @@ public class DemoSeedRunner implements ApplicationRunner {
     private final HerbStockLogRepository herbStockLogRepository;
     private final TherapyTemplateRepository therapyTemplateRepository;
     private final DispenseLogRepository dispenseLogRepository;
+    private final RefundLogRepository refundLogRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewCustomerRepository reviewCustomerRepository;
     private final ReviewStaffRepository reviewStaffRepository;
@@ -140,6 +143,7 @@ public class DemoSeedRunner implements ApplicationRunner {
             seedBilling(customers);
             seedCards(customers);
             seedSettlements(customers);
+            seedRefunds();
             seedPrescriptions(customers);
             seedDispense();
             seedHistories(customers);
@@ -827,6 +831,45 @@ public class DemoSeedRunner implements ApplicationRunner {
             backdateRow("recharges", deductId, when);
         }
         return orderId;
+    }
+
+    /** 退款演示：退掉一笔历史现金结算单（原路退回=仅落退款记录），订单回退待结算；幂等按退款流水有无 */
+    private void seedRefunds() {
+        if (refundLogRepository.count() > 0) {
+            return;
+        }
+        SettlementEntity target = null;
+        for (SettlementEntity s : settlementRepository.findAll()) {
+            if (!Integer.valueOf(4).equals(s.getPayType()) || s.getMoney() == null) {
+                continue; // 只退现金单：储值/次卡退款会动余额与核销演示数据
+            }
+            OrderEntity order = orderRepository.findById(s.getOrderId()).orElse(null);
+            if (order == null || !Integer.valueOf(2).equals(order.getStatus())
+                    || s.getCreateTime() == null || !s.getCreateTime().before(at(0, 0, 0))) {
+                continue;
+            }
+            if (target == null || s.getId() < target.getId()) {
+                target = s;
+            }
+        }
+        if (target == null) {
+            return;
+        }
+        Date when = at(0, 12, 5);
+        RefundLogEntity refund = new RefundLogEntity();
+        refund.setSettlementId(target.getId());
+        refund.setOrderId(target.getOrderId());
+        refund.setMoney(target.getMoney());
+        refund.setPayType(target.getPayType());
+        refund.setReason("顾客临时有事取消，退单演示");
+        refund.setCreateTime(when);
+        Long refundId = refundLogRepository.save(refund).getId();
+        backdateRow("refund_logs", refundId, when);
+        orderRepository.findById(target.getOrderId()).ifPresent(order -> {
+            order.setStatus(1); // 已完成 → 已接单，演示「退了重收」
+            orderRepository.save(order);
+        });
+        log.info("种子·退款：结算单 {} 已退 {} 元，订单回退待结算", target.getId(), target.getMoney());
     }
 
     /** 病史（过敏/既往）：给两位演示顾客各补几条，顾客档案「病史」栏可查 */

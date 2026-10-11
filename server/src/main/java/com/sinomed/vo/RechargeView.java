@@ -32,6 +32,9 @@ public class RechargeView {
     @Schema(title = "金额（元，充值为正、储值支付为负）", example = "500")
     private Integer money;
 
+    @Schema(title = "备注（可空，储值退款补回为「退单 #结算id」）", example = "退单 #4")
+    private String note;
+
     @Schema(title = "发生时间", example = "2026-10-07 10:00:00")
     private Date createTime;
 
@@ -40,6 +43,7 @@ public class RechargeView {
                 .id(entity.getId())
                 .customerId(entity.getUserId())
                 .money(entity.getMoney())
+                .note(entity.getNote())
                 .createTime(entity.getCreateTime())
                 .build();
     }

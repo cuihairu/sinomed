@@ -26,6 +26,10 @@ public class RechargeEntity {
     @Column(name = "money")
     private Integer money;
 
+    /** 备注（≤100 字，可空）：储值退款补回的流水写「退单 #结算id」，日对账据此不计入充值 */
+    @Column(name = "note")
+    private String note;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

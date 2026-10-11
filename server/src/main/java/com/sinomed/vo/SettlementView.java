@@ -42,6 +42,9 @@ public class SettlementView {
     @Schema(title = "结算时间", example = "2026-10-09 11:30:00")
     private Date createTime;
 
+    @Schema(title = "是否已退款（列表联出，null 视为未退）", example = "false")
+    private Boolean refunded;
+
     public static SettlementView FromSettlementEntity(SettlementEntity entity) {
         return SettlementView.builder()
                 .id(entity.getId())

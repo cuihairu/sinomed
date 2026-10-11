@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SettlementRepository extends JpaRepository<SettlementEntity, Long> {
-    Optional<SettlementEntity> findByOrderId(Long orderId);
+    /** 订单最近一张结算单（退费重收后一单多张，取新记录在前判断是否已收款） */
+    Optional<SettlementEntity> findFirstByOrderIdOrderByIdDesc(Long orderId);
 
     List<SettlementEntity> findByOrderIdIn(Collection<Long> orderIds);
 

@@ -1,6 +1,8 @@
 package com.sinomed.service;
 
+import com.sinomed.entity.RefundLogEntity;
 import com.sinomed.entity.SettlementEntity;
+import com.sinomed.vo.ReconciliationView;
 import com.sinomed.vo.SettlementMonthReportView;
 import com.sinomed.vo.SettlementView;
 import org.springframework.data.domain.Page;
@@ -23,4 +25,17 @@ public interface SettlementService {
      * 月份格式非 yyyy-MM 报 400。
      */
     SettlementMonthReportView monthReport(String month);
+
+    /**
+     * 退单：一笔结算只能退一次，退款 = 退整单、原路退回（储值补正数流水、
+     * 次卡作废核销回补余次、微信/支付宝/现金仅落退款记录）；
+     * 订单 2 已完成 → 1 已接单可重收。理由必填 ≤100 字。整个动作一个事务。
+     */
+    RefundLogEntity refund(Long settlementId, Long staffId, String reason);
+
+    /**
+     * 日对账单：按自然日（结算/充值/退款时间）聚合收款/充值/退款三段与净额、
+     * 现金净额；退款补回的储值正数流水不计入充值；日期格式非 yyyy-MM-dd 报 400。
+     */
+    ReconciliationView reconciliation(String date);
 }
