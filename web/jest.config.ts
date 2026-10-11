@@ -1,23 +1,20 @@
-import { configUmiAlias, createConfig } from '@umijs/max/test';
+import { createConfig } from '@umijs/max/test';
 
+// 不走 configUmiAlias：它会用 esbuild-register 解析 config/config.ts，Node 24 下崩溃。
+// createConfig 只提供转换器与环境，别名映射在此手工补齐，与 umi 运行时配置解耦。
 export default async () => {
-  const config = await configUmiAlias({
-    ...createConfig({
-      target: 'browser',
-    }),
+  const config = createConfig({
+    target: 'browser',
   });
-  console.log(JSON.stringify(config));
 
   return {
     ...config,
-    testEnvironmentOptions: {
-      ...(config?.testEnvironmentOptions || {}),
-      url: 'http://localhost:8000',
+    moduleNameMapper: {
+      ...(config.moduleNameMapper || {}),
+      '^@@/(.*)$': '<rootDir>/src/.umi-test/$1',
+      '^@/(.*)$': '<rootDir>/src/$1',
     },
     setupFiles: [...(config.setupFiles || []), './tests/setupTests.jsx'],
-    globals: {
-      ...config.globals,
-      localStorage: null,
-    },
+    setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
   };
 };
