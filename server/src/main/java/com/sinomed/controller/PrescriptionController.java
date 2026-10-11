@@ -34,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -77,7 +78,8 @@ public class PrescriptionController {
     }
 
     @Operation(summary = "开方", description = "customerId + herbs（至少 1 味：herb 药名 + weight 剂量克，special 特殊煎法可选）必填；"
-            + "treatId/staffId/doses（默认 7）/usage/remark 可选；decoction=true 时代煎，袋数=剂数、落「待煎」；"
+            + "treatId/staffId/reviewStaffId（药师审核）/checkStaffId（调配复核）/doses（默认 7）/usage/remark 可选；"
+            + "decoction=true 时代煎，袋数=剂数、落「待煎」，deliveryType 0 自取 / 1 同城配送（不代煎忽略）；"
             + "prescriptionType=1 时膏方（落「待制作」，craft 记收膏方式）",
             responses = {
                     @ApiResponse(responseCode = "200", description = "创建后的处方（含药味）", content = @Content(
@@ -103,6 +105,12 @@ public class PrescriptionController {
         if (view.getStaffId() != null) {
             staffRepository.findById(view.getStaffId())
                     .orElseThrow(() -> new IllegalArgumentException("员工不存在：" + view.getStaffId()));
+        }
+        for (Long sid : Arrays.asList(view.getReviewStaffId(), view.getCheckStaffId())) {
+            if (sid != null) {
+                staffRepository.findById(sid)
+                        .orElseThrow(() -> new IllegalArgumentException("员工不存在：" + sid));
+            }
         }
         PrescriptionEntity saved = prescriptionService.save(view);
         // 重查一遍带出审计时间与药味，回包完整（含实时计价）

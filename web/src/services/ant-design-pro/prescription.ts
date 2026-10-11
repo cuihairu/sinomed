@@ -44,6 +44,12 @@ export interface Prescription {
   dispenseStatus?: number;
   /** 发药时间（待发药为空） */
   dispenseTime?: string;
+  /** 药师审核人 staff id（签名行，可空） */
+  reviewStaffId?: number;
+  /** 调配 / 复核人 staff id（签名行，可空） */
+  checkStaffId?: number;
+  /** 领取方式：0 自取 / 1 同城配送（仅代煎有意义，可空=自取） */
+  deliveryType?: number;
   createTime?: string;
 }
 
@@ -75,10 +81,16 @@ export async function createPrescription(
   body: {
     customerId: number;
     staffId?: number;
+    /** 药师审核人 staff id（签名行，可空） */
+    reviewStaffId?: number;
+    /** 调配 / 复核人 staff id（签名行，可空） */
+    checkStaffId?: number;
     treatId?: number;
     doses?: number;
     /** 是否代煎：袋数=剂数，落「待煎」（汤剂用） */
     decoction?: boolean;
+    /** 领取方式：0 自取 / 1 同城配送（仅代煎有意义，可空=自取） */
+    deliveryType?: number;
     /** 处方类型：0 汤剂（默认）/ 1 膏方（落「待制作」） */
     prescriptionType?: number;
     /** 收膏方式（仅膏方：炼蜜/清膏/糖膏/阿胶收膏等） */

@@ -76,6 +76,18 @@ public class PrescriptionEntity {
     @Column(name = "dispense_by")
     private Long dispenseBy;
 
+    /** 药师审核人 staff id（签名行；可空） */
+    @Column(name = "review_staff_id")
+    private Long reviewStaffId;
+
+    /** 调配 / 复核人 staff id（签名行；可空） */
+    @Column(name = "check_staff_id")
+    private Long checkStaffId;
+
+    /** 领取方式：0 自取 / 1 同城配送（仅代煎有意义，可空=自取） */
+    @Column(name = "delivery_type")
+    private Integer deliveryType;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

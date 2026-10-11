@@ -76,6 +76,55 @@
   border-radius: 12px;
   padding: 18px 20px;
 
+  /* 处方笺头（原型 rx-head）：顾客信息 + 医师/日期/诊号 + 处方编号预览 */
+  .rx-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+
+    .rx-title {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--brand-deep);
+      flex: none;
+    }
+
+    .rx-meta {
+      flex: 1;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.7;
+
+      b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+    }
+
+    .rx-no {
+      flex: none;
+      text-align: right;
+      font-size: 12px;
+      color: var(--faint);
+
+      b {
+        display: block;
+        font-family: var(--serif);
+        font-size: 14px;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    &.none .rx-meta {
+      color: var(--faint);
+    }
+  }
+
   h3 {
     font-family: var(--serif);
     font-size: 15px;
@@ -215,17 +264,79 @@
     margin-bottom: 16px;
   }
 
+  /* 签名行（原型 sign-row）：医师 / 药师审核 / 调配复核 */
+  .sign-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: var(--muted);
+
+    b {
+      color: var(--ink);
+      font-weight: 600;
+      margin-left: 4px;
+    }
+  }
+
   .foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     border-top: 1px dashed var(--line);
     padding-top: 14px;
 
     .hint {
       color: var(--faint);
       font-size: 12px;
+      flex: 1;
+      min-width: 0;
     }
+
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex: none;
+    }
+  }
+
+  /* 存方剂库弹窗说明 */
+  .tpl-tip {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+}
+
+/* 打印处方笺：只出处方笺主卡（rx-head/辨证/药味/用法/签名行），隐藏定位条与操作钮 */
+@media print {
+  .pr-customer,
+  .compat,
+  .allergy,
+  .fx-check,
+  .pricing,
+  .foot,
+  .ant-pro-layout-sider,
+  .ant-pro-layout-header,
+  .ant-pro-layout-header-content {
+    display: none !important;
+  }
+  .pr-create {
+    max-width: none;
+  }
+  .pr-sheet {
+    border: none;
+    padding: 8px 0;
+  }
+  .rx-head .rx-no b {
+    font-size: 14px;
   }
 }
 
@@ -309,6 +420,31 @@
       font-size: 12px;
       color: var(--faint);
     }
+  }
+}
+
+/* 特殊煎法提醒（原型审方四查之一）：随药味煎法备注联动 */
+.fx-check {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #3d7a4f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  &.warn {
+    border-color: #e8b4a0;
+    background: #fdf6f2;
+    color: #a05a2c;
   }
 }
 

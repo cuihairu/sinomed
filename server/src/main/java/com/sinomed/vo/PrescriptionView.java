@@ -89,6 +89,15 @@ public class PrescriptionView {
     @Schema(title = "开方时间", example = "2026-10-09 11:00:00")
     private Date createTime;
 
+    @Schema(title = "药师审核人 staff id（签名行，可空）", example = "3")
+    private Long reviewStaffId;
+
+    @Schema(title = "调配 / 复核人 staff id（签名行，可空）", example = "4")
+    private Long checkStaffId;
+
+    @Schema(title = "领取方式：0 自取 / 1 同城配送（可空=自取）", example = "0")
+    private Integer deliveryType;
+
     /** 代煎服务费 = 袋数 × 费率（无需代煎返回 null） */
     public static Integer decoctionFeeFen(Integer bags) {
         return bags == null ? null : bags * DECOCTION_FEE_FEN_PER_BAG;
@@ -112,6 +121,9 @@ public class PrescriptionView {
                 .dispenseStatus(entity.getDispenseStatus())
                 .dispenseTime(entity.getDispenseTime())
                 .createTime(entity.getCreateTime())
+                .reviewStaffId(entity.getReviewStaffId())
+                .checkStaffId(entity.getCheckStaffId())
+                .deliveryType(entity.getDeliveryType())
                 .build();
     }
 }

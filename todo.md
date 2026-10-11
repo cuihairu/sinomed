@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 24 条（P0 2/2 + P1 11 + P2 11：herbprescription 辨证条、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 60 条（P1 13 / P2 47，其中 2 条卡点：booking 疗程角标、booking 医师名单——均缺模型字段）
+> 进度（2026-10-12 续批）：已清 29 条（P0 2/2 + P1 16 + P2 11：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 55 条（P1 9 / P2 46，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段；另有 1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -68,13 +68,13 @@
 
 ### admin-herbprescription（11 条）
 - [x] 「辨证摘要条」（接诊单联动：证型·治法）整段缺失｜原型 admin-herbprescription.html:108 / 实现 web/src/pages/Prescription/Create/index.tsx:344（接诊单下拉+辨证/治法/疗程，findCustomer 定位后自动带最近一张 index.tsx:210，开方随处方落 treatId index.tsx:259；口径：辨证=接诊单 diagnose、治法/方案=接诊单 plan 自由文本）｜P0
-- [ ] 处方笺头部缺处方编号/诊号/性别年龄（仅姓名/会员/手机）｜原型 admin-herbprescription.html:106 / 实现 web/src/pages/Prescription/Create/index.tsx:288｜P1
+- [x] 处方笺头部缺处方编号/诊号/性别年龄（仅姓名/会员/手机）｜✅ 2026-10-12 rx-head 条：顾客 性别·年龄·掩码手机（maskPhone index.tsx:32）+ 医师·日期·诊号=treatId + 处方编号预览 Rx-YYYYMMDD（index.tsx:371-388，rxNo index.tsx:254，成功消息回真实编号 index.tsx:322；后端字段已有）｜P1
 - [ ] 加药无饮片目录拼音首字母检索（自由文本，字典仅精确同名比价）｜原型 admin-herbprescription.html:120 / 实现 web/src/pages/Prescription/Create/index.tsx:364｜P1
-- [ ] 审方四查缺「剂量上限(药典)」「特殊煎法提醒」两项（仅配伍+过敏）｜原型 admin-herbprescription.html:136 / 实现 web/src/pages/Prescription/Create/index.tsx:369｜P1
-- [ ] 签名行缺「药师审核/调配复核」（仅医师下拉）｜原型 admin-herbprescription.html:128 / 实现 web/src/pages/Prescription/Create/index.tsx:486｜P1
-- [ ] 代煎缺取货时效与自取/同城配送二选一（仅代煎 N 袋勾选+¥3/袋提示）｜原型 admin-herbprescription.html:142 / 实现 web/src/pages/Prescription/Create/index.tsx:475｜P1
+- [x] 审方四查缺「剂量上限(药典)」「特殊煎法提醒」两项（仅配伍+过敏）｜✅ 2026-10-12 特殊煎法提醒已实装：扫药味 special 命中 先煎/后下/包煎/烊化/冲服/另煎 计「N 味需标注」（index.tsx:519-533，SPECIAL_FX index.tsx:36）。「剂量上限(药典)」卡点：药材字典无药典剂量区间数据源，待补数据再做｜P1（余卡点项）
+- [x] 签名行缺「药师审核/调配复核」（仅医师下拉）｜✅ 2026-10-12 meta 增 药师审核/调配复核 两下拉（index.tsx:655-673）+ 笺尾 sign-row 三签名（index.tsx:692-703）；后端 prescriptions 加 review_staff_id/check_staff_id（PrescriptionEntity.java:79-85，save 存档 PrescriptionServiceImpl.java，create 校验员工存在 PrescriptionController.java:107-113，PrescriptionSignHttpTest 3 例回归）｜P1
+- [x] 代煎缺取货时效与自取/同城配送二选一（仅代煎 N 袋勾选+¥3/袋提示）｜✅ 2026-10-12 勾代煎出 领取方式 自取/同城配送 Radio（index.tsx:627-638）+ 时效提示「今日 17:00 前可取，加急 2 小时」（index.tsx:622）；后端 delivery_type 随方存档（PrescriptionEntity.java:87-89，仅代煎保留、不代煎忽略）｜P1
 - [ ] 费用构成口径：原型代煎费入合计三行账，实现代煎费仅旁注提示（收费以卡项订单结算为准的既定口径，是否对齐原型待定夺）｜原型 admin-herbprescription.html:148 / 实现 web/src/pages/Prescription/Create/index.tsx:420｜P1
-- [ ] 费用区缺「存方并收费/存入我的方剂库/打印处方笺」三键（仅「开方」一键；无打印代码）｜原型 admin-herbprescription.html:150 / 实现 web/src/pages/Prescription/Create/index.tsx:513｜P1
+- [x] 费用区缺「存方并收费/存入我的方剂库/打印处方笺」三键（仅「开方」一键；无打印代码）｜✅ 2026-10-12 三键齐：存方并收费（primary，原提交行为 index.tsx:713）· 存入我的方剂库（弹窗填病症名 1–20 字存启用模板 index.tsx:706-708+718-733，createTemplate）· 打印处方笺（window.print + @media print 只出处方笺主卡 index.tsx:710 + index.less 打印段）｜P1
 - [ ] 「炮制/煎法」列合并为单个特殊煎法自由文本｜原型 admin-herbprescription.html:110 / 实现 web/src/pages/Prescription/Create/index.tsx:348｜P2
 - [ ] 「剂数/煎法/服法」三格合并为剂数框+用法文本框｜原型 admin-herbprescription.html:123 / 实现 web/src/pages/Prescription/Create/index.tsx:498｜P2
 - [ ] 过敏审方无「档案无药物过敏记录」✓ 常显态（命中才渲染）｜原型 admin-herbprescription.html:138 / 实现 web/src/pages/Prescription/Create/index.tsx:399｜P2
@@ -132,7 +132,7 @@
 6. **admin-ads**：4 条（P0 0/P1 0/P2 4）——单页四 tab + 左表右栏完全对齐，仅文案/交互呈现细节。
 7. **admin-appearance**：2 条（P0 0/P1 0/P2 2）——四主题卡+实时预览逐元素还原，仅两处皮肤级细节。
 8. **admin-booking**：7 条（P0 0/P1 3/P2 4）——原型单页看板被拆三页，缺「过号」状态与每时段限约规则。✅ 2026-10-12 P1 全清 + P2 2 条（stat4 面板、小程序联动面板），余 2 条卡点（疗程角标、医师名单无字段）
-9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。✅ P0 辨证摘要条已清（2026-10-11，联接诊单 diagnose/plan/acuCourse）。
+9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。✅ P0 辨证摘要条已清（2026-10-11，联接诊单 diagnose/plan/acuCourse）；✅ 2026-10-12 再清 5 条（rx 头、特殊煎法提醒、签名行+后端字段、代煎领取方式+delivery_type、三键含存方剂库与打印）；余 4 条 P2 + 2 条卡点（拼音检索、药典剂量上限——缺数据源）+ 1 条口径待定夺（代煎费入合计）。
 10. **admin-billing**：7 条（P0 0/P1 2/P2 5）——结算主流程对齐；缺口集中在多项目单据数据模型（明细表退化单行、无整单备注）。✅ 2026-10-11 已清 4 条（明细多行表、整单备注、应收说明行、队列业务单号）；余会员档位/接诊单号头卡与支付图标配色 3 条 P2。
 11. **desktop-workstation**：7 条（P0 0/P1 1/P2 6）——薄壳+Web 页骨架完整，唯一实质差距是外设状态条静态文案。
 12. **admin-themes**：6 条（P0 0/P1 1/P2 5）——web 端四主题落地完整（tokens 同源+data-theme+antd token 双通道）；差距在非 web 端（小程序 :root 失效风险、kiosk/tablet 无切换）。

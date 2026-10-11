@@ -36,8 +36,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     /**
      * 开方：顾客必填、至少 1 味药、剂数 ≥ 1、剂量 > 0；创建/更新时间由审计维护。
-     * 代煎：view.decoction=true 时袋数=剂数、落「待煎」，否则「无需代煎」。
+     * 代煎：view.decoction=true 时袋数=剂数、落「待煎」，否则「无需代煎」（领取方式仅代煎保留）。
      * 膏方：prescriptionType=1 时落「待制作」并记收膏方式，否则「非膏方」。
+     * 签名行：药师审核人 / 调配复核人 staff id 可空存档。
      */
     @Override
     @Transactional
@@ -68,6 +69,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         prescription.setPrescriptionType(paste ? 1 : 0);
         prescription.setPasteStatus(paste ? 1 : 0);
         prescription.setCraft(paste ? view.getCraft() : null);
+        prescription.setReviewStaffId(view.getReviewStaffId());
+        prescription.setCheckStaffId(view.getCheckStaffId());
+        prescription.setDeliveryType(decoction ? view.getDeliveryType() : null);
         prescription.setDispenseStatus(0);
         prescription = prescriptionRepository.save(prescription);
 

@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Button, Checkbox, Input, InputNumber, Radio, Select, message } from 'antd';
+import { Button, Checkbox, Input, InputNumber, Modal, Radio, Select, message } from 'antd';
 import { CheckCircleFilled, MinusCircleOutlined, PlusOutlined, WarningFilled } from '@ant-design/icons';
 import moment from 'moment';
 import {
   checkAllergy,
   checkCompatibility,
   createPrescription,
+  createTemplate,
   pricePrescription,
   queryEnabledTemplates,
   type AllergyResult,
@@ -28,7 +29,13 @@ const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员
 /** 分 → 元（计价展示） */
 const fenToYuan = (fen?: number) => `¥${((fen ?? 0) / 100).toFixed(2)}`;
 
-type CustomerBrief = { id?: number; name?: string; phone?: string; level?: number };
+/** 手机掩码：137****3333（原型 rx-head 口径） */
+const maskPhone = (p?: string) => (p ? p.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2') : '');
+
+/** 特殊煎法提醒关键词：命中即计入「N 味需标注」 */
+const SPECIAL_FX = /先煎|后下|包煎|烊化|冲服|另煎/;
+
+type CustomerBrief = { id?: number; name?: string; phone?: string; level?: number; gender?: number; age?: number };
 
 const Create: React.FC = () => {
   const [customer, setCustomer] = useState<CustomerBrief | undefined>();
@@ -47,6 +54,15 @@ const Create: React.FC = () => {
   const [craft, setCraft] = useState<string | undefined>();
   /** 代煎：袋数=剂数，开方后落「待煎」，领取流转在处方查询页 */
   const [decoction, setDecoction] = useState(false);
+  /** 领取方式：0 自取 / 1 同城配送（仅代煎有意义，随方存档） */
+  const [delivery, setDelivery] = useState<number>(0);
+  /** 签名行：药师审核 / 调配复核（可空，随方存档） */
+  const [reviewStaffId, setReviewStaffId] = useState<number | undefined>();
+  const [checkStaffId, setCheckStaffId] = useState<number | undefined>();
+  /** 存入我的方剂库：弹窗填病症名（唯一 1–20 字） */
+  const [tplModal, setTplModal] = useState(false);
+  const [tplName, setTplName] = useState('');
+  const [savingTpl, setSavingTpl] = useState(false);
   const [usage, setUsage] = useState('');
   const [remark, setRemark] = useState('');
   const [busy, setBusy] = useState(false);
@@ -232,6 +248,44 @@ const Create: React.FC = () => {
   /** 当前选中的接诊单：辨证（诊断）与治法/方案直读接诊单自由文本 */
   const treat = treats.find((t) => t.id === treatId);
 
+  /** 处方笺头（原型 rx-head）：顾客 女·38 岁·掩码手机 / 医师·日期·诊号 / 处方编号预览（编号开方后生成） */
+  const staffName = staffOptions.find((s) => s.value === staffId)?.label;
+  const genderText = customer?.gender === 2 ? '女' : customer?.gender === 1 ? '男' : '';
+  const rxNo = `Rx-${moment().format('YYYYMMDD')}-开方后生成`;
+  /** 特殊煎法提醒：扫描药味备注命中关键词的味数（原型审方四查之一） */
+  const specialFxCount = herbs.filter((r) => SPECIAL_FX.test(r.special || '')).length;
+
+  /** 存入我的方剂库：当前方随病症名存为启用模板（不写回、不影响开方单） */
+  const saveAsTemplate = async () => {
+    const name = tplName.trim();
+    if (!name || name.length > 20) {
+      message.warning('病症名限 1–20 字');
+      return;
+    }
+    const rows = herbs.filter((r) => (r.herb || '').trim() !== '' && r.weight);
+    if (rows.length === 0) {
+      message.warning('处方至少要有 1 味已写剂量的药');
+      return;
+    }
+    setSavingTpl(true);
+    try {
+      await createTemplate({
+        name,
+        doses,
+        decoction: decoction ? 1 : 0,
+        usage: usage.trim() || undefined,
+        remark: remark.trim() || undefined,
+        enabled: 1,
+        herbs: rows.map((r) => ({ herb: (r.herb || '').trim(), weight: r.weight, special: r.special || undefined })),
+      });
+      message.success(`已存入我的方剂库「${name}」，可在「套用模板」带出`);
+      setTplModal(false);
+      setTplName('');
+    } finally {
+      setSavingTpl(false);
+    }
+  };
+
   const submit = async () => {
     if (!customer?.id) {
       message.warning('请先按手机号定位顾客');
@@ -258,17 +312,20 @@ const Create: React.FC = () => {
         customerId: customer.id,
         treatId,
         staffId,
+        reviewStaffId,
+        checkStaffId,
         doses,
         prescriptionType: ptype || undefined,
         craft: ptype === 1 && craft ? craft : undefined,
         decoction: ptype === 0 && decoction ? true : undefined,
+        deliveryType: ptype === 0 && decoction ? delivery : undefined,
         usage: usage.trim() || undefined,
         remark: remark.trim() || undefined,
         herbs: rows.map((r) => ({ herb: (r.herb || '').trim(), weight: r.weight, special: r.special || undefined })),
       });
       if (created?.id) {
         message.success(
-          `处方 #${created.id} 已开` +
+          `处方 Rx-${moment(created.createTime).format('YYYYMMDD')}-${String(created.id).padStart(3, '0')} 已开` +
             (ptype === 1 ? `，膏方${craft ? `（${craft}）` : ''}已转药房待制作` : decoction ? `，代煎 ${doses} 袋已转药房待煎` : ''),
         );
         history.push('/prescription/query');
@@ -311,6 +368,24 @@ const Create: React.FC = () => {
         </div>
 
         <div className="pr-sheet">
+          <div className={`rx-head${customer ? '' : ' none'}`}>
+            <div className="rx-title">处方笺</div>
+            {customer ? (
+              <div className="rx-meta">
+                顾客 <b>{customer.name}</b>
+                {genderText ? ` · ${genderText}` : ''}
+                {customer.age ? ` · ${customer.age} 岁` : ''} · {maskPhone(customer.phone)}
+                <br />
+                医师 <b>{staffName || '未选'}</b> · {moment().format('YYYY-MM-DD')} · 诊号{' '}
+                <b>{treatId ?? '—'}</b>
+              </div>
+            ) : (
+              <div className="rx-meta">定位顾客后带出性别 / 年龄 / 手机与医师、诊号</div>
+            )}
+            <div className="rx-no">
+              处方编号<b>{rxNo}</b>
+            </div>
+          </div>
           <h3>
             2 · 处方笺
             <Select
@@ -441,6 +516,25 @@ const Create: React.FC = () => {
             )}
           </div>
 
+          {/* 特殊煎法提醒（原型审方四查之一）：扫描药味煎法备注，命中关键词即提示；剂量上限需药典区间数据，暂缓 */}
+          <div className={`fx-check${specialFxCount > 0 ? ' warn' : ''}`}>
+            {specialFxCount > 0 ? (
+              <>
+                <WarningFilled />
+                <span>
+                  <b>特殊煎法</b>：{specialFxCount} 味需标注（先煎 / 后下等已录入，随笺打印）
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircleFilled />
+                <span>
+                  <b>特殊煎法</b>：无需标注（先煎 / 后下 / 包煎 / 烊化 / 冲服 / 另煎）
+                </span>
+              </>
+            )}
+          </div>
+
           {allergy && (allergy.findings?.length ?? 0) > 0 ? (
             <div className="allergy">
               <div className="ahead">
@@ -520,13 +614,31 @@ const Create: React.FC = () => {
                 <Checkbox checked={decoction} onChange={(e) => setDecoction(e.target.checked)}>
                   代煎 {doses} 袋
                 </Checkbox>
-                <i className="dfee">服务费 {fenToYuan(doses * 300)}（¥3/袋）仅提示，收费以卡项订单结算为准</i>
+                <i className="dfee">
+                  服务费 {fenToYuan(doses * 300)}（¥3/袋）仅提示，收费以卡项订单结算为准
+                  {decoction ? '；今日 17:00 前可取，加急 2 小时' : ''}
+                </i>
               </label>
             ) : (
               <label>
                 <i className="dfee">膏方按料计，开方后转药房待制作；领取流转见处方查询页</i>
               </label>
             )}
+            {ptype === 0 && decoction ? (
+              <label>
+                领取方式
+                <Radio.Group
+                  value={delivery}
+                  onChange={(e) => setDelivery(e.target.value as number)}
+                  options={[
+                    { label: '自取', value: 0 },
+                    { label: '同城配送', value: 1 },
+                  ]}
+                  optionType="button"
+                />
+                <i className="dfee">{delivery === 1 ? '运费 ¥6.00 仅提示' : '前台领取'}</i>
+              </label>
+            ) : null}
             <label>
               医师
               <Select
@@ -537,6 +649,30 @@ const Create: React.FC = () => {
                 value={staffId}
                 onDropdownVisibleChange={loadStaff}
                 onChange={(v) => setStaffId(v)}
+              />
+            </label>
+            <label>
+              药师审核
+              <Select
+                allowClear
+                placeholder="选填"
+                style={{ minWidth: 140 }}
+                options={staffOptions}
+                value={reviewStaffId}
+                onDropdownVisibleChange={loadStaff}
+                onChange={(v) => setReviewStaffId(v)}
+              />
+            </label>
+            <label>
+              调配 / 复核
+              <Select
+                allowClear
+                placeholder="选填"
+                style={{ minWidth: 140 }}
+                options={staffOptions}
+                value={checkStaffId}
+                onDropdownVisibleChange={loadStaff}
+                onChange={(v) => setCheckStaffId(v)}
               />
             </label>
           </div>
@@ -553,12 +689,51 @@ const Create: React.FC = () => {
             value={remark}
             onChange={(e) => setRemark(e.target.value)}
           />
+          {/* 签名行（原型 sign-row）：随方存档，打印处方笺时随笺输出 */}
+          <div className="sign-row">
+            <span>
+              医师签名 <b>{staffName || '—'}</b>
+            </span>
+            <span>
+              药师审核 <b>{staffOptions.find((s) => s.value === reviewStaffId)?.label || '—'}</b>
+            </span>
+            <span>
+              调配 / 复核 <b>{staffOptions.find((s) => s.value === checkStaffId)?.label || '—'}</b>
+            </span>
+          </div>
           <div className="foot">
             <span className="hint">演示口径：计价按药材字典实时试算（无快照），库存为规划功能；代煎费仅提示、领取流转见处方查询；审方提示不拦截</span>
-            <Button type="primary" size="large" loading={busy} onClick={submit}>
-              开方
-            </Button>
+            <div className="btns">
+              <Button size="large" onClick={() => setTplModal(true)}>
+                存入我的方剂库
+              </Button>
+              <Button size="large" onClick={() => window.print()}>
+                打印处方笺
+              </Button>
+              <Button type="primary" size="large" loading={busy} onClick={submit}>
+                存方并收费
+              </Button>
+            </div>
           </div>
+          <Modal
+            title="存入我的方剂库"
+            open={tplModal}
+            confirmLoading={savingTpl}
+            okText="存入"
+            cancelText="取消"
+            onOk={saveAsTemplate}
+            onCancel={() => setTplModal(false)}
+          >
+            <div className="tpl-tip">
+              以病症名存为启用模板（1–20 字，唯一），含当前药味、剂数{decoction ? '与代煎建议' : ''}；可在开方页「套用模板」带出。
+            </div>
+            <Input
+              placeholder="病症名，如 脾胃虚寒"
+              maxLength={20}
+              value={tplName}
+              onChange={(e) => setTplName(e.target.value)}
+            />
+          </Modal>
         </div>
       </div>
     </PageContainer>
