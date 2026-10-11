@@ -3,6 +3,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { Button, Checkbox, Input, InputNumber, Radio, Select, message } from 'antd';
 import { CheckCircleFilled, MinusCircleOutlined, PlusOutlined, WarningFilled } from '@ant-design/icons';
+import moment from 'moment';
 import {
   checkAllergy,
   checkCompatibility,
@@ -18,6 +19,7 @@ import {
 import { fetchCustomerByPhone } from '@/services/ant-design-pro/customer';
 import { queryFormulaPage, type Formula } from '@/services/ant-design-pro/formula';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
+import { queryTreatByPage } from '@/services/ant-design-pro/treat';
 import './index.less';
 
 /** 会员等级展示口径（同顾客档案）：1 普通 / 2 银卡 / 3 金卡 */
@@ -32,6 +34,9 @@ const Create: React.FC = () => {
   const [customer, setCustomer] = useState<CustomerBrief | undefined>();
   const [phone, setPhone] = useState('');
   const [finding, setFinding] = useState(false);
+  /** 接诊单联动：该顾客的诊疗记录（时间倒序），默认带最近一张的辨证与治法/方案 */
+  const [treats, setTreats] = useState<API.Treat[]>([]);
+  const [treatId, setTreatId] = useState<number | undefined>();
   const [staffOptions, setStaffOptions] = useState<{ label: string; value: number }[]>([]);
   const [staffId, setStaffId] = useState<number | undefined>();
   const [herbs, setHerbs] = useState<PrescriptionHerb[]>([{ herb: '', weight: undefined }]);
@@ -202,8 +207,14 @@ const Create: React.FC = () => {
       const found = await fetchCustomerByPhone(p);
       if (found?.id) {
         setCustomer(found);
+        const page = await queryTreatByPage({ current: 1, pageSize: 20, customerId: found.id });
+        const list = page?.data || [];
+        setTreats(list);
+        setTreatId(list[0]?.id);
       } else {
         setCustomer(undefined);
+        setTreats([]);
+        setTreatId(undefined);
         message.warning('未找到该手机号顾客，请先在「顾客 → 新建顾客」建档');
       }
     } finally {
@@ -217,6 +228,9 @@ const Create: React.FC = () => {
 
   const addHerb = () => setHerbs((rows) => [...rows, { herb: '', weight: undefined }]);
   const removeHerb = (i: number) => setHerbs((rows) => rows.filter((_, k) => k !== i));
+
+  /** 当前选中的接诊单：辨证（诊断）与治法/方案直读接诊单自由文本 */
+  const treat = treats.find((t) => t.id === treatId);
 
   const submit = async () => {
     if (!customer?.id) {
@@ -242,6 +256,7 @@ const Create: React.FC = () => {
     try {
       const created = await createPrescription({
         customerId: customer.id,
+        treatId,
         staffId,
         doses,
         prescriptionType: ptype || undefined,
@@ -266,7 +281,7 @@ const Create: React.FC = () => {
   return (
     <PageContainer
       title="中药处方"
-      content="按手机号定位顾客 → 写药味与剂数；配伍审方（十八反/十九畏）与实时计价随写随查。药材名按字典精确同名比价，未收录药名不计费；字典维护见「处方 → 药材字典」。"
+      content="按手机号定位顾客 → 写药味与剂数；定位后自动带出最近接诊单的辨证与治法（可切换，随处方落 treatId）。配伍审方（十八反/十九畏）与实时计价随写随查。药材名按字典精确同名比价，未收录药名不计费；字典维护见「处方 → 药材字典」。"
     >
       <div className="pr-create">
         <div className="pr-customer">
@@ -326,6 +341,36 @@ const Create: React.FC = () => {
               onChange={(v) => (v == null ? setFormulaId(undefined) : applyFormula(v))}
             />
           </h3>
+          <div className={`dx-strip${treats.length === 0 ? ' none' : ''}`}>
+            <span className="lab">辨证摘要</span>
+            {treats.length === 0 ? (
+              <span className="empty">该顾客暂无接诊单（诊疗记录），可先在「诊疗 → 开单」建档，或直接开方</span>
+            ) : (
+              <>
+                <Select
+                  className="src"
+                  size="small"
+                  value={treatId}
+                  onChange={setTreatId}
+                  options={treats.map((t) => ({
+                    label: `#${t.id} · ${t.createTime ? moment(t.createTime).format('YYYY-MM-DD') : ''}${
+                      t.desc ? ` · ${t.desc.length > 12 ? `${t.desc.slice(0, 12)}…` : t.desc}` : ''
+                    }`,
+                    value: t.id!,
+                  }))}
+                />
+                <span className="cell">
+                  辨证
+                  <b>{treat?.diagnose || '接诊单未填'}</b>
+                </span>
+                <span className="cell">
+                  治法/方案
+                  <b>{treat?.plan || '接诊单未填'}</b>
+                </span>
+                {treat?.acuCourse ? <span className="cell course">疗程：{treat.acuCourse}</span> : null}
+              </>
+            )}
+          </div>
           <div className="rows">
             {herbs.map((row, i) => (
               <div className="row" key={i}>

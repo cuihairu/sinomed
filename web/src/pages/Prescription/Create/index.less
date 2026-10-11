@@ -88,6 +88,50 @@
     }
   }
 
+  /* 辨证摘要条：接诊单联动（辨证=诊断、治法/方案=方案，直读接诊单自由文本） */
+  .dx-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    background: var(--amber-tint);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--amber);
+    border-radius: 10px;
+
+    .lab {
+      font-family: var(--serif);
+      font-size: 13px;
+      color: var(--amber-deep);
+    }
+
+    .empty {
+      color: var(--faint);
+      font-size: 13px;
+    }
+
+    .src {
+      width: 260px;
+    }
+
+    .cell {
+      font-size: 13px;
+      color: var(--muted);
+
+      b {
+        font-weight: 600;
+        color: var(--ink);
+      }
+    }
+
+    &.none {
+      background: var(--paper);
+      border-left-color: var(--line);
+    }
+  }
+
   .rows {
     display: flex;
     flex-direction: column;

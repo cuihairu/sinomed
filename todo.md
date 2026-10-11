@@ -66,7 +66,7 @@
 - [ ] 医师列仅按当日有约动态生成（原型当日医师名单全列占位）｜原型 admin-booking.html:92 / 实现 web/src/pages/Appointment/Schedule/index.tsx:62｜P2
 
 ### admin-herbprescription（11 条）
-- [ ] 「辨证摘要条」（接诊单联动：证型·治法）整段缺失｜原型 admin-herbprescription.html:108 / 实现 web/src/pages/Prescription/Create/index.tsx:298｜P0
+- [x] 「辨证摘要条」（接诊单联动：证型·治法）整段缺失｜原型 admin-herbprescription.html:108 / 实现 web/src/pages/Prescription/Create/index.tsx:344（接诊单下拉+辨证/治法/疗程，findCustomer 定位后自动带最近一张 index.tsx:210，开方随处方落 treatId index.tsx:259；口径：辨证=接诊单 diagnose、治法/方案=接诊单 plan 自由文本）｜P0
 - [ ] 处方笺头部缺处方编号/诊号/性别年龄（仅姓名/会员/手机）｜原型 admin-herbprescription.html:106 / 实现 web/src/pages/Prescription/Create/index.tsx:288｜P1
 - [ ] 加药无饮片目录拼音首字母检索（自由文本，字典仅精确同名比价）｜原型 admin-herbprescription.html:120 / 实现 web/src/pages/Prescription/Create/index.tsx:364｜P1
 - [ ] 审方四查缺「剂量上限(药典)」「特殊煎法提醒」两项（仅配伍+过敏）｜原型 admin-herbprescription.html:136 / 实现 web/src/pages/Prescription/Create/index.tsx:369｜P1
@@ -150,6 +150,6 @@
 - [ ] 服务端接口层方法级权限强制（web.md:174：当前只做页面级隐藏）
 
 ## 在途工作（未提交，需先收口）
-- [ ] web `pnpm test` 存量红（Node 24 下 umi core esbuild-register 解析 config 失败，唯一脚手架 login 快照测试，CI 不跑）——需单独修（jest.config.ts 绕开 umi 配置解析或移除脚手架测试）
+- 无（web `pnpm test` 存量红已于 2026-10-11 修复：jest.config.ts 改用 createConfig 手工别名绕开 configUmiAlias 的 esbuild-register（Node 24 崩溃点），移除脚手架 login 快照测试，新增 billing 请求契约测试 6 例，测试全绿）
 
 验收：对应页面可实跑 + 后端接口有权限校验；测试绿才 push，commit 英文简短。
