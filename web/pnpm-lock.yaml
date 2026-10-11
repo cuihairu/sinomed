@@ -140,9 +140,6 @@ importers:
       lint-staged:
         specifier: ^10.5.4
         version: 10.5.4
-      mockjs:
-        specifier: ^1.1.0
-        version: 1.1.0
       prettier:
         specifier: ^2.8.8
         version: 2.8.8
@@ -12179,7 +12176,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.6
       postcss: 8.5.28
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
     transitivePeerDependencies:
       - supports-color
 
@@ -12187,14 +12184,14 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.6
       postcss: 8.5.28
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
     transitivePeerDependencies:
       - supports-color
 
   '@stylelint/postcss-markdown@0.36.2(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28)':
     dependencies:
       postcss: 8.5.28
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
       remark: 13.0.0
       unist-util-find-all-after: 3.0.2
     transitivePeerDependencies:
@@ -13114,7 +13111,7 @@ snapshots:
       eslint-plugin-react: 7.33.2(eslint@8.35.0)
       eslint-plugin-react-hooks: 4.6.0(eslint@8.35.0)
       postcss: 8.5.28
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
       stylelint-config-standard: 25.0.0(stylelint@14.8.2)
     transitivePeerDependencies:
       - eslint
@@ -13140,7 +13137,7 @@ snapshots:
       eslint-plugin-react: 7.33.2(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react-hooks: 4.6.0(eslint@9.39.5(jiti@2.7.0))
       postcss: 8.5.28
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
       stylelint-config-standard: 25.0.0(stylelint@14.8.2)
     transitivePeerDependencies:
       - eslint
@@ -18785,7 +18782,7 @@ snapshots:
     dependencies:
       htmlparser2: 3.10.1
       postcss: 8.5.28
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
 
   postcss-image-set-function@4.0.7(postcss@8.5.28):
     dependencies:
@@ -18972,7 +18969,7 @@ snapshots:
       lodash: 4.18.1
       postcss: 8.5.28
 
-  postcss-syntax@0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28):
+  postcss-syntax@0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28):
     dependencies:
       postcss: 8.5.28
     optionalDependencies:
@@ -21151,7 +21148,7 @@ snapshots:
       postcss-sass: 0.4.4
       postcss-scss: 2.1.1
       postcss-selector-parser: 7.1.6
-      postcss-syntax: 0.36.2(postcss-html@0.36.0(postcss-syntax@0.36.2(postcss@8.5.28))(postcss@8.5.28))(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
+      postcss-syntax: 0.36.2(postcss-html@0.36.0)(postcss-less@3.1.4)(postcss-scss@2.1.1)(postcss@8.5.28)
       postcss-value-parser: 4.2.0
       resolve-from: 5.0.0
       slash: 3.0.0
