@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 71 条（P0 2/2 + P1 20 + P2 49：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9、customer 卡项有效期+建档月份（补 valid_until 列）、herbprescription 炮制列+用法三格（补 process/take_method 列）），余 16 条（P1 2 / P2 14）：可做 2 条（app 四主题、接口层方法级权限）；卡点 6 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、herbprescription 拼音检索、desktop 署名医师——均缺数据源）；1 条口径待定夺（herbprescription 代煎费三行账）；4 条规划占位（desktop-workstation 开单表/收款/余次/统计）；1 条禁碰（在线支付真实通道）
+> 进度（2026-10-12 续批）：已清 72 条（P0 2/2 + P1 20 + P2 50：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9、customer 卡项有效期+建档月份（补 valid_until 列）、herbprescription 炮制列+用法三格（补 process/take_method 列）、app 四主题（H5 端切换+本机记忆，小程序端如实固定石墨）），余 13 条（P1 2 / P2 11）：可做 1 条（接口层方法级权限）；卡点 6 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、herbprescription 拼音检索、desktop 署名医师——均缺数据源）；1 条口径待定夺（herbprescription 代煎费三行账）；4 条规划占位（desktop-workstation 开单表/收款/余次/统计）；1 条禁碰（在线支付真实通道）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -99,7 +99,7 @@
 
 ### admin-themes 设计系统（6 条）
 - [x] 小程序 tokens 失效风险：变量挂 `:root`（WXSS 不支持）无 `page` 兜底，13 处 var(--brand) 在小程序构建不可解析（仅 H5 可靠）｜✅ 2026-10-12 tokens.css 追加 `page` 选择器兜底块（app/src/tokens.css:50，全量基础变量+默认石墨主题；H5 端 page 不匹配元素、:root 继续生效，两端互不干扰）；weapp 构建过（taro build --type weapp compiled successfully）。四主题切换仍属 #102 P2 不动｜P1
-- [ ] 小程序无四主题切换（白标单色 BRAND_THEME，与四主题体系脱节）｜原型 tokens.css:23 / 实现 app/src/app.ts:21、app/config/brand.ts:13｜P2
+- [x] 小程序无四主题切换（白标单色 BRAND_THEME，与四主题体系脱节）｜✅ 2026-10-12 H5 端四主题落地：services/theme.ts（THEMES 四组/读写 storage sinomed_theme/挂 documentElement data-theme，app.ts 启动回放），「我的」页主题区四色点切换（仅 TARO_ENV=h5 渲染，me/index.tsx + theme-row 样式）；小程序端 WXSS 无运行时变量能力固定石墨，如实不渲染开关（tokens.css page 兜底注释同步）；白标 BRAND_THEME 不动（--brand-color 独立变量）；H5+weapp build 过｜原型 tokens.css:23 / 实现 app/src/services/theme.ts:8｜P2
 - [x] Kiosk 写死 data-theme="pine" 无切换能力｜✅ 2026-10-12 main.tsx 启动读 ?theme=pine|cinnabar|indigo|graphite 挂/摘 documentElement data-theme（main.tsx:7-15），缺省保持 index.html 的 pine（index.html:2），vite build 过｜原型 tokens.css:3 / 实现 kiosk/src/main.tsx:7｜P2
 - [x] Tablet 未设 data-theme 固定石墨，无切换机制｜✅ 2026-10-12 main.tsx 启动读 ?theme=pine|cinnabar|indigo|graphite（main.tsx:7-15，缺省石墨不设属性），tsc+vite build 过｜原型 tokens.css:23 / 实现 tablet/src/main.tsx:7｜P2
 - [x] Ads 素材卡渐变硬编码 #353a37 不随主题变｜✅ 2026-10-12 g1 渐变改 var(--brand-deep)→var(--brand)（Ads/Index/index.less，四主题切换即随动，白字在四套主色上均可读）｜P2

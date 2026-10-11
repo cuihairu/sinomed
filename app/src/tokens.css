@@ -46,7 +46,8 @@ body {
 
 /* 小程序兜底（WXSS 不支持 :root 与属性选择器）：基础变量挂 page 选择器，
    H5 端 page 不匹配任何元素、由 :root 继续生效，两端互不干扰。
-   四主题切换属管理端/桌面端能力，小程序白标单色（见 brand.ts），只落默认石墨。 */
+   四主题切换：H5 端走「我的」页切换 + 本机记忆（services/theme.ts 挂 data-theme）；
+   小程序端 WXSS 无运行时变量能力，白标单色固定石墨（见 brand.ts）。 */
 page {
   --paper: #f7f7f4;
   --card: #ffffff;

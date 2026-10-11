@@ -17,9 +17,11 @@
 | `config/index.ts` | Taro 编译配置（designWidth 375、webpack5、白标参数注入、H5 htmlPluginOption） |
 | `config/brand.ts` | 白标品牌参数解析（`BRAND_*` 环境变量 → 带校验的品牌配置，默认值即仓库内置） |
 | `src/services/brand.ts` | 业务代码侧品牌常量（编译期替换） |
+| `src/services/theme.ts` | 四主题（石墨/松烟绿/朱砂/黛蓝）：H5 端「我的」页切换 + 本机记忆（`data-theme` 挂 documentElement，走 tokens.css 变量组）；小程序端 WXSS 无运行时变量能力，固定石墨 |
 | `src/services/api.ts` | 请求封装层（`Taro.request`；已封装 `GET /api/v1/kiosk/items`，H5 开发态走 devServer 代理，其余端直连白标 apiBase） |
 | `src/app.config.ts` | 页面注册（`pages/index/index`、`pages/booking/index`）、导航栏品牌名/主题色；无 tabBar |
 | `src/pages/index/` | 顾客首页：品牌头 / 预约横幅（入口 → 自助约期页）/ 今日宜养（宫格实拉上架项目）/ 我的卡项（规划占位）/ 养生贴士 / 白标自检页底（品牌名/主题色/后端域名/页内图标） |
+| `src/pages/me/` | 我的 tab：本机预约摘要与快捷入口；主题区（仅 H5 端渲染）四主题色点切换；白标自检页底（品牌名/主题色/后端域名/页内图标） |
 | `src/pages/booking/` | 自助约期页：日期条（今天起 7 天）→ 时段网格（9:00–17:00 整点，今日已过时段禁选）→ 项目选择（实拉上架项目，可「到店再定」）→ 手机号/称呼提交；成功回执展示预约号与时段，服务端 400 文案原样透出 |
 | `scripts/build-brand.mjs` | 换马甲一键出包脚本（参数校验 → 注入 → 构建 → 恢复 appid） |
 | `brand-assets/` | 仓库默认图标资产（商家图标不进这里，见[白标指南](/app-white-label)） |

@@ -57,3 +57,43 @@
   font-weight: 600;
   color: var(--brand-deep);
 }
+
+/* 四主题切换（仅 H5 端渲染）：色点 + 名称，选中描边 */
+.theme-row {
+  display: flex;
+  gap: 10px;
+}
+
+.theme-opt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 0 8px;
+  background: var(--paper);
+}
+
+.theme-opt.on {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+
+.theme-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.theme-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.theme-opt.on .theme-label {
+  color: var(--brand-deep);
+  font-weight: 600;
+}

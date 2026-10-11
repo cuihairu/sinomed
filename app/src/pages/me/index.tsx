@@ -3,6 +3,7 @@ import { View, Image, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { BRAND } from '../../services/brand'
 import { loadBookingSession } from '../../services/session'
+import { THEMES, applyTheme, readTheme, type ThemeKey } from '../../services/theme'
 import './index.css'
 
 /**
@@ -12,9 +13,15 @@ import './index.css'
  */
 export default function Me() {
   const [session, setSession] = useState(loadBookingSession)
+  const [theme, setTheme] = useState<ThemeKey>(readTheme)
 
   // 切回本页时重读本机预约（首页/预约页都可能更新它）
   useDidShow(() => setSession(loadBookingSession()))
+
+  const pickTheme = (key: ThemeKey) => {
+    applyTheme(key)
+    setTheme(key)
+  }
 
   const initial = session?.customerName ? session.customerName.slice(0, 1) : '客'
 
@@ -64,6 +71,28 @@ export default function Me() {
           回首页
         </View>
       </View>
+
+      {/* 四主题切换：仅 H5 端（data-theme 挂 documentElement 整页换色）；
+          小程序端 WXSS 无运行时变量能力，固定石墨，不放假开关 */}
+      {process.env.TARO_ENV === 'h5' ? (
+        <>
+          <View className="sec">
+            <Text className="sec-h3">主题</Text>
+          </View>
+          <View className="me-card theme-row">
+            {THEMES.map((t) => (
+              <View
+                key={t.key}
+                className={`theme-opt${theme === t.key ? ' on' : ''}`}
+                onClick={() => pickTheme(t.key)}
+              >
+                <View className="theme-dot" style={{ background: t.color }} />
+                <Text className="theme-label">{t.label}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       {/* 白标自检（工程验收用） */}
       <View className="sec">
