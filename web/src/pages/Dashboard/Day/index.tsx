@@ -5,7 +5,7 @@ import {
   fetchReviewCustomerBulk,
   fetchReviewStaffBulk,
 } from '@/services/ant-design-pro/review';
-import { queryStaffByPage } from '@/services/ant-design-pro/staff';
+import { fetchWeekTimesheet, queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryCustomerByPage } from '@/services/ant-design-pro/customer';
 import { fuzzyQueryTreatByPage } from '@/services/ant-design-pro/treat';
 import { Button, message } from 'antd';
@@ -20,6 +20,9 @@ type StaffReviewRow = {
   done?: string;
   advice?: string;
 };
+
+/** 角色文案（同员工管理 valueEnum 口径） */
+const ROLE_TEXT: Record<number, string> = { 0: '管理员', 1: '领导', 99: '员工' };
 type CustomerReviewRow = {
   id?: number | string;
   name?: string;
@@ -28,6 +31,9 @@ type CustomerReviewRow = {
   advice?: string;
 };
 type DayRow = { day: string; count: number };
+
+/** 手机掩码：138****2211（原型回访行口径） */
+const maskPhone = (p?: string) => (p ? p.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2') : '');
 
 /** 分号/换行拆成条目（今日总结的两栏文本） */
 const splitItems = (text?: string) =>
@@ -40,6 +46,12 @@ const DayDashboard: React.FC = () => {
   const [day, setDay] = useState<moment.Moment>(moment());
   const [staffReviews, setStaffReviews] = useState<StaffReviewRow[]>([]);
   const [allStaff, setAllStaff] = useState<string[]>([]);
+  /** 姓名 → 角色（员工总结表角色副行） */
+  const [staffRoles, setStaffRoles] = useState<Record<string, number>>({});
+  /** 顾客id → 手机（回访行脱敏展示） */
+  const [customerPhones, setCustomerPhones] = useState<Record<number, string>>({});
+  /** 员工在岗：当日周排班里有签到记录的人数 */
+  const [onDuty, setOnDuty] = useState<number>();
   const [customerReviews, setCustomerReviews] = useState<CustomerReviewRow[]>([]);
   const [review, setReview] = useState<{ good?: string; improvement?: string }>({});
   const [treatTotal, setTreatTotal] = useState<number>();
@@ -56,8 +68,10 @@ const DayDashboard: React.FC = () => {
     const staffBulk = (await fetchReviewStaffBulk(d.toDate())) || [];
     setStaffReviews(staffBulk);
     const staffPage = await queryStaffByPage({ current: 1, pageSize: 100 });
-    const names = (staffPage?.data || []).map((s) => s.name || '').filter(Boolean);
+    const staffList = staffPage?.data || [];
+    const names = staffList.map((s) => s.name || '').filter(Boolean);
     setAllStaff(names);
+    setStaffRoles(Object.fromEntries(staffList.map((s) => [s.name || '', s.role ?? 99])));
 
     // 今日回访 + 今日总结
     setCustomerReviews((await fetchReviewCustomerBulk(d.toDate())) || []);
@@ -75,11 +89,24 @@ const DayDashboard: React.FC = () => {
     setTreatTotal(treatRes?.total ?? 0);
     const custRes = await queryCustomerByPage({
       current: 1,
-      pageSize: 1,
+      pageSize: 100,
       startTime: dayStr,
       endTime: nextDayStr,
     });
     setNewCustomers(custRes?.total ?? 0);
+    // 手机掩码映射：回访行带出 138****2211（今日建档顾客覆盖不到的存量客，回退不显示手机）
+    const phonePage = await queryCustomerByPage({ current: 1, pageSize: 100 });
+    setCustomerPhones(
+      Object.fromEntries((phonePage?.data || []).map((c) => [c.id as number, c.phone || ''])),
+    );
+
+    // 员工在岗 = 周排班里该日有签到记录的员工数（真实口径，替代规划占位）
+    const week = await fetchWeekTimesheet(dayStr);
+    setOnDuty(
+      (week?.staffs || []).filter((s) =>
+        (s.days || []).some((dd) => dd.date === dayStr && dd.signStart),
+      ).length,
+    );
 
     // 近 7 日接诊单量（逐日实查，接口按创建时间过滤）
     const days: DayRow[] = [];
@@ -127,7 +154,10 @@ const DayDashboard: React.FC = () => {
       <div className="dd-stats">
         <div className="stat">
           <div className="k">员工在岗</div>
-          <div className="v hold">规划功能 · 无在岗人数聚合接口</div>
+          <div className="v">
+            {onDuty ?? '—'}
+            <small>人</small>
+          </div>
         </div>
         <div className="stat">
           <div className="k">今日接诊</div>
@@ -173,6 +203,7 @@ const DayDashboard: React.FC = () => {
                 <tr key={String(r.id ?? r.name)}>
                   <td>
                     <div className="who">{r.name || '—'}</div>
+                    <div className="role">{ROLE_TEXT[staffRoles[r.name || ''] ?? 99] ?? '员工'}</div>
                   </td>
                   <td>{r.cost ?? '—'}</td>
                   <td>{r.done || '—'}</td>
@@ -186,6 +217,7 @@ const DayDashboard: React.FC = () => {
                 <tr key={n} className="dim">
                   <td>
                     <div className="who">{n}</div>
+                    <div className="role">{ROLE_TEXT[staffRoles[n] ?? 99] ?? '员工'}</div>
                   </td>
                   <td>—</td>
                   <td>今日尚未填写总结</td>
@@ -221,6 +253,9 @@ const DayDashboard: React.FC = () => {
                   <div>
                     <div className="nm">
                       {r.name || '—'}
+                      {r.customerId && customerPhones[r.customerId] ? (
+                        <span>{maskPhone(customerPhones[r.customerId])}</span>
+                      ) : null}
                       {r.last ? <span>最近到店 {moment(r.last).format('M-DD')}</span> : null}
                     </div>
                     <div className="why">{r.advice || '—'}</div>

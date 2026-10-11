@@ -5,12 +5,12 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 29 条（P0 2/2 + P1 16 + P2 11：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 55 条（P1 9 / P2 46，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段；另有 1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 34 条（P0 2/2 + P1 17 + P2 15：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要、treat history 列扩、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 50 条（P1 8 / P2 42，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，另 customer 时间线 医师/时长/项目名 半条卡点；1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
 ### admin-customer（11 条）
-- [ ] 诊疗时间线字段结构：原型每条=项目名+疗程标签+摘要(医师·时长·证治取穴)，实现标题取 diagnose 证型、无医师/时长/疗程标签｜原型 admin-customer.html:119 / 实现 web/src/pages/Customer/Update/index.tsx:245｜P1
+- [x] 诊疗时间线字段结构：原型每条=项目名+疗程标签+摘要(医师·时长·证治取穴)，实现标题取 diagnose 证型、无医师/时长/疗程标签｜✅ 2026-10-12 部分清：疗程标签取 acuCourse（index.tsx:256，amber tag）、摘要出 治法+取穴（index.tsx:239-247，plan+acupointLeft/Right join）、标题回退 diagnose→acuMethod（index.tsx:255）。余卡点：医师/时长/项目名——接诊单模型无 staffId/duration/项目关联字段（医师落谁涉及接诊归属语义，待定夺再加）｜P1（部分，余模型字段）
 - [ ] 下次回访统计：原型显示真实回访日期，实现为「规划功能 · 无按顾客回访查询」占位｜原型 admin-customer.html:111 / 实现 web/src/pages/Customer/Update/index.tsx:221｜P2
 - [ ] 持卡卡项面板缺「回访提醒」整块 note（含回访原因文案）｜原型 admin-customer.html:157 / 实现 web/src/pages/Customer/Update/index.tsx:254｜P2
 - [ ] 卡项行缺「购入日期 · 有效期至」（Card 模型无有效期字段）｜原型 admin-customer.html:150 / 实现 web/src/pages/Customer/Update/index.tsx:265｜P2
@@ -18,7 +18,7 @@
 - [ ] 新建顾客表单文案错误：「年纪」应为年龄、占位「输入员工名字」应为顾客｜原型 admin-customer.html:85 / 实现 web/src/pages/Customer/Create/index.tsx:31｜P2
 - [ ] 会员等级为裸数字输入，原型为「金卡会员」档位徽标（无 普通/银卡/金卡 枚举）｜原型 admin-customer.html:99 / 实现 web/src/pages/Customer/Create/index.tsx:39｜P2
 - [ ] 回访计划缺「回访原因」结构化字段（/review/plan 仅 姓名/最近访问/计划回访）｜原型 admin-customer.html:157 / 实现 web/src/pages/Review/Plan/index.tsx:58｜P2
-- [ ] 诊疗历史全量列表仅 ID/主述/创建时间 三列，信息少于档案页时间线｜原型 admin-customer.html:115 / 实现 web/src/pages/Treat/History/index.tsx:39｜P2
+- [x] 诊疗历史全量列表仅 ID/主述/创建时间 三列，信息少于档案页时间线｜✅ 2026-10-12 列扩为 ID/主述/辨证/治法方案/疗程/取穴(join acupointLeft/Right)/创建时间/操作（index.tsx:42-100），与档案页时间线同源字段对齐｜P2
 - [ ] 缺面包屑导航（原型「顾客 / 顾客查询 / 王女士」三级）｜原型 admin-customer.html:95 / 实现 web/src/pages/Customer/Update/index.tsx:171｜P2
 - [ ] 顾客查询操作列「跟访」与原型「复盘回访/回访」措辞不一致｜原型 admin-customer.html:92 / 实现 web/src/pages/Customer/Query/index.tsx:194｜P2
 
@@ -31,10 +31,10 @@
 - [ ] 头卡缺「复诊，回填上次诊疗单」就诊语境说明｜原型 admin-diagnosis.html:127 / 实现 web/src/pages/Treat/Create/index.tsx:246｜P2
 
 ### admin-dash-day（4 条）
-- [ ] 员工总结表列结构：原型 员工(带角色)/今日小结/状态/提醒操作，实现 员工/耗卡/卡项已做/成单建议/状态，无角色列无操作列｜原型 admin-dash-day.html:110 / 实现 web/src/pages/Dashboard/Day/index.tsx:164｜P1
+- [x] 员工总结表列结构：原型 员工(带角色)/今日小结/状态/提醒操作，实现 员工/耗卡/卡项已做/成单建议/状态，无角色列无操作列｜✅ 2026-10-12 员工列加角色副行（已提交/未填写行都有，index.tsx:206+220，ROLE_TEXT 管理员/领导/员工 index.tsx:31，staffRoles map index.tsx:104 区间）；「提醒操作」列见下条卡点；小结列保持自有复盘模型 耗卡/已做/建议（item 129 既定口径）｜P1
 - [ ] 未填行「提醒」操作缺失（提醒推送属规划域，面板 hint 已注明）｜原型 admin-dash-day.html:139 / 实现 web/src/pages/Dashboard/Day/index.tsx:159｜P2
-- [ ] 员工在岗统计「5 人」为「规划功能」占位｜原型 admin-dash-day.html:101 / 实现 web/src/pages/Dashboard/Day/index.tsx:130｜P2
-- [ ] 今日回访行缺脱敏手机号与「明日到期」置灰态（显示「最近到店」替代）｜原型 admin-dash-day.html:148 / 实现 web/src/pages/Dashboard/Day/index.tsx:222｜P2
+- [x] 员工在岗统计「5 人」为「规划功能」占位｜✅ 2026-10-12 真实口径：周排班 fetchWeekTimesheet 里该日有签到记录的员工数（index.tsx:54+103-108，stat 真值 index.tsx:155-160），删规划占位与 .hold 样式｜P2
+- [x] 今日回访行缺脱敏手机号与「明日到期」置灰态（显示「最近到店」替代）｜✅ 2026-10-12 脱敏手机号已加：customer id→phone map（index.tsx:36+94-98）行内 138****2211（index.tsx:233-236）。「明日到期」不适用：回访面板按所选日查询（fetchReviewCustomerBulk(day)），行本来就是当日到期，无「明日行」可置灰｜P2
 
 ### admin-items（2 条）
 - [ ] 卡项列表未按「排序」字段排序（后端 PageRequest 无 Sort，顺序不确定）｜原型 admin-items.html:88 / 实现 web/src/pages/Item/Query/index.tsx:137（后端 server/src/main/java/com/sinomed/controller/ItemController.java:118）｜P2

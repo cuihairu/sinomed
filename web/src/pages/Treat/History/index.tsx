@@ -19,6 +19,11 @@ type TreatInfo = {
   id?: number; // 诊断单id
   createTime?: string; //创建时间
   desc?: string; //主述
+  diagnose?: string; //辨证
+  plan?: string; //治法/方案
+  acuCourse?: string; //疗程
+  acupointLeft?: string; //取穴（左）
+  acupointRight?: string; //取穴（右）
 };
 
 const columns: ProColumns<TreatInfo>[] = [
@@ -33,14 +38,43 @@ const columns: ProColumns<TreatInfo>[] = [
     ellipsis: true,
     copyable: true,
     hideInSearch: true,
-    width: '10%'
+    width: '8%'
   },
   {
     title: '主述',
     dataIndex: 'desc',
     ellipsis: true,
     hideInSearch: true,
-    width: '60%'
+    width: '18%'
+  },
+  {
+    title: '辨证',
+    dataIndex: 'diagnose',
+    ellipsis: true,
+    hideInSearch: true,
+    width: '16%'
+  },
+  {
+    title: '治法/方案',
+    dataIndex: 'plan',
+    ellipsis: true,
+    hideInSearch: true,
+  },
+  {
+    title: '疗程',
+    dataIndex: 'acuCourse',
+    ellipsis: true,
+    hideInSearch: true,
+    width: '12%'
+  },
+  {
+    title: '取穴',
+    hideInSearch: true,
+    width: '14%',
+    render: (_, record) =>
+      [record.acupointLeft, record.acupointRight]
+        .filter(Boolean)
+        .join(' / ') || '—',
   },
   {
     title: '创建时间',

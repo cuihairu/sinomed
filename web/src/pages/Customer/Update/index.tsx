@@ -235,18 +235,31 @@ const Update: React.FC = () => {
           {treats.length === 0 ? (
             <div className="cu-empty">暂无接诊记录，可从「发起接诊」建立第一张接诊单</div>
           ) : (
-            treats.map((t) => (
-              <div className="visit" key={t.id}>
-                <div className="v-date">
-                  <div className="d">{moment(t.createTime).date()}</div>
-                  <div className="m">{moment(t.createTime).format('M 月')}</div>
+            treats.map((t) => {
+              // 摘要对齐原型（医师·时长·证治取穴）：接诊单无医师/时长字段，先出 治法 + 取穴；疗程标签取 acuCourse
+              const acupoints = [t.acupointLeft, t.acupointRight].filter(Boolean).join(' / ');
+              const summary = [
+                t.plan || '',
+                acupoints ? `取穴 ${acupoints}` : '',
+              ]
+                .filter(Boolean)
+                .join('，');
+              return (
+                <div className="visit" key={t.id}>
+                  <div className="v-date">
+                    <div className="d">{moment(t.createTime).date()}</div>
+                    <div className="m">{moment(t.createTime).format('M 月')}</div>
+                  </div>
+                  <div className="v-body">
+                    <div className="t">
+                      {t.diagnose || t.acuMethod || '接诊记录'}
+                      {t.acuCourse ? <span className="tag">{t.acuCourse}</span> : null}
+                    </div>
+                    <div className="s">{summary || t.desc || '—'}</div>
+                  </div>
                 </div>
-                <div className="v-body">
-                  <div className="t">{t.diagnose || '接诊记录'}</div>
-                  <div className="s">{t.desc || t.plan || '—'}</div>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </section>
         <aside className="cu-panel">
