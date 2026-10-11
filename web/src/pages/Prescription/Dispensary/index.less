@@ -1,0 +1,88 @@
+// 药房工作台 —— 石墨×古金 tokens
+@import '@/tokens.css';
+
+.pid {
+  font-family: var(--serif);
+  font-weight: 700;
+}
+
+.faint {
+  color: var(--faint);
+}
+
+.who {
+  .nm {
+    font-weight: 600;
+  }
+  .sub {
+    color: var(--faint);
+    font-size: 12px;
+  }
+}
+
+/* 工具行：状态切换 + 顾客检索 */
+.dp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  .dp-search {
+    width: 240px;
+  }
+}
+
+/* 发药状态 pill：待发药琥珀、已发药归档灰 */
+.dp {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+
+  &.todo {
+    color: #a3542e;
+    background: #f7ede4;
+  }
+  &.done {
+    color: var(--muted);
+    background: var(--paper);
+    border: 1px solid var(--line);
+  }
+  &.decoct {
+    color: #6b4fa3;
+    background: #ede8f5;
+  }
+  &.paste {
+    color: var(--brand-deep);
+    background: var(--brand-tint);
+  }
+}
+
+/* 发药确认弹窗 */
+.dp-confirm {
+  .line {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 2px;
+
+    .sub {
+      margin-left: 8px;
+      color: var(--faint);
+      font-weight: 400;
+      font-size: 12.5px;
+    }
+  }
+  .sub {
+    color: var(--faint);
+    font-size: 12.5px;
+    margin-bottom: 12px;
+  }
+  .ant-input-textarea {
+    margin-bottom: 4px;
+  }
+  .hint {
+    color: var(--faint);
+    font-size: 12px;
+  }
+}

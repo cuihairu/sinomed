@@ -31,6 +31,7 @@ export default {
   'menu.prescription': 'Herbal Prescription',
   'menu.prescription.prescription-create': 'New Prescription',
   'menu.prescription.prescription-query': 'Prescription Query',
+  'menu.prescription.prescription-dispensary': 'Dispensary',
   'menu.prescription.prescription-therapy-templates': 'Therapy Templates',
   'menu.prescription.prescription-herbs': 'Herb Dictionary',
   'menu.prescription.herb-stock': 'Herb Stock',

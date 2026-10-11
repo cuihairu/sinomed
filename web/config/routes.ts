@@ -184,6 +184,11 @@ export default [
         component: './Prescription/Query',
       },
       {
+        name: 'prescription-dispensary',
+        path: '/prescription/dispensary',
+        component: './Prescription/Dispensary',
+      },
+      {
         name: 'prescription-templates',
         path: '/prescription/templates',
         component: './Prescription/Template',

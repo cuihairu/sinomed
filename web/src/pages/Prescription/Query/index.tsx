@@ -8,6 +8,7 @@ import {
   DECOCTION_TEXT,
   PASTE_TEXT,
   deletePrescription,
+  dispensePrescription,
   fetchPrescription,
   queryPrescriptionPage,
   setDecoctionStatus,
@@ -57,6 +58,20 @@ export default function PrescriptionQuery() {
     try {
       await setPasteStatus(detailId, status);
       message.success(status === 2 ? '已转可取，请顾客凭单领取' : '已登记领取');
+      await loadDetail(detailId);
+      actionRef.current?.reload();
+    } finally {
+      setFlowing(false);
+    }
+  };
+
+  /** 药房发药：待发药→已发药单向（备注口径在药房工作台，此处快捷确认） */
+  const dispenseHere = async () => {
+    if (detailId == null) return;
+    setFlowing(true);
+    try {
+      await dispensePrescription(detailId);
+      message.success('已发药');
       await loadDetail(detailId);
       actionRef.current?.reload();
     } finally {
@@ -315,7 +330,31 @@ export default function PrescriptionQuery() {
                 )}
               </div>
             )}
-            <div className="hint">演示口径：计价按药材字典实时试算、无快照（随改价同步），代煎费仅提示不收费，库存为规划功能</div>
+            {detail.dispenseStatus != null && (
+              <div className="field dc-line">
+                <span className="k">发药</span>
+                <span className="v">
+                  {detail.dispenseStatus === 1 ? (
+                    <span className="pc s3">
+                      已发药
+                      {detail.dispenseTime ? ` · ${moment(detail.dispenseTime).format('MM-DD HH:mm')}` : ''}
+                    </span>
+                  ) : (
+                    <span className="dc s1">待发药</span>
+                  )}
+                </span>
+                {detail.dispenseStatus === 0 && (
+                  <Popconfirm title="确认药已交出？（单向，不可撤销）" onConfirm={dispenseHere}>
+                    <Button size="small" type="primary" loading={flowing}>
+                      确认发药
+                    </Button>
+                  </Popconfirm>
+                )}
+              </div>
+            )}
+            <div className="hint">
+              演示口径：计价按药材字典实时试算、无快照（随改价同步），代煎费仅提示不收费，库存为规划功能；带备注的发药走药房工作台
+            </div>
           </div>
         ) : null}
       </Drawer>

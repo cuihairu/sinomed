@@ -40,6 +40,10 @@ export interface Prescription {
   pasteStatus?: number;
   /** 收膏方式（仅膏方） */
   craft?: string;
+  /** 发药状态：0 待发药 / 1 已发药（代煎/膏方「已取」自动置 1） */
+  dispenseStatus?: number;
+  /** 发药时间（待发药为空） */
+  dispenseTime?: string;
   createTime?: string;
 }
 
@@ -218,6 +222,67 @@ export async function pricePrescription(
   return request<Pricing>('/api/v1/prescription/price', {
     method: 'POST',
     data: body,
+    ...(options || {}),
+  });
+}
+
+/** 药房工作台行：联顾客姓名手机、代煎/膏方状态文案与药味数 */
+export interface DispenseRow {
+  id?: number;
+  customerName?: string;
+  customerPhone?: string;
+  /** 处方类型：0 汤剂 / 1 膏方 */
+  prescriptionType?: number;
+  doses?: number;
+  /** 药味数 */
+  itemCount?: number;
+  /** 服务端联出的状态文案：无需代煎/待煎/可取/已取 */
+  decoctionText?: string;
+  /** 服务端联出的状态文案：非膏方/待制作/可取/已取 */
+  pasteText?: string;
+  /** 0 待发药 / 1 已发药 */
+  dispenseStatus?: number;
+  dispenseTime?: string;
+  createTime?: string;
+}
+
+export interface DispensePageResult {
+  data?: DispenseRow[];
+  total?: number;
+  pages?: number;
+  success?: boolean;
+}
+
+/** 发药状态文案 */
+export const DISPENSE_TEXT: Record<number, string> = {
+  0: '待发药',
+  1: '已发药',
+};
+
+/**
+ * 药房发药：待发药(0)→已发药(1) 单向，落发药流水；操作人取当前登录账号；
+ * note ≤100 字可选。已发药再发 400；代煎/膏方「已取」已自动置 1，无需重复点发药。
+ */
+export async function dispensePrescription(
+  id: number,
+  note?: string,
+  options?: { [key: string]: any },
+) {
+  return request<DispenseRow>(`/api/v1/prescription/${id}/dispense`, {
+    method: 'POST',
+    data: note ? { note } : {},
+    ...(options || {}),
+  });
+}
+
+/** 药房工作台分页：dispenseStatus 可空（0 待发药 / 1 已发药），customerKeyword 按顾客姓名/手机模糊 */
+export async function queryDispensePage(
+  params: { current?: number; pageSize?: number; dispenseStatus?: number; customerKeyword?: string },
+  options?: { [key: string]: any },
+) {
+  return request<DispensePageResult>('/api/v1/prescription/dispense/page', {
+    method: 'GET',
+    params,
     ...(options || {}),
   });
 }
