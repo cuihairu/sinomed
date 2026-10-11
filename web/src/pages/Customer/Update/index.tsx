@@ -181,7 +181,10 @@ const Update: React.FC = () => {
   const reviewNoteText = upcomingReview?.advice || '到店回访，可提前一天确认到店时间';
 
   return (
-    <PageContainer title={customer ? `${customer.name || ''} · 顾客档案` : '顾客档案'}>
+    <PageContainer
+      title={customer ? `${customer.name || ''} · 顾客档案` : '顾客档案'}
+      breadcrumb={{ items: [{ title: '顾客' }, { title: <a href="/customer/query">顾客查询</a> }, { title: customer?.name || '—' }] }}
+    >
       <div className="cu-head">
         <div className="avatar">{(customer?.name || '客').slice(0, 1)}</div>
         <div className="who">

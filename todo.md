@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 44 条（P0 2/2 + P1 20 + P2 22：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因、treat history 列扩、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序），余 40 条（P1 5 / P2 35，其中 4 条卡点：booking 疗程角标、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 48 条（P0 2/2 + P1 20 + P2 26：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序），余 36 条（P1 5 / P2 31，其中 5 条卡点：booking 疗程角标、diagnosis 第 N 疗程、booking 医师名单、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段，2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -19,16 +19,16 @@
 - [x] 会员等级为裸数字输入，原型为「金卡会员」档位徽标（无 普通/银卡/金卡 枚举）｜✅ 2026-10-12 改 ProFormSelect 档位选择 1 普通会员/2 银卡会员/3 金卡会员，placeholder 普通会员（Customer/Create/index.tsx:39-46；存量库 level 数值直接落入档位语义）｜P2
 - [x] 回访计划缺「回访原因」结构化字段（/review/plan 仅 姓名/最近访问/计划回访）｜✅ 2026-10-12 /review/plan 新增「回访原因」TextArea 存回访记录既有 advice 字段（Review/Plan/index.tsx:66-73），后端存档读回回归见 ReviewPlanHttpTest；顺修提交体误传 id=customerId 的隐患（防 JPA merge 改写他人回访行，Plan/index.tsx:47-51）｜P2
 - [x] 诊疗历史全量列表仅 ID/主述/创建时间 三列，信息少于档案页时间线｜✅ 2026-10-12 列扩为 ID/主述/辨证/治法方案/疗程/取穴(join acupointLeft/Right)/创建时间/操作（index.tsx:42-100），与档案页时间线同源字段对齐｜P2
-- [ ] 缺面包屑导航（原型「顾客 / 顾客查询 / 王女士」三级）｜原型 admin-customer.html:95 / 实现 web/src/pages/Customer/Update/index.tsx:171｜P2
+- [x] 缺面包屑导航（原型「顾客 / 顾客查询 / 王女士」三级）｜✅ 2026-10-12 PageContainer breadcrumb 三级 顾客/顾客查询(链接)/顾客姓名（Customer/Update/index.tsx:186）｜P2
 - [x] 顾客查询操作列「跟访」与原型「复盘回访/回访」措辞不一致｜✅ 2026-10-12 操作链接改「回访」（Customer/Query/index.tsx:194）｜P2
 
 ### admin-diagnosis（6 条）
 - [x] 脉象缺寸关尺分部：原型左右手各 寸/关/尺 三格共 6 格，实现仅左右手两个自由文本框（全库无寸/关/尺分字段）｜原型 admin-diagnosis.html:149 / 实现 server/src/main/java/com/sinomed/entity/TreatEntity.java:63（pulse_cun/guan/chi_left/right 六列，ddl-auto 建列）、web/src/pages/Treat/Create/index.tsx:302（左手/右手 寸·关·尺 三格 ×2，总述保留）、回归 server/src/test/java/com/sinomed/TreatAcuHttpTest（建/读 6 分部字段）｜P1
 - [x] 五行生克可视化缺失：原型五行定位图（脏腑标注+生克提示）+ 本/克/难经/比率四指标，实现仅数值录入无图形化｜原型 admin-diagnosis.html:190 / 实现 web/src/pages/Treat/Create/index.tsx:585（WuxingLive 组件：火心/木肝/土脾/金肺/水肾五节点十字定位、中宫脾高亮 + 本生/克乘/难经/缓急四指标随录入实时联动，值取既有 five_* 字段 L/R 成对展示；原型的「火不生土·木乘土」为逐案医理断语，不可由字段推导，未做）｜P1
-- [ ] 诊断缺「第 N 疗程」标记（疗程只存在于 acuCourse）｜原型 admin-diagnosis.html:182 / 实现 web/src/pages/Treat/Create/index.tsx:447｜P2
-- [ ] 取穴面板缺灸法行（「艾条悬灸，每穴 15 分钟」被并入针法/留针字段）｜原型 admin-diagnosis.html:176 / 实现 web/src/pages/Treat/Create/index.tsx:407｜P2
-- [ ] 调理方案卡项余次为「规划功能」占位（与档案页已实现卡项实体相矛盾）｜原型 admin-diagnosis.html:206 / 实现 web/src/pages/Treat/Create/index.tsx:251｜P2
-- [ ] 头卡缺「复诊，回填上次诊疗单」就诊语境说明｜原型 admin-diagnosis.html:127 / 实现 web/src/pages/Treat/Create/index.tsx:246｜P2
+- [ ] 诊断缺「第 N 疗程」标记（疗程只存在于 acuCourse）【卡点：无数据源】与 booking 疗程角标同理——「第 N 疗程」需顾客×卡项已完成次数账本推算，模型无此字段；疗程语境现以 acuCourse 自由文本承载，医师可写「第 4 疗程」，不伪造计数｜原型 admin-diagnosis.html:182 / 实现 web/src/pages/Treat/Create/index.tsx:447｜P2
+- [x] 取穴面板缺灸法行（「艾条悬灸，每穴 15 分钟」被并入针法/留针字段）｜✅ 2026-10-12 新增 moxaMethod 灸法字段全链路：treats.moxa_method 列（TreatEntity.java，ddl-auto 建列）、TreatView 存取映射、TreatServiceImpl 校验 ≤60 字（400 越界）、表单 针法/灸法 + 留针/手法 两行（Treat/Create/index.tsx:481-495）、回归 TreatAcuHttpTest 存档读回断言｜P2
+- [x] 调理方案卡项余次为「规划功能」占位（与档案页已实现卡项实体相矛盾）｜✅ 2026-10-12 患者条「持卡卡项余次」接真实 card 实体：activeCards 列表逐卡出「卡名 余 N/M 次」（amber），无卡/无有效卡如实标注（Treat/Create/index.tsx:205,275-289，listCardsByCustomer 同档案页数据源）｜P2
+- [x] 头卡缺「复诊，回填上次诊疗单」就诊语境说明｜✅ 2026-10-12 患者条新增就诊语境块：日期 + 编辑历史诊疗单/复诊（历史单据见下方诊疗记录）/初诊建档 三态（Treat/Create/index.tsx:207-211,271-274）｜P2
 
 ### admin-dash-day（4 条）
 - [x] 员工总结表列结构：原型 员工(带角色)/今日小结/状态/提醒操作，实现 员工/耗卡/卡项已做/成单建议/状态，无角色列无操作列｜✅ 2026-10-12 员工列加角色副行（已提交/未填写行都有，index.tsx:206+220，ROLE_TEXT 管理员/领导/员工 index.tsx:31，staffRoles map index.tsx:104 区间）；「提醒操作」列见下条卡点；小结列保持自有复盘模型 耗卡/已做/建议（item 129 既定口径）｜P1

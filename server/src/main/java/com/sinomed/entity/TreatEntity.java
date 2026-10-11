@@ -145,6 +145,10 @@ public class TreatEntity {
     @Column(name = "manipulation")
     String manipulation;
 
+    // 针灸处方：灸法（如 艾条悬灸，每穴 15 分钟；可空）
+    @Column(name = "moxa_method")
+    String moxaMethod;
+
     // 针灸处方：疗程/频次（自由文本）
     @Column(name = "acu_course",columnDefinition = "TEXT")
     String acuCourse;

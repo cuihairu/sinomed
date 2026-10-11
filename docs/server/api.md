@@ -54,7 +54,7 @@
 | PUT | `/api/v1/treat/` | 按 id 全量更新接诊单：id/customerId 必填且须存在，字段以请求体为准，回包含顾客姓名/年龄/性别（更新后驱逐 findById 缓存） |
 | DELETE | `/api/v1/treat/{id}` | 删除诊疗单 |
 
-字段含义见[数据模型 · treats 表](/server/data-model#treats-诊疗单)。针灸处方字段（`acuMethod` 针法 ≤30 字、`retentionMinutes` 留针分钟 1-240 可空、`manipulation` 手法 ≤30 字、`acuCourse` 疗程/频次 ≤100 字）随接诊单创建/更新保存，越界 400；空白文本按空处理。见 TreatAcuHttpTest。
+字段含义见[数据模型 · treats 表](/server/data-model#treats-诊疗单)。针灸处方字段（`acuMethod` 针法 ≤30 字、`retentionMinutes` 留针分钟 1-240 可空、`manipulation` 手法 ≤30 字、`moxaMethod` 灸法 ≤60 字（如 艾条悬灸，每穴 15 分钟）、`acuCourse` 疗程/频次 ≤100 字）随接诊单创建/更新保存，越界 400；空白文本按空处理。见 TreatAcuHttpTest。
 
 ## 反馈与复盘 `/api/v1/review`
 

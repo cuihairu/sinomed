@@ -105,6 +105,8 @@ public class TreatView implements Serializable {
     Integer retentionMinutes;
     @Schema(title = "针灸处方-手法",description = "如 平补平泻、提插捻转",example = "平补平泻")
     String manipulation;
+    @Schema(title = "针灸处方-灸法",description = "如 艾条悬灸，每穴 15 分钟",example = "艾条悬灸，每穴 15 分钟")
+    String moxaMethod;
     @Schema(title = "针灸处方-疗程频次",description = "如 每周 2 次 × 4 周",example = "每周 2 次 × 4 周")
     String acuCourse;
     @Schema(title = "诊断",description = "反应点",example = "很正常")
@@ -160,6 +162,7 @@ public class TreatView implements Serializable {
                 .acuMethod(treat.getAcuMethod())
                 .retentionMinutes(treat.getRetentionMinutes())
                 .manipulation(treat.getManipulation())
+                .moxaMethod(treat.getMoxaMethod())
                 .acuCourse(treat.getAcuCourse())
                 .diagnose(treat.getDiagnose())
                 .plan(treat.getPlan())
@@ -210,6 +213,7 @@ public class TreatView implements Serializable {
         treatEntity.setAcuMethod(acuMethod);
         treatEntity.setRetentionMinutes(retentionMinutes);
         treatEntity.setManipulation(manipulation);
+        treatEntity.setMoxaMethod(moxaMethod);
         treatEntity.setAcuCourse(acuCourse);
         treatEntity.setDiagnose(diagnose);
         treatEntity.setPlan(plan);

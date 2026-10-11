@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 针灸处方字段 HTTP 回归：接诊单创建/更新携带 针法/留针/手法/疗程，覆盖请求体绑定层与守卫、未登录 401。
+ * 针灸处方字段 HTTP 回归：接诊单创建/更新携带 针法/留针/手法/灸法/疗程，覆盖请求体绑定层与守卫、未登录 401。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"spring.datasource.url=jdbc:sqlite:target/treat-acu-http-test-${random.uuid}.db"})
@@ -75,6 +75,7 @@ class TreatAcuHttpTest {
         createBody.put("acuMethod", "毫针、耳穴压豆");
         createBody.put("retentionMinutes", 25);
         createBody.put("manipulation", "平补平泻");
+        createBody.put("moxaMethod", "艾条悬灸，每穴 15 分钟");
         createBody.put("acuCourse", "每周 2 次 × 2 周");
         createBody.put("pulseCunLeft", "弦");
         createBody.put("pulseGuanLeft", "沉迟");
@@ -93,6 +94,7 @@ class TreatAcuHttpTest {
         Map<?, ?> fetched = rest.exchange(url("/api/v1/treat/" + id), HttpMethod.GET,
                 authEntity(null, token), Map.class).getBody();
         assertEquals("平补平泻", fetched.get("manipulation"), "手法应可回读");
+        assertEquals("艾条悬灸，每穴 15 分钟", fetched.get("moxaMethod"), "灸法应可回读");
         assertEquals("每周 2 次 × 2 周", fetched.get("acuCourse"), "疗程应可回读");
         assertEquals("弦", fetched.get("pulseCunLeft"), "左手寸脉应可回读");
         assertEquals("弱", fetched.get("pulseChiLeft"), "左手尺脉应可回读");

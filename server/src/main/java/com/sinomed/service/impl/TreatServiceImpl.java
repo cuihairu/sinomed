@@ -126,7 +126,7 @@ public class TreatServiceImpl implements TreatService {
         return treatRepository.save(treatEntity);
     }
 
-    /** 针灸处方字段校验：针法/手法 ≤30 字、留针 1-240 分钟（可空）、疗程 ≤100 字；空白文本按空处理 */
+    /** 针灸处方字段校验：针法/手法 ≤30 字、灸法 ≤60 字、留针 1-240 分钟（可空）、疗程 ≤100 字；空白文本按空处理 */
     private void validAcupuncture(TreatEntity treat) {
         if (treat == null) {
             return;
@@ -142,6 +142,10 @@ public class TreatServiceImpl implements TreatService {
         treat.setManipulation(trimOrNull(treat.getManipulation()));
         if (treat.getManipulation() != null && treat.getManipulation().length() > 30) {
             throw new IllegalArgumentException("手法限 30 字内");
+        }
+        treat.setMoxaMethod(trimOrNull(treat.getMoxaMethod()));
+        if (treat.getMoxaMethod() != null && treat.getMoxaMethod().length() > 60) {
+            throw new IllegalArgumentException("灸法限 60 字内");
         }
         treat.setAcuCourse(trimOrNull(treat.getAcuCourse()));
         if (treat.getAcuCourse() != null && treat.getAcuCourse().length() > 100) {

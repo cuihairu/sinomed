@@ -224,6 +224,7 @@ declare namespace API {
     acuMethod?: string;
     retentionMinutes?: number;
     manipulation?: string;
+    moxaMethod?: string;
     acuCourse?: string;
     diagnose?: string;
     plan?: string;

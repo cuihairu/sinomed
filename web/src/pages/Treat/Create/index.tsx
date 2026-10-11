@@ -24,6 +24,7 @@ import moment from 'moment';
 import ScannerInput from '@/components/ScannerInput';
 import { queryAcupointPage, type Acupoint } from '@/services/ant-design-pro/acupoint';
 import { queryEnabledTherapyTemplates, type TherapyTemplate } from '@/services/ant-design-pro/therapy';
+import { listCardsByCustomer, type Card } from '@/services/ant-design-pro/card';
 import './index.less';
 
 type Treat = {
@@ -96,6 +97,8 @@ const Create: React.FC = () => {
   const [inShell] = useState(() => typeof window !== 'undefined' && !!(window as any).__TAURI__);
   const [treatTotal, setTreatTotal] = useState(0);
   const [todayTotal, setTodayTotal] = useState<number>();
+  /** 持卡卡项：调理方案旁显示真实余次（与档案页同源 card 实体） */
+  const [cards, setCards] = useState<Card[]>([]);
   /** 穴位字典：接诊取穴选穴辅助（按穴名/拼音检索，选中即追加进取穴文本，仍可自由写） */
   const [acupoints, setAcupoints] = useState<Acupoint[]>([]);
   /** 外治模板：上架模板即点即套（方法/疗程回填针灸处方区，取穴追加进取穴文本，仍可随时改） */
@@ -152,6 +155,9 @@ const Create: React.FC = () => {
       if (cancelled) return;
       setTreats(res?.data || []);
       setTreatTotal(res?.total || 0);
+      const cs = await listCardsByCustomer(Number(cid));
+      if (cancelled) return;
+      setCards(cs || []);
       // 新建态才回填患者行；编辑态字段以单据为准（request 分支已带出）
       if (!treatId) {
         formRef.current?.setFieldsValue({
@@ -195,6 +201,14 @@ const Create: React.FC = () => {
       ? '今天到店'
       : `最近到店 ${moment().diff(moment(lastVisit), 'days')} 天前`
     : '暂无到店记录';
+
+  const activeCards = cards.filter((c) => c.status === 1);
+  // 就诊语境：编辑历史单据 / 有历史记录即复诊（历史单据在下方诊疗记录面板） / 否则初诊建档
+  const visitContext = treatId
+    ? '编辑历史诊疗单'
+    : treatTotal > 0
+      ? '复诊，历史诊疗单见下方诊疗记录'
+      : '初诊建档';
 
   return (
     <PageContainer
@@ -254,9 +268,21 @@ const Create: React.FC = () => {
                     {maskPhone(customer.phone)} · 到店 {treatTotal} 次 · {lastVisitText}
                   </div>
                 </div>
+                <div className="cs-ctx">
+                  <div className="d1">{moment().format('YYYY-MM-DD')}</div>
+                  <div className="d2">{visitContext}</div>
+                </div>
                 <div className="cs-bal">
                   持卡卡项余次
-                  <span className="hold">规划功能 · 无卡项持有实体</span>
+                  {activeCards.length === 0 ? (
+                    <span className="hold">{cards.length > 0 ? '无有效卡项' : '暂无持卡卡项'}</span>
+                  ) : (
+                    activeCards.map((c) => (
+                      <span className="bal" key={c.id}>
+                        {c.itemName || '卡项'} 余 {c.remainingTimes ?? 0}/{c.totalTimes ?? 0} 次
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
             ) : null}
@@ -451,8 +477,11 @@ const Create: React.FC = () => {
               <div className="tc-ap-note">
                 外治模板只存建议值：套用后方法/取穴/疗程可随时改，不会写回模板；维护见「中药处方 → 外治模板」
               </div>
-              <div className="tc-row cols-3">
+              <div className="tc-row cols-2">
                 <ProFormText name="acuMethod" label="针法" placeholder="如 毫针、电针、温针、耳针" />
+                <ProFormText name="moxaMethod" label="灸法" placeholder="如 艾条悬灸，每穴 15 分钟" />
+              </div>
+              <div className="tc-row cols-2">
                 <ProFormDigit
                   name="retentionMinutes"
                   label="留针（分钟）"
