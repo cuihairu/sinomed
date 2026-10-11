@@ -505,6 +505,10 @@ const AdsPage: React.FC = () => {
     ) : null;
 
   const lastCall = calls[0];
+  // 快捷叫号草稿：表单即草稿（draftNumber 等随输入即时反映，hooks 须在组件顶层调用）
+  const draftNumber = Form.useWatch('number', callForm) as string | undefined;
+  const draftMasked = Form.useWatch('patientMasked', callForm) as string | undefined;
+  const draftRoom = Form.useWatch('room', callForm) as string | undefined;
 
   return (
     <PageContainer
@@ -616,14 +620,22 @@ const AdsPage: React.FC = () => {
 
           <section className="ad-panel">
             <h3>快捷叫号</h3>
-            {lastCall ? (
+            {/* 已就绪号码：表单即草稿，填好即显示，一键上屏（原型 admin-ads 口径）；无草稿回显最近一次 */}
+            {draftNumber && draftNumber.trim() ? (
+              <div className="call-num">
+                <span className="n">{draftNumber.trim()}</span>
+                <span className="w">{draftMasked || ''}</span>
+              </div>
+            ) : lastCall ? (
               <div className="call-num">
                 <span className="n">{lastCall.number}</span>
                 <span className="w">{lastCall.patientMasked || ''}</span>
               </div>
             ) : null}
             <div className="call-row">
-              {lastCall ? (
+              {draftNumber && draftNumber.trim() ? (
+                <>就诊科室：{draftRoom?.trim() || '—'}</>
+              ) : lastCall ? (
                 <>
                   就诊科室：{lastCall.room} · {lastCall.screenId == null ? '全部屏' : screenName(lastCall.screenId)}
                 </>
@@ -631,6 +643,7 @@ const AdsPage: React.FC = () => {
                 '今日尚无叫号，填下方信息发起'
               )}
             </div>
+            <div className="call-row">上屏约 1 秒，停留 15 秒后自动回轮播</div>
             <Form<QueueCall>
               form={callForm}
               layout="vertical"

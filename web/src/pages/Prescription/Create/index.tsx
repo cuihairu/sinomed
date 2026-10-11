@@ -17,7 +17,7 @@ import {
   type PrescriptionTemplate,
   type Pricing,
 } from '@/services/ant-design-pro/prescription';
-import { fetchCustomerByPhone } from '@/services/ant-design-pro/customer';
+import { fetchCustomerByPhone, listCustomerHistories } from '@/services/ant-design-pro/customer';
 import { queryFormulaPage, type Formula } from '@/services/ant-design-pro/formula';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryTreatByPage } from '@/services/ant-design-pro/treat';
@@ -72,6 +72,8 @@ const Create: React.FC = () => {
   /** 过敏审方：按顾客过敏史比对药味（提示不拦截），定位顾客后随写随查 */
   const [allergy, setAllergy] = useState<AllergyResult | undefined>();
   const allergySeq = useRef(0);
+  /** 顾客过敏史条数（type 0）：无命中时的 ✓ 常显态文案来源 */
+  const [allergyRecordCount, setAllergyRecordCount] = useState(0);
   const [pricing, setPricing] = useState<Pricing | undefined>();
   const priceSeq = useRef(0);
   /** 病症处方模板：套用后只填当前开方单，不写回模板 */
@@ -156,6 +158,25 @@ const Create: React.FC = () => {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namedHerbs.join('|')]);
+
+  // 过敏史条数：定位顾客即取（过敏史 ✓ 常显态文案：无记录 / 有记录未命中）
+  useEffect(() => {
+    if (!customer?.id) {
+      setAllergyRecordCount(0);
+      return;
+    }
+    let cancelled = false;
+    listCustomerHistories(String(customer.id))
+      .then((list) => {
+        if (!cancelled) setAllergyRecordCount((list || []).filter((h) => h.type === 0).length);
+      })
+      .catch(() => {
+        if (!cancelled) setAllergyRecordCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customer?.id]);
 
   // 过敏审方：定位顾客后按过敏史比对药味；未定位顾客或无药名即清空
   useEffect(() => {
@@ -547,6 +568,16 @@ const Create: React.FC = () => {
                 </div>
               ))}
               <div className="note">按顾客过敏史记录原文匹配（提示不拦截，是否照用由医师判断）</div>
+            </div>
+          ) : customer ? (
+            // ✓ 常显态：定位顾客且未命中即显示（原型 admin-herbprescription 审方卡口径）
+            <div className="allergy ok">
+              <div className="ahead">
+                <CheckCircleFilled /> 过敏史 ·{' '}
+                {allergyRecordCount > 0
+                  ? `档案 ${allergyRecordCount} 条过敏记录，未命中当前药方`
+                  : '档案无药物过敏记录'}
+              </div>
             </div>
           ) : null}
 

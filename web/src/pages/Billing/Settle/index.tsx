@@ -18,9 +18,12 @@ import {
   settleOrder,
 } from '@/services/ant-design-pro/billing';
 import { listCardsByCustomer, type Card } from '@/services/ant-design-pro/card';
+import { fetchCustomerById } from '@/services/ant-design-pro/customer';
 import './index.less';
 
 const maskPhone = (p?: string) => (p ? p.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2') : '');
+
+const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员', 3: '金卡会员' };
 
 /** 队列「谁 · 什么项目」：明细行「名 ×数量」顿号串（存量单回退一行） */
 const itemsBrief = (o: Order) => {
@@ -66,6 +69,8 @@ const Settle: React.FC = () => {
   const [done, setDone] = useState<{ id: number; money: number; pay: string } | undefined>();
   /** 整单备注（琥珀备忘块）：本地草稿，失焦写服务端 */
   const [remark, setRemark] = useState('');
+  /** 选中订单顾客的会员档位（头卡名字旁标签，原型「金卡会员」口径） */
+  const [tier, setTier] = useState<string | undefined>();
   /** 退单弹窗：目标结算单 + 退款理由（必填 ≤100 字，原路退回单向） */
   const [refunding, setRefunding] = useState<Settlement | undefined>();
   const [refundReason, setRefundReason] = useState('');
@@ -90,7 +95,10 @@ const Settle: React.FC = () => {
     setCardRest(undefined);
     setDone(undefined);
     setRemark(order.remark || '');
+    setTier(undefined);
     if (order.customerId) {
+      const c = await fetchCustomerById(order.customerId);
+      setTier(LEVEL_TEXT[c?.level ?? 0] || (c?.level ? `会员 L${c.level}` : undefined));
       const b = await fetchRechargeBalance(order.customerId);
       setBalance(b?.balance ?? 0);
       const cards: Card[] = (await listCardsByCustomer(order.customerId)) || [];
@@ -273,7 +281,10 @@ const Settle: React.FC = () => {
                 <div className="head">
                   <div className="avatar">{(selected.customerName || '?').slice(0, 1)}</div>
                   <div className="who">
-                    <div className="nm">{selected.customerName}</div>
+                    <div className="nm">
+                      {selected.customerName}
+                      {tier ? <span className="tier">{tier}</span> : null}
+                    </div>
                     <div className="mt">
                       {maskPhone(selected.customerPhone)} · 单 {orderBusinessNo(selected)} ·{' '}
                       {selected.createTime ? moment(selected.createTime).format('HH:mm') : ''} 下单

@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 59 条（P0 2/2 + P1 20 + P2 37：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留），余 25 条（P1 5 / P2 20，其中 7 条卡点：booking 疗程角标、diagnosis 第 N 疗程、booking 医师名单、dash-day 提醒推送、desktop 署名医师、herbprescription 药典剂量上限、herbprescription 饮片拼音检索——均缺数据源/模型字段（提醒推送缺通知通道），2 条半卡点：customer 时间线 医师/时长/项目名、desktop 外设真实连接态（需壳侧状态命令）；1 条口径待定夺：herbprescription 代煎费入合计三行账）
+> 进度（2026-10-12 续批）：已清 67 条（P0 2/2 + P1 20 + P2 45：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9），余 18 条（P1 2 / P2 16）：可做 6 条（customer 卡项有效期+建档时间=补模型字段、herbprescription 炮制/煎法+剂数/服法结构化=评估改模型、app 四主题、接口层方法级权限）；卡点 6 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、herbprescription 拼音检索、desktop 署名医师——均缺数据源）；1 条口径待定夺（herbprescription 代煎费三行账）；4 条规划占位（desktop-workstation 开单表/收款/余次/统计）；1 条禁碰（在线支付真实通道）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -50,7 +50,7 @@
 ### admin-ads（4 条）
 - [x] 素材子标题缺「分类」（原型「图片 · 门店活动」，实现只有类型）｜✅ 2026-10-12 新增 ad_materials.category 列（AdMaterialEntity.java:31）+ 表单「分类」（Ads/Index/index.tsx:693）+ 子标题「类型 · 分类」join（index.tsx:257）+ 回归 AdsMaterialCopyHttpTest 增断言｜P2
 - [x] 屏幕状态在线文案缺排期名｜✅ 2026-10-12 排期新增 name 字段（AdScheduleEntity.java:38 + 表单 + 排期名列），屏幕状态改「正在播 {排期名}（N 条素材轮播）」，无命中回退默认轮播（Ads/Index/index.tsx:135-152,602-605）｜P2
-- [ ] 快捷叫号交互：原型已就绪号码一键上屏，实现为手填表单（手动叫号口径内）｜原型 admin-ads.html:158 / 实现 web/src/pages/Ads/Index/index.tsx:623｜P2
+- [x] 快捷叫号交互：原型已就绪号码一键上屏，实现为手填表单（手动叫号口径内）｜✅ 2026-10-12 表单即草稿：Form.useWatch 顶层订阅 number/patientMasked/room（index.tsx:508-511），填入即显示号码卡+就诊科室（index.tsx:624-644），无草稿回显最近一次叫号；补原型说明行「上屏约 1 秒，停留 15 秒后自动回轮播」（index.tsx:646）｜原型 admin-ads.html:158 / 实现 web/src/pages/Ads/Index/index.tsx:623｜P2
 - [x] 素材操作多出「删除」入口（实现新增项）【裁定保留】：误传媒体需清理手段，playlist 仅取启用+命中排期素材、删除不影响在播编排口径（删除有 Popconfirm 二次确认），属管理页合理超集（Ads/Index/index.tsx:290）｜P2
 
 ### admin-appearance（2 条）
@@ -77,12 +77,12 @@
 - [x] 费用区缺「存方并收费/存入我的方剂库/打印处方笺」三键（仅「开方」一键；无打印代码）｜✅ 2026-10-12 三键齐：存方并收费（primary，原提交行为 index.tsx:713）· 存入我的方剂库（弹窗填病症名 1–20 字存启用模板 index.tsx:706-708+718-733，createTemplate）· 打印处方笺（window.print + @media print 只出处方笺主卡 index.tsx:710 + index.less 打印段）｜P1
 - [ ] 「炮制/煎法」列合并为单个特殊煎法自由文本｜原型 admin-herbprescription.html:110 / 实现 web/src/pages/Prescription/Create/index.tsx:348｜P2
 - [ ] 「剂数/煎法/服法」三格合并为剂数框+用法文本框｜原型 admin-herbprescription.html:123 / 实现 web/src/pages/Prescription/Create/index.tsx:498｜P2
-- [ ] 过敏审方无「档案无药物过敏记录」✓ 常显态（命中才渲染）｜原型 admin-herbprescription.html:138 / 实现 web/src/pages/Prescription/Create/index.tsx:399｜P2
+- [x] 过敏审方无「档案无药物过敏记录」✓ 常显态（命中才渲染）｜✅ 2026-10-12 定位顾客即常显：过敏史条数（type 0）随顾客定位拉取（index.tsx:76+165-174），未命中渲染 ✓ ok 态「档案 N 条过敏记录，未命中当前药方 / 档案无药物过敏记录」（index.tsx:574-581），ok 绿底样式 index.less:469-476｜原型 admin-herbprescription.html:138 / 实现 web/src/pages/Prescription/Create/index.tsx:574｜P2
 
 ### admin-billing（7 条；处方饮片行按裁定不计）
 - [x] 结算明细多行表：原型 项目/数量/小计 三列多行（含卡项抵扣行 ¥0），实现单行 itemName+price（OrderEntity 无数量字段）｜原型 admin-billing.html:122 / 实现 web/src/pages/Billing/Settle/index.tsx:288（.lines 多行表联 order_item 明细，选次卡且有余次时加「卡项抵扣（次卡扣 1 次）¥0」行）｜P1
 - [x] 「整单备注」琥珀备忘块整块缺失（页面与 Order 模型均无 remark）｜原型 admin-billing.html:140 / 实现 server/src/main/java/com/sinomed/service/impl/OrderServiceImpl.java:187（orders.remark ≤200 字）+ web/src/pages/Billing/Settle/index.tsx:319（琥珀 TextArea 失焦保存 PUT /api/v1/order/remark）｜P1
-- [ ] 结算头卡缺会员档位标签与接诊单号（仅掩码手机/内部单号/下单时间）｜原型 admin-billing.html:114 / 实现 web/src/pages/Billing/Settle/index.tsx:277｜P2
+- [x] 结算头卡缺会员档位标签与接诊单号（仅掩码手机/内部单号/下单时间）｜✅ 2026-10-12 会员档位标签：选单时 fetchCustomerById 取 level（index.tsx:100-101），头卡名字旁档位药丸（index.tsx:286，LEVEL_TEXT index.tsx:26，样式 index.less .nm .tier）；接诊单号【卡点：无数据源】订单模型无 treatId（OrderEntity 仅 userId/itemId/staffId）且自助机下单本无接诊单可关联，头卡沿用业务单号｜原型 admin-billing.html:114 / 实现 web/src/pages/Billing/Settle/index.tsx:285｜P2
 - [x] 应收合计缺「卡项抵扣已减；支付后余额」说明行｜原型 admin-billing.html:152 / 实现 web/src/pages/Billing/Settle/index.tsx:330（.sub 说明行：次卡实收 0/储值支付后余额/到店收银）｜P2
 - [x] 队列单号格式：原型业务编号「20261008-006」，实现内部 id「#6」｜原型 admin-billing.html:144 / 实现 web/src/pages/Billing/Settle/index.tsx:195（队列行与结算头卡均 orderBusinessNo）｜P2
 - [ ] 微信/支付宝仅记录支付方式（原型扫码收款；在线支付官方口径为规划）｜原型 admin-billing.html:155 / 实现 web/src/pages/Billing/Settle/index.tsx:257｜P2
@@ -100,8 +100,8 @@
 ### admin-themes 设计系统（6 条）
 - [x] 小程序 tokens 失效风险：变量挂 `:root`（WXSS 不支持）无 `page` 兜底，13 处 var(--brand) 在小程序构建不可解析（仅 H5 可靠）｜✅ 2026-10-12 tokens.css 追加 `page` 选择器兜底块（app/src/tokens.css:50，全量基础变量+默认石墨主题；H5 端 page 不匹配元素、:root 继续生效，两端互不干扰）；weapp 构建过（taro build --type weapp compiled successfully）。四主题切换仍属 #102 P2 不动｜P1
 - [ ] 小程序无四主题切换（白标单色 BRAND_THEME，与四主题体系脱节）｜原型 tokens.css:23 / 实现 app/src/app.ts:21、app/config/brand.ts:13｜P2
-- [ ] Kiosk 写死 data-theme="pine" 无切换能力｜原型 tokens.css:3 / 实现 kiosk/index.html:2｜P2
-- [ ] Tablet 未设 data-theme 固定石墨，无切换机制｜原型 tokens.css:23 / 实现 tablet/src/main.tsx:5｜P2
+- [x] Kiosk 写死 data-theme="pine" 无切换能力｜✅ 2026-10-12 main.tsx 启动读 ?theme=pine|cinnabar|indigo|graphite 挂/摘 documentElement data-theme（main.tsx:7-15），缺省保持 index.html 的 pine（index.html:2），vite build 过｜原型 tokens.css:3 / 实现 kiosk/src/main.tsx:7｜P2
+- [x] Tablet 未设 data-theme 固定石墨，无切换机制｜✅ 2026-10-12 main.tsx 启动读 ?theme=pine|cinnabar|indigo|graphite（main.tsx:7-15，缺省石墨不设属性），tsc+vite build 过｜原型 tokens.css:23 / 实现 tablet/src/main.tsx:7｜P2
 - [x] Ads 素材卡渐变硬编码 #353a37 不随主题变｜✅ 2026-10-12 g1 渐变改 var(--brand-deep)→var(--brand)（Ads/Index/index.less，四主题切换即随动，白字在四套主色上均可读）｜P2
 - [x] Settle 页硬编码警示色 #a3542e/#f7ede4（tokens 体系外）｜✅ 2026-10-12 tokens.css 新增 --warn/--warn-deep/--warn-tint（警示语义全主题恒定），10 个 less 文件的硬编码 #a3542e/#f7ede4/#7c3a1a 全量替换为变量｜P2
 
@@ -115,9 +115,9 @@
 - [x] 我的卡项余次为「规划功能」占位（按裁定：忠实占位，信息项不计缺陷）｜原型 mobile-home.html:101 / 实现 app/src/pages/index/index.tsx:119、app/src/pages/card/index.tsx:15（卡项 tab 同为规划占位 + 到店/致电查询指引）｜P2
 
 ### kiosk-menu（3 条）
-- [ ] 购物篮为条件渲染，空选态整条不出现（原型常驻底栏含空态指引）｜原型 kiosk-menu.html:81 / 实现 kiosk/src/App.tsx:159｜P2
-- [ ] 页面左右留白 40px→32px（四处同步偏移）｜原型 kiosk-menu.html:10 / 实现 kiosk/src/app.css:13｜P2
-- [ ] 卡片封面由 flex 撑满（min-height 150px）改为固定 16:9｜原型 kiosk-menu.html:28 / 实现 kiosk/src/menu/menu.css:37｜P2
+- [x] 购物篮为条件渲染，空选态整条不出现（原型常驻底栏含空态指引）｜✅ 2026-10-12 底栏常驻：空选态渲染「点选上方想做的项目，选好后在这里提交到前台」指引（App.tsx:159-181，.basket-empty 样式 app.css），选中后原两行清单/合计/提交不变｜原型 kiosk-menu.html:81 / 实现 kiosk/src/App.tsx:159｜P2
+- [x] 页面左右留白 40px→32px（四处同步偏移）｜✅ 2026-10-12 四处对齐原型 40px：kiosk-hero 44/40/8（app.css:13）、kiosk-steps 22/40/6（app.css:74）、item-grid 18/40/170（menu.css:7，底部 reserve 150→170 适配加高的篮）、basket-bar 22/40/34（app.css:127）｜原型 kiosk-menu.html:10 / 实现 kiosk/src/app.css:13｜P2
+- [x] 卡片封面由 flex 撑满（min-height 150px）改为固定 16:9｜✅ 2026-10-12 .item-cover aspect-ratio: 16/9（menu.css:37，eccf091 已落地），img cover 铺满、缺省首字渐变同 16:9｜原型 kiosk-menu.html:28 / 实现 kiosk/src/menu/menu.css:37｜P2
 
 ### tablet-screen（2 条）
 - [x] 广告页排版层缺失：原型整版设计稿（眉题/110px 大标题/文案/价格/品牌渐变大字「灸」）未实现，仅 object-fit 播放素材文件（数据模型无文案字段）｜✅ 2026-10-12 全链路：ad_materials 加 kicker/title/copy/price 四列（AdMaterialEntity.java:31-46，ddl-auto 建列）、view/playlist 透传（AdMaterialView.java、PlaylistView.PlaylistItem、AdsServiceImpl.java:209）、管理端素材表单四字段（Ads/Index/index.tsx:750-771）、平板 PlaylistItem 类型 + 播放叠加层（tablet/src/types.ts、Carousel.tsx:60-75，眉题 pill/宋体大标题/说明行/价格行，媒体铺满+左下渐变底，四项全空即纯素材播放）、回归 AdsMaterialCopyHttpTest（建+分页读回）。原型「灸」大字为该稿专属装饰、媒体素材自带视觉，未做｜P1

@@ -4,7 +4,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  padding: 18px 32px 150px; /* 底部留购物篮高度 */
+  padding: 18px 40px 170px; /* 底部留购物篮高度 */
   max-width: 1280px;
   margin: 0 auto;
 }

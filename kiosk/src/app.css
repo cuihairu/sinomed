@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 40px 32px 0;
+  padding: 44px 40px 8px;
   max-width: 1280px;
   margin: 0 auto;
 }
@@ -71,7 +71,7 @@
 .kiosk-steps {
   display: flex;
   gap: 10px;
-  padding: 20px 32px 4px;
+  padding: 22px 40px 6px;
   max-width: 1280px;
   margin: 0 auto;
 }
@@ -124,7 +124,7 @@
   bottom: 0;
   background: var(--card);
   border-top: 1px solid var(--line);
-  padding: 16px 32px 22px;
+  padding: 22px 40px 34px;
 }
 
 .basket-head {
@@ -147,6 +147,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 空选态指引（购物篮常驻底栏，无已选项时） */
+.basket-empty {
+  max-width: 1280px;
+  margin: 0 auto;
+  font-size: 15.5px;
+  color: var(--faint);
+  padding: 14px 0 16px;
 }
 
 .basket-row {

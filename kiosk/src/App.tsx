@@ -156,29 +156,34 @@ export default function App() {
       <Hero />
       <Steps />
       <ItemGrid items={items} selected={selected} onToggle={toggle} />
-      {pickedCount > 0 && (
-        <div className="basket-bar">
-          <div className="basket-head">
-            <b>已选 {pickedCount} 项</b>
-            <span className="basket-names">
-              {pickedItems.map((item) => `${item.name} ×1`).join('、')}
-            </span>
-          </div>
-          <div className="basket-row">
-            <span className="basket-amount">
-              <small>¥</small>
-              {pickedTotal}
-            </span>
-            <button
-              type="button"
-              className="basket-go"
-              onClick={() => setView('checkout')}
-            >
-              提交到前台
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 常驻底栏（原型 kiosk-menu .basket）：空选态给指引，选中后显示清单/合计/提交 */}
+      <div className="basket-bar">
+        {pickedCount > 0 ? (
+          <>
+            <div className="basket-head">
+              <b>已选 {pickedCount} 项</b>
+              <span className="basket-names">
+                {pickedItems.map((item) => `${item.name} ×1`).join('、')}
+              </span>
+            </div>
+            <div className="basket-row">
+              <span className="basket-amount">
+                <small>¥</small>
+                {pickedTotal}
+              </span>
+              <button
+                type="button"
+                className="basket-go"
+                onClick={() => setView('checkout')}
+              >
+                提交到前台
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="basket-empty">点选上方想做的项目，选好后在这里提交到前台</div>
+        )}
+      </div>
     </div>
   )
 }
