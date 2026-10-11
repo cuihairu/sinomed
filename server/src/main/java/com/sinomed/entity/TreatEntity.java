@@ -59,6 +59,22 @@ public class TreatEntity {
     @Column(name = "pulse_right",columnDefinition = "TEXT")
     String pulseRight;
 
+    // 脉象 左手寸关尺分部（原型 admin-diagnosis.html：左右手各寸/关/尺三格）
+    @Column(name = "pulse_cun_left")
+    String pulseCunLeft;
+    @Column(name = "pulse_guan_left")
+    String pulseGuanLeft;
+    @Column(name = "pulse_chi_left")
+    String pulseChiLeft;
+
+    // 脉象 右手寸关尺分部
+    @Column(name = "pulse_cun_right")
+    String pulseCunRight;
+    @Column(name = "pulse_guan_right")
+    String pulseGuanRight;
+    @Column(name = "pulse_chi_right")
+    String pulseChiRight;
+
     // 脉象 信息
     @Column(name = "pulse_info",columnDefinition = "TEXT")
     String pulseInfo;

@@ -69,19 +69,36 @@ class TreatAcuHttpTest {
         customer.setPhone("13900009701");
         Long customerId = customerRepository.save(customer).getId();
 
+        Map<String, Object> createBody = new java.util.HashMap<>();
+        createBody.put("customerId", customerId);
+        createBody.put("desc", "夜寐不安");
+        createBody.put("acuMethod", "毫针、耳穴压豆");
+        createBody.put("retentionMinutes", 25);
+        createBody.put("manipulation", "平补平泻");
+        createBody.put("acuCourse", "每周 2 次 × 2 周");
+        createBody.put("pulseCunLeft", "弦");
+        createBody.put("pulseGuanLeft", "沉迟");
+        createBody.put("pulseChiLeft", "弱");
+        createBody.put("pulseCunRight", "浮");
+        createBody.put("pulseGuanRight", "沉细");
+        createBody.put("pulseChiRight", "沉");
         Map<?, ?> created = rest.exchange(url("/api/v1/treat/"), HttpMethod.POST,
-                authEntity(Map.of("customerId", customerId, "desc", "夜寐不安",
-                        "acuMethod", "毫针、耳穴压豆", "retentionMinutes", 25,
-                        "manipulation", "平补平泻", "acuCourse", "每周 2 次 × 2 周"), token), Map.class).getBody();
+                authEntity(createBody, token), Map.class).getBody();
         assertTrue(created != null && created.get("id") != null, "创建应返回 id：" + created);
         Long id = ((Number) created.get("id")).longValue();
         assertEquals("毫针、耳穴压豆", created.get("acuMethod"), "针法应随单保存");
         assertEquals(25, ((Number) created.get("retentionMinutes")).intValue(), "留针分钟应随单保存");
+        assertEquals("沉迟", created.get("pulseGuanLeft"), "左手关脉应随单保存");
 
         Map<?, ?> fetched = rest.exchange(url("/api/v1/treat/" + id), HttpMethod.GET,
                 authEntity(null, token), Map.class).getBody();
         assertEquals("平补平泻", fetched.get("manipulation"), "手法应可回读");
         assertEquals("每周 2 次 × 2 周", fetched.get("acuCourse"), "疗程应可回读");
+        assertEquals("弦", fetched.get("pulseCunLeft"), "左手寸脉应可回读");
+        assertEquals("弱", fetched.get("pulseChiLeft"), "左手尺脉应可回读");
+        assertEquals("浮", fetched.get("pulseCunRight"), "右手寸脉应可回读");
+        assertEquals("沉细", fetched.get("pulseGuanRight"), "右手关脉应可回读");
+        assertEquals("沉", fetched.get("pulseChiRight"), "右手尺脉应可回读");
 
         Map<?, ?> updated = rest.exchange(url("/api/v1/treat/"), HttpMethod.PUT,
                 authEntity(Map.of("id", id, "customerId", customerId, "desc", "复诊",

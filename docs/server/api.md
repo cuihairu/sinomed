@@ -45,7 +45,7 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/treat/` | 创建诊疗单（`customerId` 必须指向存在的顾客） |
+| POST | `/api/v1/treat/` | 创建诊疗单（`customerId` 必须指向存在的顾客）；脉象支持左右手寸/关/尺分部字段（`pulseCunLeft`/`pulseGuanLeft`/`pulseChiLeft`/`pulseCunRight`/`pulseGuanRight`/`pulseChiRight`，另有总述 `pulse`/`pulseLeft`/`pulseRight` 与补充 `pulseInfo`） |
 | GET | `/api/v1/treat/{id}` | 按 id 查询 |
 | GET | `/api/v1/treat/customer/{id}` | 按顾客 id 查询全部诊疗单 |
 | GET | `/api/v1/treat/customer/name/{name}` | 按顾客姓名查询（姓名需唯一） |

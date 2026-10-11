@@ -18,7 +18,7 @@ import {
   ProCard,
 } from '@ant-design/pro-components';
 import type { ProFormInstance } from '@ant-design/pro-components';
-import { Button, Select, message } from 'antd';
+import { Button, Select, message, Form } from 'antd';
 import { useSearchParams, history } from '@umijs/max';
 import moment from 'moment';
 import ScannerInput from '@/components/ScannerInput';
@@ -45,6 +45,12 @@ type Treat = {
   pulseRight?: string;
   pulseInfoLeft?: string;
   pulseInfoRight?: string;
+  pulseCunLeft?: string;
+  pulseGuanLeft?: string;
+  pulseChiLeft?: string;
+  pulseCunRight?: string;
+  pulseGuanRight?: string;
+  pulseChiRight?: string;
   fiveBenZiLeft?: string;
   fiveZiBenLeft?: string;
   fiveBenZiRight?: string;
@@ -285,17 +291,34 @@ const Create: React.FC = () => {
             </section>
 
             <section className="tc-panel">
-              <h3>脉象</h3>
+              <h3>
+                脉象<span className="tc-hint">左右手寸关尺分部记录</span>
+              </h3>
               <div className="tc-row cols-3">
                 <ProFormText name="pulse" label="脉象" placeholder="总述" />
-                <ProFormText name="pulseLeft" label="左手脉象" placeholder="寸关尺" />
-                <ProFormText name="pulseRight" label="右手脉象" placeholder="寸关尺" />
+                <ProFormText name="pulseLeft" label="左手脉象（总）" placeholder="寸关尺概述" />
+                <ProFormText name="pulseRight" label="右手脉象（总）" placeholder="寸关尺概述" />
+              </div>
+              <div className="pulse-hands">
+                <div className="hand">
+                  <div className="hn">左手</div>
+                  <ProFormText name="pulseCunLeft" label="寸" placeholder="寸脉" />
+                  <ProFormText name="pulseGuanLeft" label="关" placeholder="关脉" />
+                  <ProFormText name="pulseChiLeft" label="尺" placeholder="尺脉" />
+                </div>
+                <div className="hand">
+                  <div className="hn">右手</div>
+                  <ProFormText name="pulseCunRight" label="寸" placeholder="寸脉" />
+                  <ProFormText name="pulseGuanRight" label="关" placeholder="关脉" />
+                  <ProFormText name="pulseChiRight" label="尺" placeholder="尺脉" />
+                </div>
               </div>
               <ProFormTextArea name="pulseInfo" label="脉象信息" placeholder="脉象补充说明" />
             </section>
 
             <section className="tc-panel">
               <h3>五行脉用法</h3>
+              <WuxingLive />
               <ProCard ghost headerBordered split="vertical">
                 <ProCard title="左手" ghost headerBordered split="horizontal" layout="center">
                   <ProCard title="子 _生_" ghost split="vertical">
@@ -557,3 +580,48 @@ const Create: React.FC = () => {
 };
 
 export default Create;
+
+/** 五行生克定位图：五节点定位（火心/木肝/土脾/金肺/水肾，中宫为脾）+ 四指标实时值（随录入联动，对齐原型 admin-diagnosis.html） */
+function WuxingLive() {
+  const form = Form.useFormInstance();
+  const benZiL = Form.useWatch('fiveBenZiLeft', form);
+  const benZiR = Form.useWatch('fiveBenZiRight', form);
+  const benKeL = Form.useWatch('fiveBenKeLeft', form);
+  const benKeR = Form.useWatch('fiveBenKeRight', form);
+  const nanJinL = Form.useWatch('fiveNanJinLeft', form);
+  const nanJinR = Form.useWatch('fiveNanJinRight', form);
+  const rateL = Form.useWatch('fiveRateLeft', form);
+  const rateR = Form.useWatch('fiveRateRight', form);
+  const pair = (l?: string, r?: string) => `${l || '-'} / ${r || '-'}`;
+  return (
+    <div className="wx-live">
+      <div className="wx-map">
+        <span className="wline h" />
+        <span className="wline v" />
+        <div className="wx fire">火<i>心</i></div>
+        <div className="wx wood">木<i>肝</i></div>
+        <div className="wx center">土<i>脾</i></div>
+        <div className="wx metal">金<i>肺</i></div>
+        <div className="wx water">水<i>肾</i></div>
+      </div>
+      <div className="wx-ratio">
+        <div className="r">
+          <div className="k">本<i>生</i></div>
+          <div className="v">{pair(benZiL, benZiR)}</div>
+        </div>
+        <div className="r">
+          <div className="k">克<i>乘</i></div>
+          <div className="v">{pair(benKeL, benKeR)}</div>
+        </div>
+        <div className="r">
+          <div className="k">难经</div>
+          <div className="v">{pair(nanJinL, nanJinR)}</div>
+        </div>
+        <div className="r">
+          <div className="k">缓急</div>
+          <div className="v">{pair(rateL, rateR)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}

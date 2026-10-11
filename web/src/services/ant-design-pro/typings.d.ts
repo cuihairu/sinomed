@@ -195,6 +195,12 @@ declare namespace API {
     pulseLeft?: string;
     pulseRight?: string;
     pulseInfo?: string;
+    pulseCunLeft?: string;
+    pulseGuanLeft?: string;
+    pulseChiLeft?: string;
+    pulseCunRight?: string;
+    pulseGuanRight?: string;
+    pulseChiRight?: string;
     fiveBenZiLeft?: string;
     fiveZiBenLeft?: string;
     fiveBenZiRight?: string;

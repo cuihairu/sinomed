@@ -47,6 +47,18 @@ public class TreatView implements Serializable {
     String pulseRight;
     @Schema(title = "脉象信息",description = "脉象信息",example = "平稳")
     String pulseInfo;
+    @Schema(title = "左手寸脉",description = "左手寸关尺分部-寸",example = "弦")
+    String pulseCunLeft;
+    @Schema(title = "左手关脉",description = "左手寸关尺分部-关",example = "沉迟")
+    String pulseGuanLeft;
+    @Schema(title = "左手尺脉",description = "左手寸关尺分部-尺",example = "弱")
+    String pulseChiLeft;
+    @Schema(title = "右手寸脉",description = "右手寸关尺分部-寸",example = "浮")
+    String pulseCunRight;
+    @Schema(title = "右手关脉",description = "右手寸关尺分部-关",example = "沉细")
+    String pulseGuanRight;
+    @Schema(title = "右手尺脉",description = "右手寸关尺分部-尺",example = "沉")
+    String pulseChiRight;
     @Schema(title = "左手 五行脉_子_生_本子",description = "左手 五行脉_子_生_本子",example = "很正常")
     String fiveBenZiLeft;
     @Schema(title = "左手 五行脉_子_生_子本",description = "左手 五行脉_子_生_本丑",example = "很正常")
@@ -119,6 +131,12 @@ public class TreatView implements Serializable {
                 .pulseLeft(treat.getPulseLeft())
                 .pulseRight(treat.getPulseRight())
                 .pulseInfo(treat.getPulseInfo())
+                .pulseCunLeft(treat.getPulseCunLeft())
+                .pulseGuanLeft(treat.getPulseGuanLeft())
+                .pulseChiLeft(treat.getPulseChiLeft())
+                .pulseCunRight(treat.getPulseCunRight())
+                .pulseGuanRight(treat.getPulseGuanRight())
+                .pulseChiRight(treat.getPulseChiRight())
                 .fiveBenZiLeft(treat.getFiveBenZiLeft())
                 .fiveBenZiRight(treat.getFiveBenZiRight())
                 .fiveZiBenLeft(treat.getFiveZiBenLeft())
@@ -163,6 +181,12 @@ public class TreatView implements Serializable {
         treatEntity.setPulseLeft(pulseLeft);
         treatEntity.setPulseRight(pulseRight);
         treatEntity.setPulseInfo(pulseInfo);
+        treatEntity.setPulseCunLeft(pulseCunLeft);
+        treatEntity.setPulseGuanLeft(pulseGuanLeft);
+        treatEntity.setPulseChiLeft(pulseChiLeft);
+        treatEntity.setPulseCunRight(pulseCunRight);
+        treatEntity.setPulseGuanRight(pulseGuanRight);
+        treatEntity.setPulseChiRight(pulseChiRight);
         treatEntity.setFiveBenZiLeft(fiveBenZiLeft);
         treatEntity.setFiveBenZiRight(fiveBenZiRight);
         treatEntity.setFiveZiBenLeft(fiveZiBenLeft);

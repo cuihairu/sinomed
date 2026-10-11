@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 22 条（P0 2/2 + P1 9 + P2 11：herbprescription 辨证条、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板），余 62 条（P1 15 / P2 47，其中 2 条卡点：booking 疗程角标、booking 医师名单——均缺模型字段）
+> 进度（2026-10-12 续批）：已清 24 条（P0 2/2 + P1 11 + P2 11：herbprescription 辨证条、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图），余 60 条（P1 13 / P2 47，其中 2 条卡点：booking 疗程角标、booking 医师名单——均缺模型字段）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -23,8 +23,8 @@
 - [ ] 顾客查询操作列「跟访」与原型「复盘回访/回访」措辞不一致｜原型 admin-customer.html:92 / 实现 web/src/pages/Customer/Query/index.tsx:194｜P2
 
 ### admin-diagnosis（6 条）
-- [ ] 脉象缺寸关尺分部：原型左右手各 寸/关/尺 三格共 6 格，实现仅左右手两个自由文本框（全库无寸/关/尺分字段）｜原型 admin-diagnosis.html:149 / 实现 web/src/pages/Treat/Create/index.tsx:291｜P1
-- [ ] 五行生克可视化缺失：原型五行定位图（脏腑标注+生克提示）+ 本/克/难经/比率四指标，实现仅数值录入无图形化｜原型 admin-diagnosis.html:190 / 实现 web/src/pages/Treat/Create/index.tsx:298｜P1
+- [x] 脉象缺寸关尺分部：原型左右手各 寸/关/尺 三格共 6 格，实现仅左右手两个自由文本框（全库无寸/关/尺分字段）｜原型 admin-diagnosis.html:149 / 实现 server/src/main/java/com/sinomed/entity/TreatEntity.java:63（pulse_cun/guan/chi_left/right 六列，ddl-auto 建列）、web/src/pages/Treat/Create/index.tsx:302（左手/右手 寸·关·尺 三格 ×2，总述保留）、回归 server/src/test/java/com/sinomed/TreatAcuHttpTest（建/读 6 分部字段）｜P1
+- [x] 五行生克可视化缺失：原型五行定位图（脏腑标注+生克提示）+ 本/克/难经/比率四指标，实现仅数值录入无图形化｜原型 admin-diagnosis.html:190 / 实现 web/src/pages/Treat/Create/index.tsx:585（WuxingLive 组件：火心/木肝/土脾/金肺/水肾五节点十字定位、中宫脾高亮 + 本生/克乘/难经/缓急四指标随录入实时联动，值取既有 five_* 字段 L/R 成对展示；原型的「火不生土·木乘土」为逐案医理断语，不可由字段推导，未做）｜P1
 - [ ] 诊断缺「第 N 疗程」标记（疗程只存在于 acuCourse）｜原型 admin-diagnosis.html:182 / 实现 web/src/pages/Treat/Create/index.tsx:447｜P2
 - [ ] 取穴面板缺灸法行（「艾条悬灸，每穴 15 分钟」被并入针法/留针字段）｜原型 admin-diagnosis.html:176 / 实现 web/src/pages/Treat/Create/index.tsx:407｜P2
 - [ ] 调理方案卡项余次为「规划功能」占位（与档案页已实现卡项实体相矛盾）｜原型 admin-diagnosis.html:206 / 实现 web/src/pages/Treat/Create/index.tsx:251｜P2
@@ -125,7 +125,7 @@
 
 ### 逐页核对结论（15/15）
 1. **admin-customer**：11 条（P0 0/P1 1/P2 10）——骨架高度对齐（头卡/四格统计/时间线/持卡卡项均超原型），缺口在时间线字段与回访域细节。
-2. **admin-diagnosis**：6 条（P0 0/P1 2/P2 4）——差距中等，四诊/取穴/方案全对齐；核心缺口是寸关尺分部录入与五行生克可视化。
+2. **admin-diagnosis**：6 条（P0 0/P1 2/P2 4）——差距中等，四诊/取穴/方案全对齐；核心缺口是寸关尺分部录入与五行生克可视化。✅ 2026-10-12 P1 全清（寸关尺六分部字段+三格录入、五行定位图+四指标联动）
 3. **admin-dash-day**：4 条（P0 0/P1 1/P2 3）——三组中对齐最好，员工总结列模型按自有复盘数据模型重建。
 4. **admin-items**：2 条（P0 0/P1 0/P2 2）——五列表格/封面/开关/操作/分页全一致，仅排序显示与时长字段。
 5. **admin-orders**：5 条（P0 0/P1 2/P2 3）——骨架对齐但缺「查看」详情、项目列单卡项无数量，排序无保证。✅ 2026-10-11 全部 5 条已清（order_item 明细模型 + 查看弹窗 + 业务单号 + 倒序 + 列清理）。

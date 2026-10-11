@@ -120,6 +120,13 @@
       margin-left: auto;
       font-family: var(--sans);
     }
+
+    .tc-hint {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--faint);
+      font-family: var(--sans);
+    }
   }
 
   .td2 {
@@ -392,5 +399,175 @@
   .tc-panel {
     border: none;
     padding: 8px 0;
+  }
+}
+
+/* 脉象寸关尺分部（原型 admin-diagnosis.html：左右手各寸/关/尺三格） */
+.pulse-hands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+  margin-bottom: 4px;
+
+  .hand {
+    display: grid;
+    grid-template-columns: 44px repeat(3, minmax(0, 1fr));
+    gap: 0 10px;
+    align-items: end;
+    padding: 10px 12px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+
+    .hn {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--brand-deep);
+      padding-bottom: 6px;
+    }
+
+    .ant-form-item .ant-form-item-label > label {
+      font-size: 12px;
+      color: var(--faint);
+    }
+  }
+}
+
+/* 五行生克定位图 + 四指标（随录入联动） */
+.wx-live {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+
+  .wx-map {
+    position: relative;
+    width: 168px;
+    height: 132px;
+    flex: none;
+
+    .wline {
+      position: absolute;
+      background: var(--line);
+
+      &.h {
+        left: 6px;
+        right: 6px;
+        top: 50%;
+        height: 1px;
+      }
+      &.v {
+        top: 6px;
+        bottom: 6px;
+        left: 50%;
+        width: 1px;
+      }
+    }
+
+    .wx {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1;
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      z-index: 1;
+
+      i {
+        display: block;
+        font-style: normal;
+        font-weight: 400;
+        font-size: 10px;
+        color: var(--faint);
+      }
+
+      &.fire {
+        left: 50%;
+        top: 0;
+        transform: translateX(-50%);
+      }
+      &.wood {
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      &.metal {
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      &.water {
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+      }
+      &.center {
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 48px;
+        height: 48px;
+        background: var(--brand-tint);
+        border-color: var(--brand);
+        color: var(--brand-deep);
+      }
+    }
+  }
+
+  .wx-ratio {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+
+    .r {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: var(--card);
+
+      .k {
+        font-size: 11px;
+        color: var(--faint);
+
+        i {
+          font-style: normal;
+          margin-left: 2px;
+          font-size: 10px;
+        }
+      }
+      .v {
+        margin-top: 2px;
+        font-size: 12.5px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .wx-live {
+    flex-direction: column;
+    align-items: stretch;
+
+    .wx-map {
+      margin: 0 auto;
+    }
   }
 }
