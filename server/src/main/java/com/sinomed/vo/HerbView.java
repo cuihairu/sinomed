@@ -31,6 +31,12 @@ public class HerbView {
     @Schema(title = "每克价格（分）", example = "5", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer price;
 
+    @Schema(title = "库存下限（克，可空=不预警；余额低于下限时余额接口标 warnStock）", example = "500")
+    private Integer stockMin;
+
+    @Schema(title = "库存上限（克，可空=不预警；余额高于上限时余额接口标 warnStock）", example = "5000")
+    private Integer stockMax;
+
     @Schema(title = "收录时间", example = "2026-10-10 10:00:00")
     private Date createTime;
 
@@ -39,6 +45,8 @@ public class HerbView {
                 .id(entity.getId())
                 .name(entity.getName())
                 .price(entity.getPrice())
+                .stockMin(entity.getStockMin())
+                .stockMax(entity.getStockMax())
                 .createTime(entity.getCreateTime())
                 .build();
     }

@@ -187,6 +187,22 @@ export default () => {
             width: '8%',
             render: (v: boolean) => (v ? <Tag color="red">到期预警</Tag> : <span className="hs-none">—</span>),
           },
+          {
+            title: '库存线',
+            dataIndex: 'warnStock',
+            key: 'warnStock',
+            width: 120,
+            render: (_, record) =>
+              record.warnStock ? (
+                <span className="hs-warn">
+                  {record.stockMin != null && (record.stock ?? 0) < record.stockMin
+                    ? `低于下限 ${record.stockMin}g`
+                    : `高于上限 ${record.stockMax}g`}
+                </span>
+              ) : (
+                <span className="hs-ok">—</span>
+              ),
+          },
         ]}
       />
       <ProTable<HerbStockLog>

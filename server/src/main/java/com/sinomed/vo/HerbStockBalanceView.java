@@ -33,4 +33,13 @@ public class HerbStockBalanceView {
 
     @Schema(title = "是否近期到期（expiryWithinDays 内）或已过期")
     private Boolean warnExpiry;
+
+    @Schema(title = "库存下限（克，可空=不预警）")
+    private Integer stockMin;
+
+    @Schema(title = "库存上限（克，可空=不预警）")
+    private Integer stockMax;
+
+    @Schema(title = "是否触库存线（低于下限或高于上限）")
+    private Boolean warnStock;
 }

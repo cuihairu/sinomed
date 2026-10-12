@@ -82,6 +82,26 @@ class HerbStockTest {
     }
 
     @Test
+    void balanceWarnsOnStockLimits() {
+        HerbEntity herb = new HerbEntity();
+        herb.setName("白芷");
+        herb.setPrice(100);
+        herb.setStockMin(500);
+        herb.setStockMax(5000);
+        Long herbId = herbRepository.save(herb).getId();
+
+        in(herbId, 300, null);
+        HerbStockBalanceView low = herbStockService.balance(30).get(0);
+        assertTrue(low.getWarnStock(), "300 克低于下限 500 预警");
+        assertEquals(500, low.getStockMin());
+        assertEquals(5000, low.getStockMax());
+
+        out(herbId, 300);
+        in(herbId, 6000, null);
+        assertTrue(herbStockService.balance(30).get(0).getWarnStock(), "6000 克高于上限 5000 预警");
+    }
+
+    @Test
     void guards() {
         Long herbId = newHerb("当归");
         in(herbId, 100, plusDays(90));

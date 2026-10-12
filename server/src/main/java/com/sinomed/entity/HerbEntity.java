@@ -35,6 +35,14 @@ public class HerbEntity {
     @Column(name = "price", nullable = false)
     private Integer price;
 
+    /** 库存下限（克，可空=不预警）；库存余额低于下限时余额接口标 warnStock */
+    @Column(name = "stock_min")
+    private Integer stockMin;
+
+    /** 库存上限（克，可空=不预警）；库存余额高于上限时余额接口标 warnStock */
+    @Column(name = "stock_max")
+    private Integer stockMax;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

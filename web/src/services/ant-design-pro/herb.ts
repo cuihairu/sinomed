@@ -7,6 +7,10 @@ export interface Herb {
   name?: string;
   /** 每克价格（分），>0 */
   price?: number;
+  /** 库存下限（克，可空=不预警；余额低于下限时余额接口标 warnStock） */
+  stockMin?: number;
+  /** 库存上限（克，可空=不预警） */
+  stockMax?: number;
   createTime?: string;
 }
 
@@ -85,6 +89,12 @@ export interface HerbStockBalance {
   /** 负数表示已过期 */
   expiryInDays?: number;
   warnExpiry?: boolean;
+  /** 库存下限（克，可空=不预警） */
+  stockMin?: number;
+  /** 库存上限（克，可空=不预警） */
+  stockMax?: number;
+  /** 是否触库存线（低于下限或高于上限） */
+  warnStock?: boolean;
 }
 
 /** 登记出入库（出库不得超过当前库存；入库效期不得早于今天） */

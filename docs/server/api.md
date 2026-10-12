@@ -268,8 +268,8 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/herb/` | 收录药材（name 唯一，price 每克分价 >0；重名报「药材已收录」） |
-| PUT | `/api/v1/herb/` | 更新药材（改价/改名，名称查重不含自身） |
+| POST | `/api/v1/herb/` | 收录药材（name 唯一，price 每克分价 >0；重名报「药材已收录」；`stockMin`/`stockMax` 库存上下限可空=不预警） |
+| PUT | `/api/v1/herb/` | 更新药材（改价/改名，名称查重不含自身；`stockMin`/`stockMax` 随更新整量覆盖，传 null 即清除） |
 | DELETE | `/api/v1/herb/{id}` | 删除药材（演示口径无引用检查，删后相关药味转「未比价」） |
 | GET | `/api/v1/herb/page` | 分页（current、pageSize、keyword 名称包含过滤），名称升序 |
 
@@ -281,7 +281,7 @@
 | ---- | ---- | ---- |
 | POST | `/api/v1/herb-stock/` | 登记出入库：`herbId` + `type`（1 入库 / 0 出库）+ `quantity`（克，正整数）必填；入库可带 `expiry`（yyyy-MM-dd，不得早于今天）/`supplier`（≤50 字）/`note`（≤100 字）；出库不得超过当前库存（400「出库数量超过当前库存：N 克」），出库流水不带效期 |
 | GET | `/api/v1/herb-stock/page` | 流水分页（current、pageSize、herbId/type 可空过滤），联出药材名，id 倒序 |
-| GET | `/api/v1/herb-stock/balance?expiryWithinDays=30` | 库存余额：各药材当前克数 + 最早未消耗批次效期（FEFO）+ 距效期天数 + `warnExpiry`（阈值内到期或已过期，默认 30 天，上限 365）；无流水的药材不成行，名称升序 |
+| GET | `/api/v1/herb-stock/balance?expiryWithinDays=30` | 库存余额：各药材当前克数 + 最早未消耗批次效期（FEFO）+ 距效期天数 + `warnExpiry`（阈值内到期或已过期，默认 30 天，上限 365）+ `stockMin`/`stockMax`/`warnStock`（药材字典设了库存上下限时，低于下限或高于上限标 `warnStock`）；无流水的药材不成行，名称升序 |
 | DELETE | `/api/v1/herb-stock/{id}` | 删除流水（演示口径无留痕，余额按剩余流水重算；流水不存在 400） |
 
 ## 穴位字典 `/api/v1/acupoint`（需登录）

@@ -23,7 +23,12 @@ export default () => {
 
   const openEdit = (record: Herb) => {
     setEditing(record);
-    form.setFieldsValue({ name: record.name, price: record.price });
+    form.setFieldsValue({
+      name: record.name,
+      price: record.price,
+      stockMin: record.stockMin,
+      stockMax: record.stockMax,
+    });
     setModalOpen(true);
   };
 
@@ -143,6 +148,12 @@ export default () => {
             rules={[{ required: true, message: '每克价格必须大于 0' }]}
           >
             <InputNumber min={1} precision={0} style={{ width: '100%' }} placeholder="如 5（即 ¥0.05/克）" />
+          </Form.Item>
+          <Form.Item name="stockMin" label="库存下限（克）" tooltip="可空=不预警；库存余额看板对低于下限的药材标预警">
+            <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="如 500" />
+          </Form.Item>
+          <Form.Item name="stockMax" label="库存上限（克）" tooltip="可空=不预警；库存余额看板对高于上限的药材标预警">
+            <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="如 5000" />
           </Form.Item>
         </Form>
       </Modal>

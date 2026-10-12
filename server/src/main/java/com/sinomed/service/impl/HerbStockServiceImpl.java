@@ -113,6 +113,8 @@ public class HerbStockServiceImpl implements HerbStockService {
         Map<Long, List<HerbStockLogEntity>> byHerb = new HashMap<>();
         logs.forEach(log -> byHerb.computeIfAbsent(log.getHerbId(), key -> new ArrayList<>()).add(log));
         Map<Long, String> names = herbNames();
+        Map<Long, HerbEntity> herbs = new HashMap<>();
+        herbRepository.findAll().forEach(herb -> herbs.put(herb.getId(), herb));
 
         List<HerbStockBalanceView> result = new ArrayList<>();
         byHerb.forEach((herbId, herbLogs) -> {
@@ -139,7 +141,7 @@ public class HerbStockServiceImpl implements HerbStockService {
                     }
                 }
             }
-            result.add(balanceView(herbId, names.get(herbId), stock, lots, withinDays));
+            result.add(balanceView(herbId, names.get(herbId), stock, lots, withinDays, herbs.get(herbId)));
         });
         result.sort(Comparator.comparing(HerbStockBalanceView::getName,
                 Comparator.nullsLast(Comparator.naturalOrder())));
@@ -157,7 +159,7 @@ public class HerbStockServiceImpl implements HerbStockService {
     }
 
     private HerbStockBalanceView balanceView(Long herbId, String name, int stock,
-                                             TreeMap<Long, Integer> lots, int withinDays) {
+                                             TreeMap<Long, Integer> lots, int withinDays, HerbEntity herb) {
         Long expiryInDays = null;
         String nextExpiry = null;
         for (Map.Entry<Long, Integer> lot : lots.entrySet()) {
@@ -170,6 +172,9 @@ public class HerbStockServiceImpl implements HerbStockService {
             break;
         }
         boolean warn = expiryInDays != null && expiryInDays <= withinDays;
+        Integer stockMin = herb == null ? null : herb.getStockMin();
+        Integer stockMax = herb == null ? null : herb.getStockMax();
+        boolean warnStock = (stockMin != null && stock < stockMin) || (stockMax != null && stock > stockMax);
         return HerbStockBalanceView.builder()
                 .herbId(herbId)
                 .name(name)
@@ -177,6 +182,9 @@ public class HerbStockServiceImpl implements HerbStockService {
                 .nextExpiry(nextExpiry)
                 .expiryInDays(expiryInDays)
                 .warnExpiry(warn)
+                .stockMin(stockMin)
+                .stockMax(stockMax)
+                .warnStock(warnStock)
                 .build();
     }
 

@@ -31,6 +31,8 @@ public class HerbServiceImpl implements HerbService {
         HerbEntity entity = new HerbEntity();
         entity.setName(name);
         entity.setPrice(view.getPrice());
+        entity.setStockMin(view.getStockMin());
+        entity.setStockMax(view.getStockMax());
         return herbRepository.save(entity);
     }
 
@@ -49,6 +51,9 @@ public class HerbServiceImpl implements HerbService {
         }
         entity.setName(name);
         entity.setPrice(view.getPrice());
+        // 上下限随更新整量覆盖（传 null 即清除）
+        entity.setStockMin(view.getStockMin());
+        entity.setStockMax(view.getStockMax());
         return herbRepository.save(entity);
     }
 
