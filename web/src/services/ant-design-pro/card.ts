@@ -88,3 +88,59 @@ export async function listCardUsages(
     ...(options || {}),
   });
 }
+
+/** 持卡调整流水（疗程卡营销留痕：赠次/转卡） */
+export interface CardAdjust {
+  id?: number;
+  cardId?: number;
+  /** 1 赠次 / 2 转卡 */
+  type?: number;
+  /** 赠加次数（1-99；转卡记 0） */
+  times?: number;
+  /** 转卡目标顾客（联出展示名） */
+  customerId?: number;
+  customerName?: string;
+  /** 调整理由（必填 ≤100 字） */
+  reason?: string;
+  staffId?: number;
+  /** 联出展示字段 */
+  staffName?: string;
+  createTime?: string;
+}
+
+/** 赠次：有效卡 total/remaining 各加 N（1-99），理由必填；停用卡 400 */
+export async function adjustCard(
+  id: number,
+  body: { times: number; reason: string },
+  options?: { [key: string]: any },
+) {
+  return request<Card>(`/api/v1/card/${id}/adjust`, {
+    method: 'POST',
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 转卡：有效卡换归属顾客（余次/有效期照旧），理由必填；目标顾客须存在且非本卡现顾客 */
+export async function transferCard(
+  id: number,
+  body: { customerId: number; reason: string },
+  options?: { [key: string]: any },
+) {
+  return request<Card>(`/api/v1/card/${id}/transfer`, {
+    method: 'POST',
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 按持卡查调整流水（赠次/转卡，新记录在前，联操作人/目标顾客名） */
+export async function listCardAdjusts(
+  id: number,
+  options?: { [key: string]: any },
+) {
+  return request<CardAdjust[]>(`/api/v1/card/${id}/adjusts`, {
+    method: 'GET',
+    ...(options || {}),
+  });
+}

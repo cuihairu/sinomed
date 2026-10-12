@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   updateCustomer,
   fetchCustomerById,
+  queryCustomerByPage,
   listCustomerHistories,
   addCustomerHistory,
   deleteCustomerHistory,
@@ -10,7 +11,18 @@ import {
 import { queryTreatByPage } from '@/services/ant-design-pro/treat';
 import { fetchOrderSummary } from '@/services/ant-design-pro/order';
 import type { OrderSummary } from '@/services/ant-design-pro/order';
-import { issueCard, listCardsByCustomer, setCardStatus, listCardUsages, type Card, type CardUsage } from '@/services/ant-design-pro/card';
+import {
+  issueCard,
+  listCardsByCustomer,
+  setCardStatus,
+  listCardUsages,
+  adjustCard,
+  transferCard,
+  listCardAdjusts,
+  type Card,
+  type CardUsage,
+  type CardAdjust,
+} from '@/services/ant-design-pro/card';
 import { queryItemByPage } from '@/services/ant-design-pro/item';
 import { fetchCustomerReviews } from '@/services/ant-design-pro/review';
 import {
@@ -62,6 +74,14 @@ const Update: React.FC = () => {
   const [usageCard, setUsageCard] = useState<Card | null>(null);
   const [usages, setUsages] = useState<CardUsage[]>([]);
   const [usageLoading, setUsageLoading] = useState(false);
+  /** 疗程卡营销：加次 / 转卡（同一弹窗按 mode 切换表单），调整流水单独弹窗 */
+  const [adjustTarget, setAdjustTarget] = useState<{ card: Card; mode: 'gift' | 'transfer' } | null>(null);
+  const [adjustForm] = Form.useForm();
+  const [adjusting, setAdjusting] = useState(false);
+  const [transferOptions, setTransferOptions] = useState<{ label: string; value: number }[]>([]);
+  const [adjustsCard, setAdjustsCard] = useState<Card | null>(null);
+  const [adjusts, setAdjusts] = useState<CardAdjust[]>([]);
+  const [adjustsLoading, setAdjustsLoading] = useState(false);
   /** 病史（过敏/既往）：档案内逐条增删 */
   const [histories, setHistories] = useState<CustomerHistory[]>([]);
   const [hisType, setHisType] = useState<number>(0);
@@ -148,6 +168,65 @@ const Update: React.FC = () => {
       setUsages(list || []);
     } finally {
       setUsageLoading(false);
+    }
+  };
+
+  /** 打开加次/转卡弹窗（转卡模式预搜一批候选顾客，排除本卡现顾客） */
+  const openAdjust = async (card: Card, mode: 'gift' | 'transfer') => {
+    adjustForm.resetFields();
+    setTransferOptions([]);
+    setAdjustTarget({ card, mode });
+    if (mode === 'transfer') {
+      const res = await queryCustomerByPage({ current: 1, pageSize: 20 });
+      setTransferOptions(
+        (res?.data || [])
+          .filter((c) => c.id !== Number(customerId))
+          .map((c) => ({ label: `${c.name || '顾客'} ${maskPhone(c.phone)}`, value: c.id! })),
+      );
+    }
+  };
+
+  /** 转卡目标远程搜索：按姓名/手机号查，排除本卡现顾客，手机号打码展示 */
+  const searchTransferTargets = async (keyword: string) => {
+    if (!keyword || !keyword.trim()) return;
+    const res = await queryCustomerByPage({ current: 1, pageSize: 20, keyword: keyword.trim() });
+    setTransferOptions(
+      (res?.data || [])
+        .filter((c) => c.id !== Number(customerId))
+        .map((c) => ({ label: `${c.name || '顾客'} ${maskPhone(c.phone)}`, value: c.id! })),
+    );
+  };
+
+  const submitAdjust = async () => {
+    const target = adjustTarget;
+    if (!target?.card?.id) return;
+    const values = await adjustForm.validateFields();
+    setAdjusting(true);
+    try {
+      if (target.mode === 'gift') {
+        await adjustCard(target.card.id, { times: values.times, reason: values.reason });
+        message.success('已加次');
+      } else {
+        await transferCard(target.card.id, { customerId: values.customerId, reason: values.reason });
+        message.success('已转卡');
+      }
+      setAdjustTarget(null);
+      await load();
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
+  /** 调整流水（赠次/转卡留痕，新记录在前） */
+  const openAdjusts = async (card: Card) => {
+    setAdjustsCard(card);
+    setAdjusts([]);
+    setAdjustsLoading(true);
+    try {
+      const list = card.id ? await listCardAdjusts(card.id) : [];
+      setAdjusts(list || []);
+    } finally {
+      setAdjustsLoading(false);
     }
   };
 
@@ -326,6 +405,9 @@ const Update: React.FC = () => {
                 </div>
                 <div className="cd-ops">
                   <a onClick={() => openUsages(c)}>核销记录</a>
+                  {c.status === 1 ? <a onClick={() => openAdjust(c, 'gift')}>加次</a> : null}
+                  {c.status === 1 ? <a onClick={() => openAdjust(c, 'transfer')}>转卡</a> : null}
+                  <a onClick={() => openAdjusts(c)}>调整记录</a>
                   <Popconfirm
                     title={c.status === 1 ? '停用后不能用于抵扣，确认停用？' : '恢复该卡为有效？'}
                     onConfirm={async () => {
@@ -444,6 +526,85 @@ const Update: React.FC = () => {
                 <span className="u-t">{u.createTime ? moment(u.createTime).format('YYYY-MM-DD HH:mm') : '—'}</span>
                 <span className="u-s">{u.staffName ? `服务：${u.staffName}` : '服务：—'}</span>
                 <span className="u-o">{u.orderId ? `订单 #${u.orderId}` : '历史补录'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* 加次 / 转卡：同一弹窗按 mode 切换表单；仅有效卡可操作（停用卡先恢复） */}
+      <Modal
+        title={
+          adjustTarget?.mode === 'transfer'
+            ? `转卡 · ${adjustTarget?.card?.itemName || '次卡'}`
+            : `加次 · ${adjustTarget?.card?.itemName || '次卡'}`
+        }
+        open={!!adjustTarget}
+        onOk={submitAdjust}
+        confirmLoading={adjusting}
+        onCancel={() => setAdjustTarget(null)}
+        okText={adjustTarget?.mode === 'transfer' ? '确认转卡' : '确认加次'}
+        cancelText="取消"
+      >
+        <Form form={adjustForm} layout="vertical">
+          {adjustTarget?.mode === 'gift' ? (
+            <Form.Item
+              name="times"
+              label="赠加次数"
+              rules={[{ required: true, message: '赠加次数必须在 1-99' }]}
+            >
+              <InputNumber min={1} max={99} precision={0} style={{ width: '100%' }} placeholder="1-99" />
+            </Form.Item>
+          ) : (
+            <Form.Item name="customerId" label="转入顾客" rules={[{ required: true, message: '请选择转入顾客' }]}>
+              <Select
+                showSearch
+                filterOption={false}
+                options={transferOptions}
+                onSearch={searchTransferTargets}
+                placeholder="输入姓名或手机号搜索"
+                notFoundContent="无匹配顾客"
+              />
+            </Form.Item>
+          )}
+          <Form.Item
+            name="reason"
+            label="调整理由"
+            tooltip="必填，≤100 字，留痕于调整记录"
+            rules={[{ required: true, message: '调整理由必填' }]}
+          >
+            <Input.TextArea
+              maxLength={100}
+              showCount
+              rows={2}
+              placeholder={adjustTarget?.mode === 'transfer' ? '如：顾客转赠家人' : '如：老客回馈、疗程续赠'}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`调整记录 · ${adjustsCard?.itemName || '次卡'}`}
+        open={!!adjustsCard}
+        footer={null}
+        onCancel={() => setAdjustsCard(null)}
+      >
+        {adjustsLoading ? (
+          <div className="plan-note">加载中…</div>
+        ) : adjusts.length === 0 ? (
+          <div className="plan-note">暂无调整记录；加次、转卡后每笔操作在这里留痕。</div>
+        ) : (
+          <div className="usage-list">
+            {adjusts.map((a) => (
+              <div className="usage-row" key={a.id}>
+                <span className="u-n">{a.type === 2 ? '转卡' : `赠 ${a.times ?? '—'} 次`}</span>
+                <span className="u-t">{a.createTime ? moment(a.createTime).format('YYYY-MM-DD HH:mm') : '—'}</span>
+                <span className="u-s">
+                  {a.type === 2 ? `转入：${a.customerName || '—'}` : a.staffName ? `操作：${a.staffName}` : '操作：—'}
+                </span>
+                <span className="u-o">
+                  {a.staffName && a.type === 2 ? `操作：${a.staffName}` : a.reason || '—'}
+                </span>
               </div>
             ))}
           </div>

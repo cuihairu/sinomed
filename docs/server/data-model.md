@@ -150,6 +150,21 @@
 
 append-only：每次结算抵扣（`payType=5`）在同一事务落一条，随结算回滚；不做手工划扣。种子数据为演示卡片补了历史核销（无订单号）。接口见 [api](/server/api) 次卡组。
 
+## card_adjusts — 持卡调整流水（疗程卡营销：赠次/转卡）
+
+| 字段 | 类型 | 含义 |
+| ---- | ---- | ---- |
+| id | Long | 主键 |
+| card_id | Long | 持卡 id（非空，索引，customer_cards.id） |
+| type | Integer | 1 赠次 / 2 转卡 |
+| times | Integer | 赠加次数（1-99）；转卡固定 0 |
+| customer_id | Long | 转卡目标顾客 id（type=2 必填；赠次为空） |
+| reason | String | 调整理由（非空，≤100 字，前端留痕展示） |
+| staff_id | Long | 操作员工（可空，服务端取当前登录账号对应员工） |
+| create_time | Date | 审计时间 |
+
+append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换 `customer_id`（余次/有效期照旧）；停用卡不可操作（过期不拦——可先调期再用）。接口见 [api](/server/api) 次卡组。
+
 ## appointments — 预约（前台/馆长建约、小程序自助约期 → 到店接待 → 转接诊）
 
 | 字段 | 类型 | 含义 |

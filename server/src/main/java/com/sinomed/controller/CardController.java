@@ -1,11 +1,14 @@
 package com.sinomed.controller;
 
+import com.sinomed.entity.CardAdjustEntity;
 import com.sinomed.entity.CardUsageEntity;
 import com.sinomed.entity.CustomerCardEntity;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.ItemRepository;
 import com.sinomed.repository.StaffRepository;
 import com.sinomed.service.CardService;
+import com.sinomed.service.StaffService;
+import com.sinomed.vo.CardAdjustView;
 import com.sinomed.vo.CardUsageView;
 import com.sinomed.vo.CardView;
 import com.sinomed.vo.MessageView;
@@ -17,6 +20,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,15 +47,18 @@ public class CardController {
     private final CustomerRepository customerRepository;
     private final ItemRepository itemRepository;
     private final StaffRepository staffRepository;
+    private final StaffService staffService;
 
     public CardController(CardService cardService,
                           CustomerRepository customerRepository,
                           ItemRepository itemRepository,
-                          StaffRepository staffRepository) {
+                          StaffRepository staffRepository,
+                          StaffService staffService) {
         this.cardService = cardService;
         this.customerRepository = customerRepository;
         this.itemRepository = itemRepository;
         this.staffRepository = staffRepository;
+        this.staffService = staffService;
     }
 
     @Operation(summary = "发卡", description = "customerId + itemId + totalTimes（≥1）必填；sourceOrderId 可空（溯源购卡订单）",
@@ -117,6 +125,69 @@ public class CardController {
         return cardService.listUsages(id).stream()
                 .map(this::decorateUsage)
                 .collect(Collectors.toList());
+    }
+
+    @Operation(summary = "赠次", description = "疗程卡营销：有效卡 total/remaining 各加 N（1-99），落调整流水；理由必填 ≤100 字；停用卡 400（先恢复）；staffId 服务端取当前登录账号",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "调整后的持卡", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CardView.class))),
+                    @ApiResponse(responseCode = "400", description = "持卡不存在/已停用、次数越界、理由缺失或超长", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = MessageView.class)))
+            })
+    @PostMapping("/{id}/adjust")
+    public CardView adjust(@PathVariable @NotNull Long id, @RequestBody CardAdjustView body) {
+        CustomerCardEntity card = cardService.adjust(id, body.getTimes(), body.getReason(), currentStaffId());
+        return decorate(card);
+    }
+
+    @Operation(summary = "转卡", description = "疗程卡营销：有效卡换归属顾客（余次/有效期照旧），落调整流水；目标顾客须存在且非本卡现顾客；理由必填 ≤100 字；staffId 服务端取当前登录账号",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "转卡后的持卡", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CardView.class))),
+                    @ApiResponse(responseCode = "400", description = "持卡不存在/已停用、目标顾客不存在或重复、理由缺失或超长", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = MessageView.class)))
+            })
+    @PostMapping("/{id}/transfer")
+    public CardView transfer(@PathVariable @NotNull Long id, @RequestBody CardAdjustView body) {
+        CustomerCardEntity card = cardService.transfer(id, body.getCustomerId(), body.getReason(), currentStaffId());
+        return decorate(card);
+    }
+
+    @Operation(summary = "按持卡查调整流水", description = "赠次/转卡留痕（新记录在前，联操作人/转卡目标顾客名）",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "调整流水列表（可空）", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CardAdjustView.class))),
+                    @ApiResponse(responseCode = "400", description = "持卡id缺失或不存在", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = MessageView.class)))
+            })
+    @GetMapping("/{id}/adjusts")
+    public List<CardAdjustView> adjusts(
+            @Parameter(description = "持卡id") @PathVariable @NotNull Long id) {
+        return cardService.listAdjusts(id).stream()
+                .map(this::decorateAdjust)
+                .collect(Collectors.toList());
+    }
+
+    /** 退款/营销操作人：取当前登录账号对应的员工（查无留空，不阻断操作，同 SettlementController 口径） */
+    private Long currentStaffId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null) {
+            return null;
+        }
+        return staffService.findByAccount(auth.getName()).map(s -> s.getId()).orElse(null);
+    }
+
+    /** 联出操作人名与转卡目标顾客名 */
+    private CardAdjustView decorateAdjust(CardAdjustEntity adjust) {
+        CardAdjustView view = CardAdjustView.FromEntity(adjust);
+        if (adjust.getStaffId() != null) {
+            staffRepository.findById(adjust.getStaffId()).ifPresent(s -> view.setStaffName(s.getName()));
+        }
+        if (adjust.getCustomerId() != null) {
+            customerRepository.findById(adjust.getCustomerId())
+                    .ifPresent(c -> view.setCustomerName(c.getName()));
+        }
+        return view;
     }
 
     /** 联出顾客名与卡项名 */

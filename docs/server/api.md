@@ -212,6 +212,9 @@
 | GET | `/api/v1/card/customers?ids=` | 批量按顾客查持卡（`ids` 逗号分隔，可空列表返回 `[]`），联出顾客名与卡项名；排班格位疗程标记等聚合场景一次拉齐，避免逐顾客查询 |
 | PUT | `/api/v1/card/{id}/status?status=` | 停用 / 恢复（`1` 有效 / `0` 停用）；停用卡不参与抵扣 |
 | GET | `/api/v1/card/{id}/usages` | 按持卡查核销记录（新记录在前）：每次结算抵扣一条，含 `timesUsed`（第几次，1 起）、`orderId`、`staffId/staffName`（服务员工，取订单 staffId）、`createTime`；持卡不存在报 400 |
+| POST | `/api/v1/card/{id}/adjust` | 赠次（疗程卡营销）：`times`（1-99）+ `reason`（必填 ≤100 字）必填；有效卡 total/remaining 各加 N，落调整流水；停用卡报 400（先恢复）；过期不拦 |
+| POST | `/api/v1/card/{id}/transfer` | 转卡（疗程卡营销）：`customerId`（目标顾客）+ `reason`（必填 ≤100 字）必填；换归属顾客（余次/有效期照旧），落调整流水；停用卡/目标顾客不存在/已是该顾客持卡均报 400 |
+| GET | `/api/v1/card/{id}/adjusts` | 按持卡查调整流水（新记录在前）：赠次/转卡留痕，含 `type`（1 赠次/2 转卡）、`times`、`customerId/customerName`（转卡目标）、`reason`、`staffId/staffName`（操作人，取当前登录账号）、`createTime`；持卡不存在报 400 |
 
 抵扣本身不走本组：在结算接口选 `payType=5`，按订单卡项扣 1 次，同一事务落一条核销流水（无单不落——手工划扣不做，核销随结算发生）。
 
