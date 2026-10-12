@@ -1,0 +1,66 @@
+# Sinomed 工作站自定义命令的 ACL 权限（Tauri 2 应用清单）。
+# 一旦存在本清单，本地页对自定义命令从「隐式放行」转为「显式放行」：
+# capabilities/default.json 必须逐个放行本地引导页（ui/index.html）用到的命令，
+# capabilities/scanner-remote.json 只放行远程管理端页可读的 peripheral_status。
+# 命令名与 #[tauri::command] 注册名一致（命令用下划线，权限标识用短横线）。
+
+[default]
+description = """
+工作站全部自定义命令放行集：本地引导页（ui/index.html）用。
+配置读写、开机自启、打印与扫码枪控制。
+
+#### Granted Permissions
+
+allow-get-config, allow-set-config, allow-set-autostart,
+allow-print-html, allow-print-escpos, allow-scanner-start, allow-scanner-stop
+"""
+
+permissions = [
+    "allow-get-config",
+    "allow-set-config",
+    "allow-set-autostart",
+    "allow-print-html",
+    "allow-print-escpos",
+    "allow-scanner-start",
+    "allow-scanner-stop"
+]
+
+[[permission]]
+identifier = "allow-get-config"
+description = "读取工作站配置（服务端地址 / 窗口尺寸 / 默认打印机 / 更新通道 / 自启 / 扫码串口）"
+commands.allow = ["get_config"]
+
+[[permission]]
+identifier = "allow-set-config"
+description = "保存工作站配置"
+commands.allow = ["set_config"]
+
+[[permission]]
+identifier = "allow-set-autostart"
+description = "开关开机自启（写配置并收敛系统自启项）"
+commands.allow = ["set_autostart"]
+
+[[permission]]
+identifier = "allow-print-html"
+description = "打开隐藏打印窗口打印 HTML 模板（处方笺 / 小票）"
+commands.allow = ["print_html"]
+
+[[permission]]
+identifier = "allow-print-escpos"
+description = "ESC/POS 字节流直写串口小票机"
+commands.allow = ["print_escpos"]
+
+[[permission]]
+identifier = "allow-scanner-start"
+description = "启动串口扫码枪读码监听"
+commands.allow = ["scanner_start"]
+
+[[permission]]
+identifier = "allow-scanner-stop"
+description = "停止串口扫码枪读码监听"
+commands.allow = ["scanner_stop"]
+
+[[permission]]
+identifier = "allow-peripheral-status"
+description = "查询外设只读状态（扫码枪运行时 / 小票机上次打印结果 / 默认打印机名），不改外设状态"
+commands.allow = ["peripheral_status"]

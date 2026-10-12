@@ -14,6 +14,29 @@ use tauri::{AppHandle, Emitter, State};
 #[derive(Default)]
 pub struct ScannerState {
     stop: Mutex<Option<Arc<AtomicBool>>>,
+    /// 运行时快照（peripheral_status 只读，读线程持有克隆）：当前端口 + 是否在读 + 最近错误
+    runtime: Arc<Mutex<ScannerRuntime>>,
+}
+
+/// 读线程运行时快照：port = 监听端口（None = 未开）；listening = 串口已打开且在收码；
+/// error = 打开 / 读取失败信息（None = 无错）
+#[derive(Default)]
+struct ScannerRuntime {
+    port: Option<String>,
+    listening: bool,
+    error: Option<String>,
+}
+
+impl ScannerState {
+    /// 只读快照（peripheral_status 用）：端口、监听态、最近错误
+    pub(crate) fn snapshot(&self) -> (String, bool, Option<String>) {
+        let runtime = self.runtime.lock().expect("扫码枪状态锁");
+        (
+            runtime.port.clone().unwrap_or_default(),
+            runtime.listening,
+            runtime.error.clone(),
+        )
+    }
 }
 
 /// 从缓冲里切出整行（\n 或 \r 结尾），返回切出的码值并收缩缓冲；残行留在缓冲等下一包
@@ -34,6 +57,7 @@ fn stop_running(state: &ScannerState) {
     if let Some(stop) = state.stop.lock().expect("扫码枪状态锁").take() {
         stop.store(true, Ordering::Relaxed);
     }
+    *state.runtime.lock().expect("扫码枪状态锁") = ScannerRuntime::default();
 }
 
 /// 启动串口扫码枪监听：已有线程在跑则先停（换端口场景）；打开失败发 `scanner-error` 事件
@@ -46,8 +70,14 @@ pub(crate) fn start(
     stop_running(state);
     let stop = Arc::new(AtomicBool::new(false));
     *state.stop.lock().map_err(|e| format!("扫码枪状态锁：{e}"))? = Some(stop.clone());
+    let runtime = state.runtime.clone();
+    *runtime.lock().map_err(|e| format!("扫码枪状态锁：{e}"))? = ScannerRuntime {
+        port: Some(port.clone()),
+        listening: false,
+        error: None,
+    };
     let baud = baud.unwrap_or(9600);
-    std::thread::spawn(move || read_loop(app, port, baud, stop));
+    std::thread::spawn(move || read_loop(app, port, baud, stop, runtime));
     Ok(())
 }
 
@@ -70,21 +100,26 @@ pub fn scanner_stop(state: State<'_, ScannerState>) -> Result<(), String> {
 }
 
 /// 读码循环：100ms 超时轮询（给停止位留检查点），按行切码发事件；读错误上报后退出
-fn read_loop(app: AppHandle, port: String, baud: u32, stop: Arc<AtomicBool>) {
+fn read_loop(
+    app: AppHandle,
+    port: String,
+    baud: u32,
+    stop: Arc<AtomicBool>,
+    runtime: Arc<Mutex<ScannerRuntime>>,
+) {
     let mut serial = match serialport::new(&port, baud)
         .timeout(Duration::from_millis(100))
         .open()
     {
         Ok(serial) => serial,
         Err(e) => {
-            eprintln!("[scanner] 打开扫码枪串口 {port} 失败：{e}");
-            let _ = app.emit(
-                "scanner-error",
-                format!("打开扫码枪串口 {port} 失败：{e}"),
-            );
+            let msg = format!("打开扫码枪串口 {port} 失败：{e}");
+            eprintln!("[scanner] {msg}");
+            set_runtime(&runtime, &port, false, Some(msg));
             return;
         }
     };
+    set_runtime(&runtime, &port, true, None);
     let _ = app.emit("scanner-status", "listening");
     let mut buf: Vec<u8> = Vec::new();
     let mut chunk = [0u8; 256];
@@ -100,13 +135,24 @@ fn read_loop(app: AppHandle, port: String, baud: u32, stop: Arc<AtomicBool>) {
             // read 走 std::io::Read，超时以 io::ErrorKind::TimedOut 表达
             Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {}
             Err(e) => {
-                eprintln!("[scanner] 读扫码枪串口失败：{e}");
-                let _ = app.emit("scanner-error", format!("读扫码枪串口失败：{e}"));
+                let msg = format!("读扫码枪串口失败：{e}");
+                eprintln!("[scanner] {msg}");
+                let _ = app.emit("scanner-error", msg.clone());
+                set_runtime(&runtime, &port, false, Some(msg));
                 break;
             }
         }
     }
+    set_runtime(&runtime, &port, false, None);
     let _ = app.emit("scanner-status", "stopped");
+}
+
+/// 更新运行时快照（读线程用；端口与错误一并写，锁持有时间极短）
+fn set_runtime(runtime: &Arc<Mutex<ScannerRuntime>>, port: &str, listening: bool, error: Option<String>) {
+    let mut guard = runtime.lock().expect("扫码枪状态锁");
+    guard.port = Some(port.to_string());
+    guard.listening = listening;
+    guard.error = error;
 }
 
 #[cfg(test)]

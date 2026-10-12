@@ -87,6 +87,161 @@ const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员
 const levelText = (level?: number) => LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
 const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—');
 
+/** 壳侧外设只读状态（peripheral_status 命令，desktop.md D10）：
+ *  扫码枪运行时 / 小票机上次打印结果 / 默认打印机名。纯查询不改外设。 */
+type PeripheralStatus = {
+  scanner?: { port?: string; state?: string; error?: string };
+  escpos?: { status?: string; bytes?: number; agoSec?: number; error?: string };
+  printer?: { name?: string };
+};
+
+/** 壳内 invoke（tauri 注入 `__TAURI__.core.invoke`）；浏览器无注入返回 undefined 自动退化 */
+async function shellInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T | undefined> {
+  const invoke = (window as unknown as {
+    __TAURI__?: { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } };
+  }).__TAURI__?.core?.invoke;
+  if (!invoke) return undefined;
+  try {
+    return (await invoke(cmd, args)) as T;
+  } catch {
+    // 查询失败不当作外设异常：保持上一次状态，下次轮询再试
+    return undefined;
+  }
+}
+
+/** 距今可读说法：1 分钟内「刚刚」，1 小时内「N 分钟前」，其余「N 小时前」 */
+function ago(sec?: number): string {
+  if (sec == null) return '';
+  if (sec < 60) return '刚刚';
+  if (sec < 3600) return `${Math.floor(sec / 60)} 分钟前`;
+  return `${Math.floor(sec / 3600)} 小时前`;
+}
+
+/**
+ * 外设状态面板（desktop.md D10）：壳内经 `peripheral_status` 查真实状态——
+ * 30 秒轮询一次，扫码枪开关监听 / 打开失败再经既有事件通道即时刷新；
+ * 浏览器端按页面自身能力如实标注。查不到状态时不伪造。
+ */
+function PeripheralPanel({ inShell }: { inShell: boolean }) {
+  const [status, setStatus] = useState<PeripheralStatus | undefined>();
+
+  const refresh = useCallback(async () => {
+    if (!inShell) return;
+    const s = await shellInvoke<PeripheralStatus>('peripheral_status');
+    if (s) setStatus(s);
+  }, [inShell]);
+
+  useEffect(() => {
+    if (!inShell) return;
+    let cancelled = false;
+    const stops: Array<() => void> = [];
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 30000);
+    const tauri = (window as unknown as {
+      __TAURI__?: { event?: { listen?: (n: string, h: (ev: { payload: unknown }) => void) => Promise<() => void> } };
+    }).__TAURI__;
+    // scanner-status / scanner-error 本就放行给远程页（core:event:default），据此即时刷新，不等轮询
+    ['scanner-status', 'scanner-error'].forEach((name) => {
+      tauri?.event
+        ?.listen(name, () => void refresh())
+        .then((stop) => {
+          if (cancelled) stop();
+          else stops.push(stop);
+        })
+        .catch(() => undefined);
+    });
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      stops.forEach((stop) => stop());
+    };
+  }, [inShell, refresh]);
+
+  if (!inShell) {
+    return (
+      <>
+        <div className="dev">
+          <i className="st dim" />
+          <span className="nm">80mm 小票机（USB 串口）</span>
+          <span className="tag dim">需桌面工作站</span>
+        </div>
+        <div className="dev">
+          <i className="st" />
+          <span className="nm">扫码枪（页顶扫码条）</span>
+          <span className="tag">已就绪</span>
+        </div>
+        <div className="dev">
+          <i className="st dim" />
+          <span className="nm">A5 处方笺打印机</span>
+          <span className="tag dim">系统打印</span>
+        </div>
+        <div className="plan-note">
+          浏览器环境：按页面可用能力如实标注；进入桌面工作站后扫码枪走串口、小票机走 escpos 直连、打印机取配置预选名。
+        </div>
+      </>
+    );
+  }
+
+  if (!status) {
+    return <div className="plan-note">正在查询壳侧外设状态…</div>;
+  }
+
+  const scanner = status.scanner;
+  const escpos = status.escpos;
+  const printer = status.printer;
+
+  // 扫码枪：在读 → 监听中（附端口）；有错 → 打开 / 读取失败；其余按是否配了端口区分
+  const scannerTag = scanner?.error
+    ? '打开失败'
+    : scanner?.state === 'listening'
+      ? `监听中${scanner.port ? ` · ${scanner.port}` : ''}`
+      : scanner?.port
+        ? `未开监听 · ${scanner.port}`
+        : '未配串口（HID 键盘）';
+  const scannerWarn = !!scanner?.error;
+  const scannerDim = !scannerWarn && scanner?.state !== 'listening';
+
+  // 小票机：按需直写串口无长连接，只报上次打印结果
+  const escposTag = escpos?.error
+    ? `上次失败 · ${ago(escpos.agoSec)}`
+    : escpos?.status === 'ok'
+      ? `上次成功 ${escpos.bytes ?? 0} 字节 · ${ago(escpos.agoSec)}`
+      : '按需直连';
+  const escposWarn = !!escpos?.error;
+  const escposDim = !escposWarn && escpos?.status !== 'ok';
+
+  // 处方笺打印机：走系统打印对话框，config.printer 仅预选记录
+  const printerTag = printer?.name ? `系统打印 · ${printer.name}` : '系统打印（未预选）';
+
+  const dot = (warn: boolean, dim: boolean) => `st${warn ? ' err' : dim ? ' dim' : ''}`;
+  const tag = (warn: boolean, dim: boolean) => `tag${warn ? ' warn' : dim ? ' dim' : ''}`;
+
+  return (
+    <>
+      <div className="dev">
+        <i className={dot(escposWarn, escposDim)} />
+        <span className="nm">80mm 小票机（USB 串口）</span>
+        <span className={tag(escposWarn, escposDim)}>{escposTag}</span>
+      </div>
+      <div className="dev">
+        <i className={dot(scannerWarn, scannerDim)} />
+        <span className="nm">扫码枪{scanner?.port ? `（${scanner.port}）` : ''}</span>
+        <span className={tag(scannerWarn, scannerDim)}>{scannerTag}</span>
+      </div>
+      <div className="dev">
+        <i className="st dim" />
+        <span className="nm">A5 处方笺打印机</span>
+        <span className={printer?.name ? 'tag' : 'tag dim'}>{printerTag}</span>
+      </div>
+      <div className="plan-note">
+        壳侧外设实时状态（peripheral_status 只读查询，30 秒轮询 + 扫码状态事件即时刷新）；
+        {scanner?.error ? `扫码枪：${scanner.error}；` : ''}
+        {escpos?.error ? `小票机：${escpos.error}。` : ''}
+      </div>
+    </>
+  );
+}
+
 const Create: React.FC = () => {
   const [searchParams] = useSearchParams();
   const formRef = useRef<ProFormInstance>();
@@ -94,7 +249,7 @@ const Create: React.FC = () => {
   const treatId = searchParams.get('treatId');
   const [customer, setCustomer] = useState<API.Customer>();
   const [treats, setTreats] = useState<TreatRow[]>([]);
-  /** 是否运行在桌面壳内（tauri 注入全局；remote 能力只放事件监听，状态条据此如实标注） */
+  /** 是否运行在桌面壳内（tauri 注入全局；shell 侧外设状态经 peripheral_status 查询） */
   const [inShell] = useState(() => typeof window !== 'undefined' && !!(window as any).__TAURI__);
   const [treatTotal, setTreatTotal] = useState(0);
   const [todayTotal, setTodayTotal] = useState<number>();
@@ -609,49 +764,7 @@ const Create: React.FC = () => {
 
             <section className="tc-panel">
               <h3>外设状态</h3>
-              {/* 壳内（tauri webview，remote 能力仅放事件监听）按事件通道标注；浏览器端按页面自身能力标注 */}
-              {inShell ? (
-                <>
-                  <div className="dev">
-                    <i className="st dim" />
-                    <span className="nm">80mm 小票机（USB 串口）</span>
-                    <span className="tag dim">escpos 待接入</span>
-                  </div>
-                  <div className="dev">
-                    <i className="st" />
-                    <span className="nm">扫码枪（串口事件通道）</span>
-                    <span className="tag">事件监听就绪</span>
-                  </div>
-                  <div className="dev">
-                    <i className="st dim" />
-                    <span className="nm">A5 处方笺打印机</span>
-                    <span className="tag dim">系统打印</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="dev">
-                    <i className="st dim" />
-                    <span className="nm">80mm 小票机（USB 串口）</span>
-                    <span className="tag dim">需桌面工作站</span>
-                  </div>
-                  <div className="dev">
-                    <i className="st" />
-                    <span className="nm">扫码枪（页顶扫码条）</span>
-                    <span className="tag">已就绪</span>
-                  </div>
-                  <div className="dev">
-                    <i className="st dim" />
-                    <span className="nm">A5 处方笺打印机</span>
-                    <span className="tag dim">系统打印</span>
-                  </div>
-                </>
-              )}
-              <div className="plan-note">
-                {inShell
-                  ? '已检测到桌面壳：扫码枪串口事件通道就绪（收码即监听中）；壳侧未提供端口状态查询命令，连接态以实际收码为准；小票 escpos 链路待接入。'
-                  : '浏览器环境：按页面可用能力如实标注；进入桌面工作站后扫码枪走串口事件通道、小票机走 escpos 直连。'}
-              </div>
+              <PeripheralPanel inShell={inShell} />
             </section>
           </aside>
         </div>

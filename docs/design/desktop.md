@@ -1,6 +1,6 @@
 # 桌面版设计：前台 / 医生工作站（Tauri 2 薄壳）
 
-> 状态：**已实施（P0 D1–D5，P1 D6–D9 全部完成）**。`desktop/` Tauri 2 薄壳、打印模板与打印桥、扫码输入、CI 双平台安装包、更新器与 nightly 发布流水线、单实例/自启/崩溃自动重启、模板版本化、ESC/POS 直连、扫码枪串口模式均已落地并逐项实证。`desktop/` 端与候诊区展示屏（[平板展示](/design/tablet)）、顾客自助机（[顾客选服务](/design/kiosk)）是三台设备三个工程。
+> 状态：**已实施（P0 D1–D5，P1 D6–D10 全部完成）**。`desktop/` Tauri 2 薄壳、打印模板与打印桥、扫码输入、CI 双平台安装包、更新器与 nightly 发布流水线、单实例/自启/崩溃自动重启、模板版本化、ESC/POS 直连、扫码枪串口模式、外设状态只读查询均已落地并逐项实证。`desktop/` 端与候诊区展示屏（[平板展示](/design/tablet)）、顾客自助机（[顾客选服务](/design/kiosk)）是三台设备三个工程。
 
 界面原型（壳内接诊工作台，设计稿 · 数据为虚构演示）：
 
@@ -81,7 +81,7 @@
 
 - **业务**：复用现有 `/api/v1` 全量接口（与管理端一致，见[REST 接口清单](/server/api)），无新增。
 - **模板下发**（P1 D7 加项）：`GET /api/v1/print/templates`，免登录只读，详情见上「打印模板与离线缓存」。
-- **本机命令**（Tauri `invoke`，非 HTTP）：`print_html(template, data)`（P0）、`print_escpos(port, data, columns?, baud?)`（P1 D8，ESC/POS 字节流直写串口）、`set_autostart(enabled)`（P1 D6）、`scanner_start(port, baud?)` / `scanner_stop()`（P1 D9，串口扫码枪读码线程，收码广播 `scanner-code` 事件）；配置了 `scanner_port` 时启动即自动开监听，页面侧经 `__TAURI__.event.listen` 订阅（远程页由 `scanner-remote` capability 放行 `core:event:default`，只放事件监听不放业务命令）。
+- **本机命令**（Tauri `invoke`，非 HTTP）：`print_html(template, data)`（P0）、`print_escpos(port, data, columns?, baud?)`（P1 D8，ESC/POS 字节流直写串口）、`set_autostart(enabled)`（P1 D6）、`scanner_start(port, baud?)` / `scanner_stop()`（P1 D9，串口扫码枪读码线程，收码广播 `scanner-code` 事件）、`peripheral_status()`（P1 D10，外设只读状态查询，不改外设）；配置了 `scanner_port` 时启动即自动开监听，页面侧经 `__TAURI__.event.listen` 订阅（远程页由 `scanner-remote` capability 放行 `core:event:default` 事件监听 + `allow-peripheral-status` 只读查询，`print_`/`scanner_`/`set_` 等改外设或改配置的命令仍不放行）。**ACL 口径**：一旦应用定义了 ACL 清单（`src-tauri/permissions/commands.toml`），本地页对自定义命令从「隐式放行」转为「显式放行」——`capabilities/default.json` 必须引用清单的 `default` 集逐个放行引导页用到的命令，清单与 capability 不同步会导致本地页调用被拒；权限标识在 `cargo build` 时校验，拼错直接编译失败。
 
 ## 目录落位
 
@@ -120,3 +120,4 @@ CI 落位：`.github/workflows/desktop.yml`（构建 NSIS 包 → 覆盖发布 n
 | D7 | 打印模板版本化：服务端模板接口 + 本地缓存覆盖 | 模板更新不发壳版本 | ✅ 服务端 `GET /api/v1/print/templates`（免登录、白名单两模板、SHA-256 内容摘要版本；`data/printtemplates/` 同名文件覆盖内置，目录覆盖→版本漂移 curl 实证）；壳启动预热 + 每次打印前按 version 增量拉取缓存 `templates/`，打印走「缓存优先、内置兜底」（Xvfb 实机全链路：运行中写配置→点打印自检→日志 `模板缓存已更新至 ce4be162…`→打印临时文件含覆盖标记而非内置内容）；服务端 3 项 / 壳 3 项单测覆盖解析、过滤、缓存优先 |
 | D8 | ESC/POS 直连打印（Rust command，USB/串口） | 免驱小票机场景 | ✅ `print_escpos(port, data, columns?, baud?)`：小票数据编码 ESC/POS 字节流直写 serialport 串口（初始化/倍宽店名/明细行/合计加粗/走纸切纸，中文 GBK 直发，全角按 2 列算宽对齐），免驱免打印对话框；引导页串口自检（端口输入 + 即点即发）；socat 伪终端实证：ui 写 `/tmp/escpos-a` → 对端收全 294 字节（ESC@ 起、GBK「合计/店名」在流中、GS V 1 切纸收尾），坏端口红色报错实证；编码器 4 项单测（控制指令/GBK/按列宽补齐/空数据不 panic），cargo 18 项全绿 |
 | D9 | 扫码枪串口模式（serialport 插件位） | HID 仿真不可用时的兜底 | ✅ 壳持读线程按行收码（100ms 超时轮询可停，`\n`/`\r` 切行、残行续收），收到即广播 `scanner-code` 事件，页面侧订阅后走既有定位流程，无需 invoke 权限；配置 `scanner_port` 启动即自动开监听，`scanner_start/scanner_stop` 命令供引导页自检与换口；远程页经 `scanner-remote` capability 只放 `core:event:default`（只放监听不放业务命令）；`ScannerInput` 组件订阅 `scanner-code`（浏览器无 `__TAURI__` 自动退化）。实证：socat 伪终端对——① 引导页填 `/tmp/scan-a` 点监听测试，对端写 `13900002222\n` → 页面绿字回显「收到扫码：13900002222」；② 生产路径：配置 server_url + scanner_port 启动即自动监听（fd 实证占用 pts），远程加载的管理端顾客查询页写同一码值 → 自动跳 `customer/update?customerId=1`（capability 放行的远程页事件订阅 + 定位跳转全链路）；切行 3 项单测，cargo 21 项全绿 |
+| D10 | 外设状态条：壳侧只读状态查询命令 | 接诊页外设状态条出真实连接态（原型非写死文案） | ✅ 新增 `peripheral_status()` 只读查询命令，一次性返回三类外设状态——**扫码枪**取读线程运行时（`ScannerState.runtime` 端口/监听态/最近错误；`read_loop` 在打开成功、打开失败、读取失败、正常停止四处更新，状态判定 报错优先 → 在收码 → 未开）；**80mm 小票机**按需直写串口无长连接，故只报上次 ESC/POS 打印结果（`EscposState` 留痕字节数/失败原因/距今秒数）；**A5 处方笺打印机**走系统打印对话框，取 `config.printer` 预选名（不探测设备，空 = 未预选）。web 侧 `PeripheralPanel` 30 秒轮询 + 订阅既有 `scanner-status`/`scanner-error` 事件即时刷新（轮询兜底、事件兜实时），查不到状态显示「查询中…」不伪造，浏览器端按页面自身能力标注。查询失败不当作外设异常（保持上次状态、下次轮询重试）。**ACL 影响**：本项首次引入 `src-tauri/permissions/commands.toml` 应用清单——Tauri 2 里一旦应用定义了 ACL 清单，本地页对自定义命令从「隐式放行」转为「显式放行」，故 `capabilities/default.json` 必须引用清单的 `default` 集逐个放行引导页用到的 7 个命令（漏一个则本地页调用被拒）；`capabilities/scanner-remote.json` 只加 `allow-peripheral-status`——只读查询放行给远程管理端页，`print_`/`scanner_`/`set_` 等改外设或改配置的命令仍不放行（D9 的安全姿态不变）。权限标识在 `cargo build` 时校验，拼错直接编译失败。实证：状态判定优先级单测（error > listening > idle）、escpos 上次打印结果单测（从未打印 None / 成功记字节数 / 失败记原因且 bytes 归零），cargo 23 项全绿 |

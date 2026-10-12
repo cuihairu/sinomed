@@ -120,8 +120,9 @@ mod tests {
     #[test]
     fn serde_roundtrip_keeps_defaults() {
         let cfg: AppConfig = serde_json::from_str(r#"{"server_url":"http://x/"}"#).unwrap();
-        assert_eq!(cfg.window_width, 1280);
-        assert_eq!(cfg.window_height, 800);
+        // 默认窗口尺寸与 default_width()/default_height() 一致（1360×832）
+        assert_eq!(cfg.window_width, default_width());
+        assert_eq!(cfg.window_height, default_height());
         assert_eq!(cfg.update_channel, "nightly");
         assert!(!cfg.autostart);
         let text = serde_json::to_string(&cfg).unwrap();

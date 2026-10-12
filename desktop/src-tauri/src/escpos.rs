@@ -3,9 +3,11 @@
 //! （多数国产热敏机默认 GBK 字库）；打印对话框、驱动一概不经过。
 
 use std::io::Write;
+use std::sync::Mutex;
 use std::time::Duration;
 
 use serde_json::Value;
+use tauri::State;
 
 /// 控制指令：初始化 / 对齐 / 字号 / 加粗 / 走纸 / 切纸
 const INIT: &[u8] = &[0x1b, 0x40];
@@ -108,26 +110,71 @@ pub fn encode_receipt(data: &Value, columns: usize) -> Vec<u8> {
     out
 }
 
-/// 打开串口直发字节流：5 秒超时（写完即走，不等待打印完成）
+/// 小票机按需直写串口，无长连接——状态条只能报「上次打印结果」，故在此留痕
+#[derive(Default)]
+pub struct EscposState {
+    last: Mutex<Option<LastPrint>>,
+}
+
+/// 最近一次 ESC/POS 打印：at_unix 秒（状态条算相对时间）、bytes 已写字节、error 失败原因
+#[derive(Default, Clone)]
+struct LastPrint {
+    at_unix: u64,
+    bytes: usize,
+    error: Option<String>,
+}
+
+impl EscposState {
+    /// 记录一次打印结果（成功记字节数、error = None；失败记原因、bytes 归零）
+    pub(crate) fn record(&self, bytes: usize, error: Option<String>) {
+        let at_unix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        *self.last.lock().expect("打印状态锁") = Some(LastPrint { at_unix, bytes, error });
+    }
+
+    /// 只读快照（peripheral_status 用）：ok / bytes / error / 距上次打印秒数
+    pub(crate) fn snapshot(&self) -> Option<(bool, usize, Option<String>, u64)> {
+        let guard = self.last.lock().expect("打印状态锁");
+        let last = guard.as_ref()?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let ok = last.error.is_none();
+        Some((ok, last.bytes, last.error.clone(), now.saturating_sub(last.at_unix)))
+    }
+}
+
+/// 打开串口直发字节流：5 秒超时（写完即走，不等待打印完成）；结果留痕供外设状态查询
 #[tauri::command]
 pub fn print_escpos(
+    state: State<'_, EscposState>,
     port: String,
     data: Value,
     columns: Option<u16>,
     baud: Option<u32>,
 ) -> Result<usize, String> {
     let bytes = encode_receipt(&data, columns.unwrap_or(32) as usize);
-    let mut serial = serialport::new(&port, baud.unwrap_or(9600))
-        .timeout(Duration::from_secs(5))
-        .open()
-        .map_err(|e| format!("打开小票机串口 {port} 失败：{e}"))?;
-    serial
-        .write_all(&bytes)
-        .map_err(|e| format!("写串口失败：{e}"))?;
-    serial
-        .flush()
-        .map_err(|e| format!("刷写串口失败：{e}"))?;
-    Ok(bytes.len())
+    let result = (|| -> Result<usize, String> {
+        let mut serial = serialport::new(&port, baud.unwrap_or(9600))
+            .timeout(Duration::from_secs(5))
+            .open()
+            .map_err(|e| format!("打开小票机串口 {port} 失败：{e}"))?;
+        serial
+            .write_all(&bytes)
+            .map_err(|e| format!("写串口失败：{e}"))?;
+        serial
+            .flush()
+            .map_err(|e| format!("刷写串口失败：{e}"))?;
+        Ok(bytes.len())
+    })();
+    match &result {
+        Ok(size) => state.record(*size, None),
+        Err(err) => state.record(0, Some(err.clone())),
+    }
+    result
 }
 
 #[cfg(test)]
@@ -200,5 +247,25 @@ mod tests {
         let bytes = encode_receipt(&json!({}), 32);
         assert!(bytes.starts_with(INIT));
         assert!(bytes.ends_with(CUT));
+    }
+
+    #[test]
+    fn last_print_snapshot_reports_success_then_failure() {
+        // 状态条口径：从未打印 = None；成功 = ok + 字节数 + error 空；失败 = error + bytes 归零
+        let state = EscposState::default();
+        assert_eq!(state.snapshot(), None);
+
+        state.record(245, None);
+        let (ok, bytes, error, ago) = state.snapshot().expect("已打印过");
+        assert!(ok);
+        assert_eq!(bytes, 245);
+        assert_eq!(error, None);
+        assert!(ago <= 1, "刚打印过，距今应在 1 秒内");
+
+        state.record(0, Some("打开小票机串口 /dev/null 失败".into()));
+        let (ok, bytes, error, _) = state.snapshot().expect("已打印过");
+        assert!(!ok);
+        assert_eq!(bytes, 0);
+        assert!(error.as_deref().unwrap_or_default().contains("失败"));
     }
 }

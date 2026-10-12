@@ -8,6 +8,7 @@
 mod commands;
 mod config;
 mod escpos;
+mod peripheral;
 mod print;
 mod scanner;
 mod templates;
@@ -74,9 +75,11 @@ fn run_app() {
             print::print_html,
             escpos::print_escpos,
             scanner::scanner_start,
-            scanner::scanner_stop
+            scanner::scanner_stop,
+            peripheral::peripheral_status
         ])
         .manage(scanner::ScannerState::default())
+        .manage(escpos::EscposState::default())
         .setup(move |app| {
             let handle = app.handle().clone();
             let mut cfg = commands::load(&handle);

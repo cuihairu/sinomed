@@ -387,6 +387,11 @@
     &.dim {
       background: #c8d1cb;
     }
+
+    // 外设打开 / 读取失败（peripheral_status 报错态）
+    &.err {
+      background: #c0392b;
+    }
   }
   .nm {
     flex: 1;
@@ -401,6 +406,12 @@
     &.dim {
       background: var(--paper);
       color: var(--faint);
+    }
+
+    // 报错态文案（与 .st.err 同色，同 allergy 提示口径）
+    &.warn {
+      background: #fdf6f2;
+      color: #a05a2c;
     }
   }
 }

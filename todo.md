@@ -89,7 +89,7 @@
 - [x] 四种支付图标配色统一 brand 单色（原型绿微/蓝支/褐现分色）｜✅ 2026-10-12 图标底色按原型分色：储=brand、微=#5f9e6e、支=#5b7fa6、现=#9a8f7a、次卡=#8a938c（billing.ts PAY_ICON_BG + Settle/index.tsx pi 内联底色，与原型同款内联口径）｜P2
 
 ### desktop-workstation（7 条）
-- [x] 外设状态条为写死静态文案（原型实时连接态；壳侧 print_html/print_escpos/scanner_start 无状态查询命令）｜✅ 2026-10-12 部分清：状态条按运行环境如实标注——壳内（window.__TAURI__ 检测 index.tsx:96）出「串口事件通道就绪」（remote 能力只放事件监听，收码即监听中 index.tsx:557-596），浏览器出「页顶扫码条/需桌面工作站」，plan-note 分环境说明。余卡点：真实端口连接态需壳侧新增状态查询命令（Rust commands + tauri ACL 权限文件），本轮不动壳｜P1（部分，余壳侧命令）
+- [x] 外设状态条为写死静态文案（原型实时连接态；壳侧 print_html/print_escpos/scanner_start 无状态查询命令）｜✅ 2026-10-12 全清：壳侧新增 `peripheral_status` 只读查询命令（desktop.md D10）——扫码枪取读线程运行时（`ScannerState.runtime` 端口/监听态/最近错误，`read_loop` 打开成功、打开失败、读取失败、停止四处更新）、小票机取上次 ESC/POS 打印结果（`EscposState` 留痕字节数/错误/距今秒数，按需直写串口无长连接）、处方笺打印机取 `config.printer` 预选名（系统打印路径不探测设备）；web 侧 `PeripheralPanel` 30 秒轮询 + 订阅既有 `scanner-status`/`scanner-error` 事件即时刷新，查不到状态时如实显示「查询中…」不伪造，浏览器端按页面能力标注（PeripheralPanel index.tsx）。同时新增 `src-tauri/permissions/commands.toml` 应用 ACL 清单——一旦存在清单，本地页对自定义命令从隐式放行转为显式放行，故 `capabilities/default.json` 必须引用 `default` 集逐个放行本地引导页用到的 7 个命令，`capabilities/scanner-remote.json` 只放 `allow-peripheral-status`（只读查询放行给远程管理端页，print_/scanner_/set_ 等改状态命令仍不放）；权限标识在 build 时校验，`cargo build` 能拦标识拼错，cargo 23 项全绿｜P1
 - [x] 接诊单开单表项目行/从卡项添加为「规划功能」占位壳｜原型 desktop-workstation.html:133 / 实现 web/src/pages/Treat/Create/index.tsx:460｜P2｜✅ 2026-10-12 裁定落不进现口径：项目行需「接诊单↔订单」模型（与 #85 缺 treatId 同源），开单会与 Billing/Settle 收款口径冲突；已移除死的「从卡项添加」文本（不做假按钮），plan-note 注明与订单接口同批落地
 - [x] 应收合计+「收款并打印小票」为「规划功能」占位（收款在 Billing/Settle 页）｜原型 desktop-workstation.html:168 / 实现 web/src/pages/Treat/Create/index.tsx:481｜P2｜✅ 2026-10-12 落地（收款仍归 Billing/Settle 口径）：「应收合计·规划功能」卡改为「收款去向」卡，卡内真实链接跳 /billing/settle（按订单计应收+次卡抵扣+小票打印），本页如实注明不做开单试算
 - [x] 顾客条卡项余次「规划功能」占位｜原型 desktop-workstation.html:131 / 实现 web/src/pages/Treat/Create/index.tsx:249｜P2｜✅ 2026-10-12 核验：题面过时——已实装（定位顾客后 listCardsByCustomer 取实卡，activeCards 渲染「卡项名 余 N/M 次」，无卡/无有效卡均如实标注，index.tsx:276-292），勾选
@@ -134,7 +134,7 @@
 8. **admin-booking**：7 条（P0 0/P1 3/P2 4）——原型单页看板被拆三页，缺「过号」状态与每时段限约规则。✅ 2026-10-12 P1 全清 + P2 2 条（stat4 面板、小程序联动面板），余 2 条卡点（疗程角标、医师名单无字段）
 9. **admin-herbprescription**：11 条（P0 1/P1 7/P2 3）——差距最大：辨证条缺失、签名链/饮片检索/打印存方收费按钮组缺位；膏方为实现超集非差距。✅ P0 辨证摘要条已清（2026-10-11，联接诊单 diagnose/plan/acuCourse）；✅ 2026-10-12 再清 5 条（rx 头、特殊煎法提醒、签名行+后端字段、代煎领取方式+delivery_type、三键含存方剂库与打印）；✅ 2026-10-12 剂量上限机制已清（herbs.dose_max + dose-check 端点 + 开方页提示条，药典数据源仍为卡点）；余 4 条 P2 + 2 条卡点（拼音检索、药典剂量上限数据源）+ 1 条口径待定夺（代煎费入合计）。
 10. **admin-billing**：7 条（P0 0/P1 2/P2 5）——结算主流程对齐；缺口集中在多项目单据数据模型（明细表退化单行、无整单备注）。✅ 2026-10-11 已清 4 条（明细多行表、整单备注、应收说明行、队列业务单号）；余会员档位/接诊单号头卡与支付图标配色 3 条 P2。
-11. **desktop-workstation**：7 条（P0 0/P1 1/P2 6）——薄壳+Web 页骨架完整，唯一实质差距是外设状态条静态文案。
+11. **desktop-workstation**：7 条（P0 0/P1 1/P2 6）——薄壳+Web 页骨架完整。✅ 2026-10-12 全部 7 条已清（P1 外设状态条经壳侧 `peripheral_status` 只读查询命令落地真实连接态，见 D10）。
 12. **admin-themes**：6 条（P0 0/P1 1/P2 5）——web 端四主题落地完整（tokens 同源+data-theme+antd token 双通道）；差距在非 web 端（小程序 :root 失效风险、kiosk/tablet 无切换）。
 13. **mobile-home**：7 条（P0 1/P1 2/P2 4）——主体四节结构对齐，唯一 P0 是底部 tabbar 及两个 tab 页整体缺失。✅ 2026-10-11 全部 7 条已清（tabbar+卡项/我的页、预约横幅提醒态、白标自检挪「我的」、铃铛、称呼、全部项目、卡项占位）。
 14. **kiosk-menu**：3 条（P0 0/P1 0/P2 2）——差距最小，五区块逐项对齐；手机号下单/回执两步为实现超集。

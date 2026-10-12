@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "主窗口基础能力：核心事件 / 窗口 / 应用信息（引导页读版本号用）",
+  "description": "主窗口本地页（ui/index.html 引导页）能力：核心事件 / 窗口 / 应用信息 + 全部自定义命令显式放行。注意：一旦应用定义了 ACL 清单（src-tauri/permissions/），本地页对自定义命令从隐式放行转为显式放行，这里的 default 集必须与清单同步",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "default"]
 }

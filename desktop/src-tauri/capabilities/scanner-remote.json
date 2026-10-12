@@ -1,10 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "scanner-remote",
-  "description": "远程加载的管理端页面订阅壳内串口扫码枪事件（desktop.md D9）：只放事件监听，不放业务命令",
+  "description": "远程加载的管理端页面订阅壳内串口扫码枪事件（desktop.md D9）+ 查询外设只读状态（D10 peripheral_status）：只放事件监听与只读查询，不放 print_/scanner_/set_ 等改外设或改配置的命令",
   "windows": ["main"],
   "remote": {
     "urls": ["http://*:*/*", "https://*:*/*"]
   },
-  "permissions": ["core:event:default"]
+  "permissions": ["core:event:default", "allow-peripheral-status"]
 }
