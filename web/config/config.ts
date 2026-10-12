@@ -1,6 +1,5 @@
 // https://umijs.org/config/
 import { defineConfig } from '@umijs/max';
-import { join } from 'path';
 import defaultSettings from './defaultSettings';
 import proxy from './proxy';
 import routes from './routes';
@@ -145,26 +144,10 @@ export default defineConfig({
     // 解决首次加载时白屏的问题
     { src: '/scripts/loading.js', async: true },
   ],
-  //================ pro 插件配置 =================
-  presets: ['umi-presets-pro'],
-  /**
-   * @name openAPI 插件的配置
-   * @description 基于 openapi 的规范生成serve 和mock，能减少很多样板代码
-   * @doc https://pro.ant.design/zh-cn/docs/openapi/
-   */
-  openAPI: [
-    {
-      requestLibPath: "import { request } from '@umijs/max'",
-      // 或者使用在线的版本
-      // schemaPath: "https://gw.alipayobjects.com/os/antfincdn/M%24jrzTTYJN/oneapi.json"
-      schemaPath: join(__dirname, 'oneapi.json'),
-      mock: false,
-    },
-    // petstore 示例入口（projectName: 'swagger'，生成 src/services/swagger/*）已移除：
-    // 纯脚手架演示数据，真实业务接口在 src/services/ant-design-pro/ 手写维护
-  ],
   mfsu: {
     strategy: 'normal',
   },
-  requestRecord: {},
+  // pro 插件预置（umi-presets-pro：openAPI 代码生成 + requestRecord 录制）已移除——
+  // 其依赖链携带无补丁版本的 mockjs（dependabot #12 原型污染）；
+  // 服务层在 src/services/ant-design-pro/ 手写维护，录制/生成功能未使用。oneapi.json 保留备查。
 });

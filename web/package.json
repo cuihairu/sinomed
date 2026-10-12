@@ -88,8 +88,7 @@
     "prettier": "^2.8.8",
     "swagger-ui-dist": "^4.19.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "umi-presets-pro": "^2.0.3"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=24.0.0"
