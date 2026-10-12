@@ -144,6 +144,7 @@
 - web.md 散文/表格漂移修复 4 处（均为此前批次代码先行、文档滞后）：`/treat/create` 行补**外设状态条**（desktop.md D10 `peripheral_status` 口径）；`/prescription/create` 行补**剂量上限提示**（dose-check 防抖、诊所自录 `dose_max`、不拦截）；`/prescription/herbs` 行补**单剂上限**（`doseMax` 列/表单）；`/billing/settle` 行补微信/支付宝**收款码**出图与缺码如实提示。
 - api.md 结构核对：叫号自动联动（appointment/status）、dose-check、peripheral 相关均已同步；desktop.md D10、tablet.md 叫号联动此前批次已落。
 - 复核结论：无新增「文档超前于代码」项；「代码超前于文档」项本轮已清零。遗留仍只有 §⑥A 两项待用户定夺（站点标题品牌口径、CI maven.yml `-DskipTests`）。
+- 续批（2026-10-12 第二轮，用户巡检点火）：①实锤修复——卡项编辑页回填后提交仍调 `createItem`（编辑实为建新卡，即 §④-2 所述误用隐患本体），改带 id 走 `updateItem` PUT，ItemUpdateHttpTest 3 例回归；连带发现 `ItemServiceImpl.save/deleteById` 不驱逐 `@Cacheable("ItemEntity")`（PUT 后 GET 回读旧值），补 `@CacheEvict`（同 TreatService 既有口径）。②排班网格「首诊/复诊」角标补齐——`GET /treat/visited?ids=` 按顾客批量查 treats 聚合计数（TreatVisitedHttpTest 2 例；treats 无项目维度按顾客口径拍板，疗程卡标记优先），格位与待到店行渲染。③spread「扩散」裁定不补：原型 admin-items.html 无对应设计，属脚手架残留（页已删，见 web.md 已清理记录）。④mockups README 两行 ◐ 状态翻正为 ✅（admin-herbprescription 11 条 todo 全清、admin-billing 收款码落地），余 mobile-home「卡项余次」一项涉小程序免登录态下按手机号暴露持卡数据的隐私口径，入卡点待用户定夺。
 
 ## ⑦ 后续建议
 
