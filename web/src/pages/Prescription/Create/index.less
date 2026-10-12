@@ -559,11 +559,33 @@
       font-size: 22px;
       font-weight: 700;
       color: var(--brand-deep);
+
+      em {
+        font-style: normal;
+        font-family: initial;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--faint);
+        margin-right: 6px;
+      }
     }
 
     .detail {
       font-size: 12px;
       color: var(--faint);
+    }
+
+    // 三行账分项行（原型 .fee .row 口径：左名右额，通宽）
+    .lines {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 12.5px;
+      color: var(--ink);
+
+      span + span {
+        font-variant-numeric: tabular-nums;
+      }
     }
   }
 
@@ -571,6 +593,19 @@
     margin-top: 6px;
     font-size: 12px;
     color: #a05a2c;
+  }
+
+  // 目录下拉项：药名 + 每克单价提示
+  .dir-opt {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+
+    i {
+      font-style: normal;
+      font-size: 11px;
+      color: var(--faint);
+    }
   }
 
   .note {

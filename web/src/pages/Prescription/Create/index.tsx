@@ -19,8 +19,10 @@ import {
 } from '@/services/ant-design-pro/prescription';
 import { fetchCustomerByPhone, listCustomerHistories } from '@/services/ant-design-pro/customer';
 import { queryFormulaPage, type Formula } from '@/services/ant-design-pro/formula';
+import { queryHerbByPage, type Herb } from '@/services/ant-design-pro/herb';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryTreatByPage } from '@/services/ant-design-pro/treat';
+import { pinyin } from 'pinyin-pro';
 import './index.less';
 
 /** 会员等级展示口径（同顾客档案）：1 普通 / 2 银卡 / 3 金卡 */
@@ -34,6 +36,17 @@ const maskPhone = (p?: string) => (p ? p.replace(/^(\d{3})\d{4}(\d{4})$/, '$1***
 
 /** 特殊煎法提醒关键词：命中即计入「N 味需标注」 */
 const SPECIAL_FX = /先煎|后下|包煎|烊化|冲服|另煎/;
+
+/** 药名 → 拼音首字母串（目录检索用，如 黄芪→hq）；同名反复输入，带缓存避免逐键重算 */
+const initialsCache = new Map<string, string>();
+const herbInitials = (name: string) => {
+  let v = initialsCache.get(name);
+  if (v === undefined) {
+    v = pinyin(name, { pattern: 'first', toneType: 'none', type: 'array' }).join('');
+    initialsCache.set(name, v);
+  }
+  return v;
+};
 
 type CustomerBrief = { id?: number; name?: string; phone?: string; level?: number; gender?: number; age?: number };
 
@@ -84,11 +97,42 @@ const Create: React.FC = () => {
   /** 方剂库：按方名/拼音检索带出全方，不写回方剂库 */
   const [formulas, setFormulas] = useState<Formula[]>([]);
   const [formulaId, setFormulaId] = useState<number | undefined>();
+  /** 饮片目录：字典全量做检索（演示字典规模小，一次拉齐；拼音首字母在过滤时算并缓存） */
+  const [herbDir, setHerbDir] = useState<Herb[]>([]);
+  const [dirLoading, setDirLoading] = useState(false);
 
   const loadTemplates = async () => {
     if (templates.length > 0) return;
     const list = await queryEnabledTemplates();
     setTemplates(list || []);
+  };
+
+  const loadHerbDir = async () => {
+    if (herbDir.length > 0 || dirLoading) return;
+    setDirLoading(true);
+    try {
+      const res = await queryHerbByPage({ current: 1, pageSize: 500 });
+      setHerbDir(res?.data || []);
+    } finally {
+      setDirLoading(false);
+    }
+  };
+
+  /** 目录检索：中文名包含或拼音首字母命中（原型口径 zz / fs / gcao） */
+  const filterHerbDir = (input: string, option?: { value?: React.Key }) => {
+    const q = input.trim().toLowerCase();
+    if (!q) return true;
+    const name = String(option?.value ?? '');
+    return name.toLowerCase().includes(q) || herbInitials(name).includes(q);
+  };
+
+  /** 从目录选中：填入第一个空药味行，无空行则追加 */
+  const pickHerb = (name: string) => {
+    setHerbs((rows) => {
+      const empty = rows.findIndex((r) => !(r.herb || '').trim());
+      if (empty >= 0) return rows.map((r, k) => (k === empty ? { ...r, herb: name } : r));
+      return [...rows, { herb: name, weight: undefined }];
+    });
   };
 
   const applyTemplate = async (id: number) => {
@@ -277,6 +321,10 @@ const Create: React.FC = () => {
   /** 特殊煎法提醒：扫描药味备注命中关键词的味数（原型审方四查之一） */
   const specialFxCount = herbs.filter((r) => SPECIAL_FX.test(r.special || '')).length;
 
+  /** 三行账应收（2026-10-12 拍板，对齐原型 .fee 口径）：饮片费 + 代煎服务费（勾代煎时 ¥3/袋）；运费不进合计 */
+  const decoctFeeFen = doses * 300;
+  const recvFen = (pricing?.totalFen ?? 0) + (ptype === 0 && decoction ? decoctFeeFen : 0);
+
   /** 存入我的方剂库：当前方随病症名存为启用模板（不写回、不影响开方单） */
   const saveAsTemplate = async () => {
     const name = tplName.trim();
@@ -366,7 +414,7 @@ const Create: React.FC = () => {
   return (
     <PageContainer
       title="中药处方"
-      content="按手机号定位顾客 → 写药味与剂数；定位后自动带出最近接诊单的辨证与治法（可切换，随处方落 treatId）。配伍审方（十八反/十九畏）与实时计价随写随查。药材名按字典精确同名比价，未收录药名不计费；字典维护见「处方 → 药材字典」。"
+      content="按手机号定位顾客 → 写药味与剂数；定位后自动带出最近接诊单的辨证与治法（可切换，随处方落 treatId）。配伍审方（十八反/十九畏）与实时计价随写随查。药味可从字典目录检索添加（支持拼音首字母，如 zz / fs / gcao），比价按字典同名精确匹配，未收录药名不计费；字典维护见「处方 → 药材字典」。"
     >
       <div className="pr-create">
         <div className="pr-customer">
@@ -518,6 +566,29 @@ const Create: React.FC = () => {
           <Button type="dashed" className="add" icon={<PlusOutlined />} onClick={addHerb}>
             添加一味
           </Button>
+          {/* 从饮片目录添加（原型 admin-herbprescription 口径）：中文名或拼音首字母检索，选中即入行 */}
+          <Select
+            className="dir"
+            showSearch
+            value={undefined}
+            filterOption={filterHerbDir}
+            placeholder="从饮片目录添加（支持拼音首字母检索，如 zz / fs / gcao）"
+            style={{ width: '100%', marginTop: 10 }}
+            loading={dirLoading}
+            onDropdownVisibleChange={loadHerbDir}
+            onFocus={loadHerbDir}
+            notFoundContent={dirLoading ? '目录加载中…' : '字典暂无药材，先到「处方 → 药材字典」维护'}
+            options={herbDir.map((h) => ({
+              label: (
+                <span className="dir-opt">
+                  {h.name}
+                  <i>{fenToYuan(h.price)}/g</i>
+                </span>
+              ),
+              value: h.name!,
+            }))}
+            onChange={(v) => v != null && pickHerb(String(v))}
+          />
 
           <div className={`compat ${compat && (compat.findings?.length ?? 0) > 0 ? 'bad' : 'ok'}`}>
             <h3>3 · 配伍审方</h3>
@@ -600,17 +671,33 @@ const Create: React.FC = () => {
               <div className="tip">写药名后按药材字典自动试算</div>
             ) : (
               <div className="sum">
-                <span className="total">{fenToYuan(pricing.totalFen)}</span>
+                <span className="total">
+                  <em>应收</em>
+                  {fenToYuan(recvFen)}
+                </span>
                 <span className="detail">
                   单剂 {fenToYuan(pricing.perDoseFen)} × {pricing.doses} 付
                   {pricing.pricedHerbCount === pricing.herbCount
                     ? ''
                     : ` · 已比价 ${pricing.pricedHerbCount}/${pricing.herbCount} 味`}
                 </span>
+                {/* 三行账（原型 admin-herbprescription .fee 口径）：饮片行 + 代煎服务行，合计=两者之和 */}
+                <div className="lines">
+                  <span>
+                    饮片 {pricing.herbCount} 味 × {pricing.doses} 付
+                  </span>
+                  <span>{fenToYuan(pricing.totalFen)}</span>
+                </div>
+                {ptype === 0 && decoction ? (
+                  <div className="lines">
+                    <span>代煎服务（{doses} 袋）</span>
+                    <span>{fenToYuan(decoctFeeFen)}</span>
+                  </div>
+                ) : null}
                 {(pricing.unknownHerbs?.length ?? 0) > 0 ? (
                   <div className="unknown">未收录（不计费）：{pricing.unknownHerbs!.join('、')}</div>
                 ) : null}
-                <div className="note">按药材字典实时试算、无快照；收费仍以卡项订单结算为准</div>
+                <div className="note">按药材字典实时试算、无快照；应收=饮片+代煎，实际收费仍以卡项订单结算为准</div>
               </div>
             )}
           </div>
@@ -655,7 +742,7 @@ const Create: React.FC = () => {
                   代煎 {doses} 袋
                 </Checkbox>
                 <i className="dfee">
-                  服务费 {fenToYuan(doses * 300)}（¥3/袋）仅提示，收费以卡项订单结算为准
+                  服务费 {fenToYuan(decoctFeeFen)}（¥3/袋）计入计价应收；实际收费仍以卡项订单结算为准
                   {decoction ? '；今日 17:00 前可取，加急 2 小时' : ''}
                 </i>
               </label>
@@ -764,7 +851,7 @@ const Create: React.FC = () => {
             </span>
           </div>
           <div className="foot">
-            <span className="hint">演示口径：计价按药材字典实时试算（无快照），库存为规划功能；代煎费仅提示、领取流转见处方查询；审方提示不拦截</span>
+            <span className="hint">演示口径：计价按药材字典实时试算（无快照），库存为规划功能；代煎费计入应收合计、领取流转见处方查询；审方提示不拦截</span>
             <div className="btns">
               <Button size="large" onClick={() => setTplModal(true)}>
                 存入我的方剂库
