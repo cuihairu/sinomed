@@ -11,6 +11,7 @@ import {
 } from '@/services/ant-design-pro/appointment';
 import { listCardsByCustomers } from '@/services/ant-design-pro/card';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
+import { queryShiftPage } from '@/services/ant-design-pro/shift';
 import './index.less';
 
 /** 排班时段：9:00–18:00 整点（对齐设计原型 admin-booking.html 的时段网格） */
@@ -37,8 +38,10 @@ export default function AppointmentSchedule() {
   const [loading, setLoading] = useState(false);
   // 疗程标记：`${customerId}|${itemName}` → 第 N 疗程（同项目第 N 张卡，按购入先后；无卡不标）
   const [course, setCourse] = useState<Record<string, number>>({});
-  // 医师名册（staffs.title 职务语义）：在职且职务含「医师」的员工姓名
-  const [roster, setRoster] = useState<string[]>([]);
+  // 医师名册（staffs.title 职务语义）：在职且职务含「医师」
+  const [roster, setRoster] = useState<{ id: number; name: string }[]>([]);
+  // 当日在班医师 id 集（staff_shifts 按当日星期，班表×排班联动）
+  const [onDuty, setOnDuty] = useState<Set<number>>(new Set());
 
   const dayStr = day.format('YYYY-MM-DD');
 
@@ -79,11 +82,19 @@ export default function AppointmentSchedule() {
       setRoster(
         (res?.data || [])
           .filter((s) => s.status === 1 && !!s.title && s.title.includes('医师'))
-          .map((s) => s.name || '')
-          .filter(Boolean),
+          .map((s) => ({ id: s.id!, name: s.name || '' }))
+          .filter((s) => s.name),
       );
     });
   }, []);
+
+  useEffect(() => {
+    // 班表联动：拉全量班次，取当日星期（1 周一…7 周日）在班的医师 id
+    const weekday = day.isoWeekday();
+    queryShiftPage({ current: 1, pageSize: 200, weekday }).then((res) => {
+      setOnDuty(new Set((res?.data || []).map((s) => s.staffId!).filter(Boolean)));
+    });
+  }, [dayStr]);
 
   const move = (n: number) => setDay((d) => d.clone().add(n, 'day'));
 
@@ -91,20 +102,31 @@ export default function AppointmentSchedule() {
   const columns = useMemo(() => {
     const booked = new Set<string>();
     list.forEach((a) => booked.add(a.staffName || UNASSIGNED));
-    if (roster.length === 0) {
+    const names = roster.map((s) => s.name);
+    if (names.length === 0) {
       return Array.from(booked).sort((a, b) =>
         a === UNASSIGNED ? 1 : b === UNASSIGNED ? -1 : a.localeCompare(b),
       );
     }
+    // 在班医师排前（班表联动），名册其余医师随后，当日有约名册外兜底，未指派恒最后
+    const onDutyNames = roster
+      .filter((s) => onDuty.has(s.id))
+      .map((s) => s.name)
+      .sort((a, b) => a.localeCompare(b));
+    const offDutyNames = roster
+      .filter((s) => !onDuty.has(s.id))
+      .map((s) => s.name)
+      .sort((a, b) => a.localeCompare(b));
     const extra = Array.from(booked)
-      .filter((n) => n !== UNASSIGNED && !roster.includes(n))
+      .filter((n) => n !== UNASSIGNED && !names.includes(n))
       .sort((a, b) => a.localeCompare(b));
     return [
-      ...roster.slice().sort((a, b) => a.localeCompare(b)),
+      ...onDutyNames,
+      ...offDutyNames,
       ...extra,
       ...(booked.has(UNASSIGNED) ? [UNASSIGNED] : []),
     ];
-  }, [list, roster]);
+  }, [list, roster, onDuty]);
 
   /** 格位索引：`${hh}|${staffName}` → 预约 */
   const cell = useMemo(() => {
@@ -191,11 +213,19 @@ export default function AppointmentSchedule() {
             {columns.length === 0 ? (
               <span className="hd">——</span>
             ) : (
-              columns.map((name) => (
-                <span className={`hd${name === UNASSIGNED ? ' unassigned' : ''}`} key={name}>
-                  {name}
-                </span>
-              ))
+              columns.map((name) => {
+                const staff = roster.find((s) => s.name === name);
+                const offduty = !!staff && !onDuty.has(staff.id);
+                return (
+                  <span
+                    className={`hd${name === UNASSIGNED ? ' unassigned' : ''}${offduty ? ' offduty' : ''}`}
+                    key={name}
+                    title={offduty ? '今日无班次（班表联动）' : undefined}
+                  >
+                    {name}
+                  </span>
+                );
+              })
             )}
 
             {HOURS.map((h) => (
