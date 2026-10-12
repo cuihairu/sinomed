@@ -43,6 +43,10 @@ public class HerbEntity {
     @Column(name = "stock_max")
     private Integer stockMax;
 
+    /** 单剂克数上限（克/剂，可空=不预警）；开方剂量审方按此比对单剂克数，超线提示不拦截 */
+    @Column(name = "dose_max")
+    private Double doseMax;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

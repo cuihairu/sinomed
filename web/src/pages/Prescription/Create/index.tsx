@@ -7,12 +7,14 @@ import moment from 'moment';
 import {
   checkAllergy,
   checkCompatibility,
+  checkDose,
   createPrescription,
   createTemplate,
   pricePrescription,
   queryEnabledTemplates,
   type AllergyResult,
   type CompatibilityResult,
+  type DoseResult,
   type PrescriptionHerb,
   type PrescriptionTemplate,
   type Pricing,
@@ -88,6 +90,9 @@ const Create: React.FC = () => {
   const allergySeq = useRef(0);
   /** 顾客过敏史条数（type 0）：无命中时的 ✓ 常显态文案来源 */
   const [allergyRecordCount, setAllergyRecordCount] = useState(0);
+  /** 剂量审方：按药材字典单剂上限比对药味单剂克数（提示不拦截） */
+  const [dose, setDose] = useState<DoseResult | undefined>();
+  const doseSeq = useRef(0);
   const [pricing, setPricing] = useState<Pricing | undefined>();
   const priceSeq = useRef(0);
   /** 病症处方模板：套用后只填当前开方单，不写回模板 */
@@ -245,6 +250,31 @@ const Create: React.FC = () => {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namedHerbs.join('|'), customer?.id]);
+
+  // 剂量审方：按药材字典单剂上限比对（提示不拦截），与计价同款防抖；无药名即清空
+  useEffect(() => {
+    if (namedHerbs.length < 1) {
+      setDose(undefined);
+      return;
+    }
+    const seq = ++doseSeq.current;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await checkDose(
+          herbs.filter((r) => (r.herb || '').trim()).map((r) => ({ herb: r.herb!, weight: r.weight })),
+        );
+        if (seq === doseSeq.current) {
+          setDose(result);
+        }
+      } catch {
+        if (seq === doseSeq.current) {
+          setDose(undefined);
+        }
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namedHerbs.join('|'), herbs.map((r) => String(r.weight ?? '')).join('|')]);
 
   // 计价：同款防抖，按药材字典实时试算；无药名即清空
   useEffect(() => {
@@ -662,6 +692,37 @@ const Create: React.FC = () => {
                   ? `档案 ${allergyRecordCount} 条过敏记录，未命中当前药方`
                   : '档案无药物过敏记录'}
               </div>
+            </div>
+          ) : null}
+
+          {dose && (dose.findings?.length ?? 0) > 0 ? (
+            <div className="dose">
+              <div className="ahead">
+                <WarningFilled /> 剂量提示 · {dose!.findings!.length} 味超单剂上限
+              </div>
+              {dose!.findings!.map((f, i) => (
+                <div className="hit" key={i}>
+                  <span className="pair">{f.herb}</span>
+                  <span className="rule">
+                    {f.weight} 克 ＞ 上限 {f.limit} 克
+                  </span>
+                </div>
+              ))}
+              <div className="note">按药材字典单剂上限比对（提示不拦截，是否照用由医师判断）</div>
+            </div>
+          ) : dose && (dose.checked ?? 0) > 0 ? (
+            <div className="dose ok">
+              <div className="ahead">
+                <CheckCircleFilled /> 单剂剂量 ·{' '}
+                {(dose.limited ?? 0) > 0
+                  ? `${dose!.checked} 味中 ${dose!.limited} 味有单剂上限参照，均未超线`
+                  : '药材字典未设单剂上限，本次无比对'}
+              </div>
+              {dose.unmatched && dose.unmatched.length > 0 ? (
+                <div className="note">
+                  未收录 {dose.unmatched.length} 味：{dose.unmatched.join('、')}（无剂量参照）
+                </div>
+              ) : null}
             </div>
           ) : null}
 

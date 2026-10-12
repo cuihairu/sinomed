@@ -25,6 +25,7 @@ public class HerbServiceImpl implements HerbService {
     public HerbEntity create(HerbView view) {
         String name = normalizeName(view.getName());
         validatePrice(view);
+        validateDoseMax(view);
         if (herbRepository.existsByName(name)) {
             throw new IllegalArgumentException("药材已收录：" + name);
         }
@@ -33,6 +34,7 @@ public class HerbServiceImpl implements HerbService {
         entity.setPrice(view.getPrice());
         entity.setStockMin(view.getStockMin());
         entity.setStockMax(view.getStockMax());
+        entity.setDoseMax(view.getDoseMax());
         return herbRepository.save(entity);
     }
 
@@ -46,6 +48,7 @@ public class HerbServiceImpl implements HerbService {
                 .orElseThrow(() -> new IllegalArgumentException("药材不存在：" + view.getId()));
         String name = normalizeName(view.getName());
         validatePrice(view);
+        validateDoseMax(view);
         if (herbRepository.existsByNameAndIdNot(name, entity.getId())) {
             throw new IllegalArgumentException("药材已收录：" + name);
         }
@@ -54,6 +57,7 @@ public class HerbServiceImpl implements HerbService {
         // 上下限随更新整量覆盖（传 null 即清除）
         entity.setStockMin(view.getStockMin());
         entity.setStockMax(view.getStockMax());
+        entity.setDoseMax(view.getDoseMax());
         return herbRepository.save(entity);
     }
 
@@ -83,6 +87,13 @@ public class HerbServiceImpl implements HerbService {
     private void validatePrice(HerbView view) {
         if (view.getPrice() == null || view.getPrice() <= 0) {
             throw new IllegalArgumentException("每克价格必须大于 0");
+        }
+    }
+
+    private void validateDoseMax(HerbView view) {
+        // 上限可空=不预警；填了就必须是正数，0 与负数会让「超上限」永远命中/永不命中
+        if (view.getDoseMax() != null && view.getDoseMax() <= 0) {
+            throw new IllegalArgumentException("单剂上限必须大于 0");
         }
     }
 }

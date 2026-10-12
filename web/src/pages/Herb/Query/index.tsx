@@ -28,6 +28,7 @@ export default () => {
       price: record.price,
       stockMin: record.stockMin,
       stockMax: record.stockMax,
+      doseMax: record.doseMax,
     });
     setModalOpen(true);
   };
@@ -61,6 +62,12 @@ export default () => {
       dataIndex: 'price',
       width: 140,
       render: (_, record) => <span className="price">{fenToYuan(record.price)}/克</span>,
+    },
+    {
+      title: '单剂上限',
+      dataIndex: 'doseMax',
+      width: 110,
+      render: (_, record) => <span className="tm">{record.doseMax != null ? `${record.doseMax} 克` : '—'}</span>,
     },
     {
       title: '收录时间',
@@ -154,6 +161,9 @@ export default () => {
           </Form.Item>
           <Form.Item name="stockMax" label="库存上限（克）" tooltip="可空=不预警；库存余额看板对高于上限的药材标预警">
             <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="如 5000" />
+          </Form.Item>
+          <Form.Item name="doseMax" label="单剂上限（克）" tooltip="可空=不预警；开方时药味单剂克数严格大于该值即提示（不拦截，由医师判断）">
+            <InputNumber min={0.1} precision={1} style={{ width: '100%' }} placeholder="如 10" />
           </Form.Item>
         </Form>
       </Modal>

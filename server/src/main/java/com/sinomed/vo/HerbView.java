@@ -37,6 +37,9 @@ public class HerbView {
     @Schema(title = "库存上限（克，可空=不预警；余额高于上限时余额接口标 warnStock）", example = "5000")
     private Integer stockMax;
 
+    @Schema(title = "单剂克数上限（克/剂，可空=不预警；开方剂量审方超线提示）", example = "10")
+    private Double doseMax;
+
     @Schema(title = "收录时间", example = "2026-10-10 10:00:00")
     private Date createTime;
 
@@ -47,6 +50,7 @@ public class HerbView {
                 .price(entity.getPrice())
                 .stockMin(entity.getStockMin())
                 .stockMax(entity.getStockMax())
+                .doseMax(entity.getDoseMax())
                 .createTime(entity.getCreateTime())
                 .build();
     }

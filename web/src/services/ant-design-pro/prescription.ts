@@ -198,6 +198,38 @@ export async function checkAllergy(
   });
 }
 
+/** 剂量审方命中条目：超单剂上限的药味 */
+export interface DoseFinding {
+  herb?: string;
+  /** 当前单剂克数 */
+  weight?: number;
+  /** 药材字典单剂上限（克） */
+  limit?: number;
+}
+
+export interface DoseResult {
+  /** 参与比对的药材数 */
+  checked?: number;
+  /** 已设单剂上限的药材数 */
+  limited?: number;
+  /** 空即未发现超单剂上限 */
+  findings?: DoseFinding[];
+  /** 未收录药材名（无剂量参照） */
+  unmatched?: string[];
+}
+
+/** 剂量审方：按药材字典单剂克数上限比对，weight 严格大于上限才命中；提示不拦截 */
+export async function checkDose(
+  herbs: PrescriptionHerb[],
+  options?: { [key: string]: any },
+) {
+  return request<DoseResult>('/api/v1/prescription/dose-check', {
+    method: 'POST',
+    data: { herbs },
+    ...(options || {}),
+  });
+}
+
 /** 处方计价：按药材字典实时试算；totalFen 仅含已比价药味，分单位 */
 export interface Pricing {
   totalFen?: number;

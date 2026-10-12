@@ -347,6 +347,7 @@
   .pr-customer,
   .compat,
   .allergy,
+  .dose,
   .fx-check,
   .pricing,
   .foot,
@@ -493,6 +494,58 @@
   }
 
   /* ✓ 常显态：未命中过敏史（原型审方卡 ok 口径） */
+  &.ok {
+    border-color: #bcd4c2;
+    background: #f2f8f3;
+
+    .ahead {
+      color: #3f7a52;
+    }
+  }
+
+  .hit {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 4px 0;
+    font-size: 13px;
+
+    .pair {
+      flex: none;
+      font-weight: 700;
+      color: #b4552d;
+    }
+
+    .rule {
+      color: var(--faint);
+      font-size: 12px;
+    }
+  }
+
+  .note {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--faint);
+  }
+}
+
+/* 剂量审方：按药材字典单剂上限比对（提示不拦截） */
+.dose {
+  margin-top: 14px;
+  border: 1px solid #e8b4a0;
+  background: #fdf6f2;
+  border-radius: 10px;
+  padding: 12px 14px;
+
+  .ahead {
+    font-size: 13px;
+    color: #a05a2c;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
   &.ok {
     border-color: #bcd4c2;
     background: #f2f8f3;

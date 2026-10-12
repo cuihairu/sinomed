@@ -6,6 +6,7 @@ import com.sinomed.repository.PrescriptionItemRepository;
 import com.sinomed.repository.StaffRepository;
 import com.sinomed.service.AllergyService;
 import com.sinomed.service.CompatibilityService;
+import com.sinomed.service.DoseService;
 import com.sinomed.service.PrescriptionService;
 import com.sinomed.service.PricingService;
 import com.sinomed.service.StaffService;
@@ -13,6 +14,8 @@ import com.sinomed.vo.CompatibilityCheckView;
 import com.sinomed.vo.CompatibilityResultView;
 import com.sinomed.vo.AllergyCheckView;
 import com.sinomed.vo.AllergyResultView;
+import com.sinomed.vo.DoseCheckView;
+import com.sinomed.vo.DoseResultView;
 import com.sinomed.vo.DispenseView;
 import com.sinomed.vo.MessageView;
 import com.sinomed.vo.PageResp;
@@ -57,6 +60,7 @@ public class PrescriptionController {
     private final CompatibilityService compatibilityService;
     private final PricingService pricingService;
     private final AllergyService allergyService;
+    private final DoseService doseService;
     private final StaffService staffService;
 
     public PrescriptionController(PrescriptionService prescriptionService,
@@ -66,6 +70,7 @@ public class PrescriptionController {
                                   CompatibilityService compatibilityService,
                                   PricingService pricingService,
                                   AllergyService allergyService,
+                                  DoseService doseService,
                                   StaffService staffService) {
         this.prescriptionService = prescriptionService;
         this.prescriptionItemRepository = prescriptionItemRepository;
@@ -74,6 +79,7 @@ public class PrescriptionController {
         this.compatibilityService = compatibilityService;
         this.pricingService = pricingService;
         this.allergyService = allergyService;
+        this.doseService = doseService;
         this.staffService = staffService;
     }
 
@@ -162,6 +168,28 @@ public class PrescriptionController {
     public AllergyResultView checkAllergy(@RequestBody AllergyCheckView view) {
         return allergyService.check(view == null ? null : view.getCustomerId(),
                 view == null ? null : view.getHerbs());
+    }
+
+    @Operation(summary = "剂量审方", description = "按药材字典单剂克数上限（herbs.dose_max，可空=不预警）比对当前药味单剂克数："
+            + "weight 严格大于上限才命中（等值不提示），字典未收录药名进 unmatched 无参照，未设上限不预警。"
+            + "findings 为空即未发现超上限；提示不拦截，是否照用由医师判断",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "剂量审方结果", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DoseResultView.class)
+                    )),
+                    @ApiResponse(responseCode = "400", description = "药材名单为空", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    )),
+                    @ApiResponse(responseCode = "401", description = "没有权限", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @PostMapping("/dose-check")
+    public DoseResultView checkDose(@RequestBody DoseCheckView view) {
+        return doseService.check(view == null ? null : view.getHerbs());
     }
 
     @Operation(summary = "处方试算", description = "不开方只算钱：body 传 herbs（herb/weight）+ doses，按药材字典实时计价返回；"

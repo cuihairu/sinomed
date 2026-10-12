@@ -32,7 +32,19 @@ const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员
 const levelText = (level?: number) => LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
 const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—');
 
-type TreatRow = { id?: number; createTime?: string; diagnose?: string; desc?: string; plan?: string; staffName?: string };
+type TreatRow = {
+  id?: number;
+  createTime?: string;
+  diagnose?: string;
+  desc?: string;
+  plan?: string;
+  staffName?: string;
+  acuMethod?: string;
+  acuCourse?: string;
+  acupointLeft?: string;
+  acupointRight?: string;
+  retentionMinutes?: number;
+};
 
 const Update: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -254,9 +266,11 @@ const Update: React.FC = () => {
             <div className="cu-empty">暂无接诊记录，可从「发起接诊」建立第一张接诊单</div>
           ) : (
             treats.map((t) => {
-              // 摘要对齐原型（医师·时长·证治取穴）：接诊单无医师/时长字段，先出 治法 + 取穴；疗程标签取 acuCourse
+              // 摘要对齐原型（医师·时长·证治取穴）：医师取署名 staffName（未署名不标）、时长取留针分钟 retentionMinutes
+              //（仅针灸接诊有值，无值不标，不伪造）、疗程标签取 acuCourse；项目名不出——接诊单与项目/卡项/订单均无关联字段
               const acupoints = [t.acupointLeft, t.acupointRight].filter(Boolean).join(' / ');
               const summary = [
+                t.retentionMinutes ? `留针 ${t.retentionMinutes} 分钟` : '',
                 t.plan || '',
                 acupoints ? `取穴 ${acupoints}` : '',
               ]

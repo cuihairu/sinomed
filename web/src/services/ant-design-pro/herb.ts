@@ -11,6 +11,8 @@ export interface Herb {
   stockMin?: number;
   /** 库存上限（克，可空=不预警） */
   stockMax?: number;
+  /** 单剂克数上限（克/剂，可空=不预警；开方剂量审方超线提示不拦截） */
+  doseMax?: number;
   createTime?: string;
 }
 
