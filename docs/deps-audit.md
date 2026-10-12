@@ -20,6 +20,7 @@
 - [x] 批4 low（11 条）：无可动项——app low 已被前三批顺带清零（body-parser→1.20.6、postcss-selector-parser、@babel/core→7.29.6、@babel/runtime→7.29.10 均已到位）；web 唯一 low=elliptic 6.6.1 NO-PATCH（已登记）
 - [x] 批5 rust：glib 0.18.5 唯一告警——`cargo update -p glib --precise 0.20.0` 实测被依赖图拒绝（tauri 2.12.1 → gtk ^0.18 → glib ^0.18，0.x 语义跨 minor 即 breaking），blocked 登记；Cargo.lock 零变更
 - [x] 终验（2026-10-08）：dependabot open **188 → 36**（-81%：critical 29→3、high 74→12、medium 74→20、low 11→1），面板剩余 36 条按包聚合 17 项与 upstream-blocked 登记表逐一吻合、零遗漏——swiper/decompress/braces/git-clone/html-minifier/node-forge/http-cache-semantics/webpack-dev-middleware/postcss/mockjs/extract-zip/elliptic/request/sprintf-js/webpack-dev-server/react-router(7.x 线)/vite(vitepress 钉)/glib。全部为 NO-PATCH 或上游依赖树钉死，解除路径=工具链大版本升级（Taro/umi/vitepress/tauri），按轮次口径不动
+- [x] 补批（2026-10-12）：web mockjs high 1 条解除——mockjs 本身 NO-PATCH，但其依赖链 `umi-presets-pro → @umijs/max-plugin-openapi → @umijs/openapi` 属未使用功能（服务层手写维护），移除该 devDep 及 config 中 openAPI/requestRecord 配置，锁文件 -1179 行零 mockjs；web jest 17 绿 + build 绿；dependabot #12 归 fixed。剩余 blocked 35 条口径不变
 
 ## upstream-blocked 登记
 
@@ -34,7 +35,7 @@
 | http-cache-semantics 4.1.1 | app/pnpm-lock.yaml | high 1 | NO-PATCH（4.1.1 已最新线，advisory 标无补丁） |
 | webpack-dev-middleware 5.3.4 | app/pnpm-lock.yaml | high 1 | Taro webpack5-runner 钉 5.x，修复版 7.4.6 需跨两版 major |
 | postcss 7.0.39 | app/pnpm-lock.yaml | high/medium | postcss 7 线无修复版；实测跨 major override→8.5.28 令 Taro 老 autoprefixer 构建崩（Cannot read 'unprefixed'），修复需 Taro 工具链整体升级 |
-| mockjs 1.1.0 | web/pnpm-lock.yaml | high 1 | NO-PATCH（dev 模拟数据库，上游停更） |
+| mockjs 1.1.0 | web/pnpm-lock.yaml | high 1 | ✅ 已解除（2026-10-12）：NO-PATCH（上游停更），但依赖链 `umi-presets-pro → @umijs/max-plugin-openapi → @umijs/openapi → mockjs` 属未使用功能（服务层手写维护、openAPI/requestRecord 配置一并移除），整体摘除后锁文件零 mockjs，alert #12 归 fixed |
 | extract-zip 1.7.0 | web/pnpm-lock.yaml | high 2 | NO-PATCH（pro-cli 老工具链传递） |
 | elliptic 6.6.1 | web/pnpm-lock.yaml | low 1 | NO-PATCH（6.6.1 已最新线） |
 | request 2.88.2 | app+web/pnpm-lock.yaml | medium | NO-PATCH（上游弃坑；其漏洞主链 form-data 已 override 2.5.6 缓解） |
