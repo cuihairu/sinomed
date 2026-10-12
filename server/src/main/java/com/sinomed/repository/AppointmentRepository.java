@@ -29,4 +29,7 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity,L
 
     /** 时段 + 状态双过滤分页 */
     Page<AppointmentEntity> findByStartTimeBetweenAndStatus(Date start, Date end, Integer status, Pageable pageable);
+
+    /** 到店自动叫号的当日接待序号：今天（接待时刻起算）已接待且先于本单的预约数 */
+    long countByStatusAndIdLessThanAndUpdateTimeGreaterThanEqual(Integer status, Long id, Date time);
 }

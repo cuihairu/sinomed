@@ -163,7 +163,7 @@
 | ---- | ---- | ---- |
 | POST | `/api/v1/appointment/` | 新建预约：`customerId` + `startTime` 必填，`itemId`/`staffId`/`duration`/`remark` 可选；新预约一律 `status=0` 待到店；**每时段限约 1 位**——同医师同日同小时（floor 到整点桶）已有 `status IN (0,1)` 预约报 400「该时段已约满（每时段限约 1 位），请换医师或时段」，`staffId` 为空（自助约期，到店分配）归同一空组互斥 |
 | GET | `/api/v1/appointment/page` | 分页（current、pageSize、status 可空、date 可空 `yyyy-MM-dd` 按日过滤），联出顾客名/手机号、卡项名、员工名 |
-| PUT | `/api/v1/appointment/status` | 状态流转：只允许 `0→1`（到店接待，随后从接诊页建单）、`0→8`（过号）与 `0→9`（取消）；过号/取消为终态，其余组合报错 |
+| PUT | `/api/v1/appointment/status` | 状态流转：只允许 `0→1`（到店接待，随后从接诊页建单）、`0→8`（过号）与 `0→9`（取消）；过号/取消为终态，其余组合报错。`0→1` **自动叫号联动**（docs/tablet.md「到号自动叫号」）：接待即落一条 `queue_calls`（号码=当日接待序号补零两位、诊室=接诊医师名+「诊室」/未指派「待分配诊室」、姓名脱敏、广播全部屏），过号/取消不叫号 |
 | DELETE | `/api/v1/appointment/{id}` | 删除，仅 `status=9`（已取消）可删 |
 
 ::: tip 预约口径

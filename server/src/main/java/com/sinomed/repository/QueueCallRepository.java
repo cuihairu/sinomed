@@ -14,4 +14,7 @@ public interface QueueCallRepository extends JpaRepository<QueueCallEntity, Long
     List<QueueCallEntity> findByIdGreaterThanAndScreenIdOrderByIdAsc(Long since, Long screenId);
 
     List<QueueCallEntity> findTop20ByOrderByIdDesc();
+
+    /** 大于给定 id 的叫号（id 升序，测试与审计用） */
+    List<QueueCallEntity> findByIdGreaterThanOrderByIdAsc(Long id);
 }

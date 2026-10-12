@@ -10,8 +10,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.Date;
 
 /**
- * 叫号记录：前台手动叫号，平板按游标 since 拉取。
- * 预约挂号模块未实现前的最小闭环（见 docs/design/tablet.md）。
+ * 叫号记录：前台手动叫号（CallController POST）与预约到店自动叫号（接待 0→1 联动）两条来源，
+ * 平板按游标 since 拉取（见 docs/design/tablet.md）。
  */
 @Data
 @Entity

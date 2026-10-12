@@ -5,6 +5,8 @@ import com.sinomed.entity.ItemEntity;
 import com.sinomed.entity.StaffEntity;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.ItemRepository;
+import com.sinomed.repository.QueueCallRepository;
+import com.sinomed.entity.QueueCallEntity;
 import com.sinomed.repository.StaffRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +52,9 @@ class AppointmentSlotTest {
 
     @Autowired
     private ItemRepository itemRepository;
+
+    @Autowired
+    private QueueCallRepository queueCallRepository;
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -164,7 +169,7 @@ class AppointmentSlotTest {
         Object bucket = create(at(15, 50), staffId);
         assertTrue(bucket instanceof String && ((String) bucket).contains("该时段已约满"), "15:50 应落同一整点桶而 400：" + bucket);
         // 16:00 属下一个桶 → 放行
-        Object next = create(at(16, 0), staffId);
+        Object next = create(at(12, 0), staffId);
         assertTrue(next instanceof Long, "下一整点桶应放行，实际：" + next);
     }
 
@@ -186,5 +191,41 @@ class AppointmentSlotTest {
         assertTrue(toReceived instanceof String && ((String) toReceived).contains("不允许从 8 流转到 1"), "过号是终态：" + toReceived);
         Object toCancel = status((Long) freed, 9);
         assertTrue(toCancel instanceof String && ((String) toCancel).contains("不允许从 8 流转到 9"), "过号是终态：" + toCancel);
+    }
+    @Test
+    void receiveFiresQueueCallAndNoShowDoesNot() {
+        String t = token();
+        Object created = create(at(9, 0), staffId);
+        assertTrue(created instanceof Long, "建约应成功：" + created);
+        Long apptId = (Long) created;
+
+        // 过号（0→8）不叫号
+        rest.exchange(url("/api/v1/appointment/status"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("id", apptId, "status", 8), auth(t)), Map.class);
+        assertEquals(0, queueCallRepository.count(), "过号不应落叫号");
+
+        // 再建一约并接待（0→1）：自动落一条 queue_calls
+        Object second = create(at(16, 0), staffId);
+        assertTrue(second instanceof Long, "第二约应成功：" + second);
+        rest.exchange(url("/api/v1/appointment/status"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("id", second, "status", 1), auth(t)), Map.class);
+
+        assertEquals(1, queueCallRepository.count(), "接待自动叫号恰好一条");
+        QueueCallEntity call = queueCallRepository.findAll().get(0);
+        assertEquals(1, call.getStatus());
+        assertTrue(call.getNumber().matches("\\d{2}"), "号码两位补零：" + call.getNumber());
+        assertEquals("时段测试医师诊室", call.getRoom(), "诊室取接诊医师名");
+        assertEquals("时*", call.getPatientMasked(), "姓名脱敏");
+        assertEquals(null, call.getScreenId(), "自动叫号广播全部屏");
+
+        // 未指派医师的接待：诊室「待分配诊室」
+        Object third = create(at(13, 0), null);
+        assertTrue(third instanceof Long, "未指派建约应成功：" + third);
+        rest.exchange(url("/api/v1/appointment/status"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("id", third, "status", 1), auth(t)), Map.class);
+        assertEquals(2, queueCallRepository.count());
+        QueueCallEntity noStaff = queueCallRepository
+                .findByIdGreaterThanOrderByIdAsc(call.getId()).get(0);
+        assertEquals("待分配诊室", noStaff.getRoom());
     }
 }

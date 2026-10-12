@@ -1,7 +1,13 @@
 package com.sinomed.service.impl;
 
 import com.sinomed.entity.AppointmentEntity;
+import com.sinomed.entity.CustomerEntity;
+import com.sinomed.entity.QueueCallEntity;
+import com.sinomed.entity.StaffEntity;
 import com.sinomed.repository.AppointmentRepository;
+import com.sinomed.repository.CustomerRepository;
+import com.sinomed.repository.QueueCallRepository;
+import com.sinomed.repository.StaffRepository;
 import com.sinomed.service.AppointmentService;
 import com.sinomed.vo.AppointmentView;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +27,9 @@ import java.util.Optional;
 public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final QueueCallRepository queueCallRepository;
+    private final CustomerRepository customerRepository;
+    private final StaffRepository staffRepository;
 
     /**
      * 根据预约的id查询预约
@@ -107,6 +116,52 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new IllegalArgumentException("预约状态不允许从 " + current + " 流转到 " + status);
         }
         appointment.setStatus(status);
-        return appointmentRepository.save(appointment);
+        AppointmentEntity saved = appointmentRepository.save(appointment);
+        if (status == 1) {
+            fireQueueCall(saved);
+        }
+        return saved;
+    }
+
+    /**
+     * 到店自动叫号（docs/tablet.md「到号自动叫号」联动，2026-10-12 拍板）：接待（0→1）落一条
+     * queue_calls——号码=当日接待序号补零两位、诊室=接诊医师名+「诊室」（未指派「待分配诊室」）、
+     * 姓名脱敏（张*）、广播全部屏（screenId 空）；过号/取消不叫号，前台手动叫号链路保留并行。
+     */
+    private void fireQueueCall(AppointmentEntity appointment) {
+        QueueCallEntity call = new QueueCallEntity();
+        call.setNumber(String.format("%02d", arrivalSeq(appointment)));
+        call.setRoom(roomOf(appointment));
+        call.setPatientMasked(maskName(customerRepository.findById(appointment.getCustomerId())
+                .map(CustomerEntity::getName).orElse("")));
+        call.setScreenId(null);
+        call.setStatus(1);
+        call.setCalledAt(new Date());
+        queueCallRepository.save(call);
+    }
+
+    /** 当日接待序号：今天（接待时刻起算的自然日）已接待且先于本单的预约数 + 1，当日唯一递增 */
+    private int arrivalSeq(AppointmentEntity appointment) {
+        Date todayStart = Date.from(java.time.LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        long before = appointmentRepository
+                .countByStatusAndIdLessThanAndUpdateTimeGreaterThanEqual(1, appointment.getId(), todayStart);
+        return (int) before + 1;
+    }
+
+    private String roomOf(AppointmentEntity appointment) {
+        if (appointment.getStaffId() == null) {
+            return "待分配诊室";
+        }
+        return staffRepository.findById(appointment.getStaffId())
+                .map(StaffEntity::getName).map(name -> name + "诊室")
+                .orElse("待分配诊室");
+    }
+
+    /** 姓名脱敏：张 → 张*、张三 → 张*；空名不落（patient_masked 可空） */
+    private String maskName(String name) {
+        if (name == null || name.isEmpty()) {
+            return null;
+        }
+        return name.charAt(0) + "*";
     }
 }
