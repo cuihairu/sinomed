@@ -100,6 +100,23 @@ class StaffPermissionHttpTest {
     }
 
     @Test
+    void staffTitleRoundTrip() {
+        // 职务落库与回显（staffs.title：排班页医师名册数据源=在职且职务含「医师」）
+        var created = restTemplate.postForEntity("http://localhost:" + port + "/api/v1/staff/",
+                new HttpEntity<>(Map.of("account", "perm-doctor", "name", "名册医师", "password", "123456", "title", "针灸医师"),
+                        auth(adminToken)), Map.class);
+        assertEquals(200, created.getStatusCode().value(), "create doctor failed: " + created.getBody());
+        assertEquals("针灸医师", created.getBody().get("title"), "title should echo on create");
+
+        var updated = restTemplate.exchange("http://localhost:" + port + "/api/v1/staff/",
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("id", created.getBody().get("id"), "account", "perm-doctor",
+                        "name", "名册医师", "title", "主治医师"), auth(adminToken)), Map.class);
+        assertEquals(200, updated.getStatusCode().value(), "update doctor failed: " + updated.getBody());
+        assertEquals("主治医师", updated.getBody().get("title"), "title should echo on update");
+    }
+
+    @Test
     void clerkCannotCreateStaffButCanReadPage() {
         var resp = restTemplate.postForEntity("http://localhost:" + port + "/api/v1/staff/",
                 new HttpEntity<>(Map.of("account", "perm-hack", "name", "越权员工", "password", "123456"),

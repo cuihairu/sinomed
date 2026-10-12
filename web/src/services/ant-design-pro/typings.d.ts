@@ -45,6 +45,10 @@ declare namespace API {
   type Staff = {
     account?: string;
     name?: string;
+    /** 职务（自由文本，如 医师/针灸医师/前台；排班页医师名册=在职且职务含「医师」） */
+    title?: string;
+    /** 0 离职 / 1 在职 / 2 休假 */
+    status?: number;
     password?: string;
     phone?: string;
     address?: string;

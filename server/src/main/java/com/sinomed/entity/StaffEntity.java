@@ -66,6 +66,13 @@ public class StaffEntity implements UserDetails  {
     @Column(name="role")
     private Integer role; // 0,boss, 99.普通员工
 
+    /**
+     * 职务（自由文本，可空）：权限档 role 之外的职务语义与名册数据源，
+     * 如 医师/针灸医师/前台；排班页「医师名册」= 在职且职务含「医师」
+     */
+    @Column(name = "title")
+    private String title;
+
     @Column(name = "birthday")
     private Date birthday;
 

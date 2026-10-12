@@ -10,6 +10,7 @@ import {
   type Appointment,
 } from '@/services/ant-design-pro/appointment';
 import { listCardsByCustomers } from '@/services/ant-design-pro/card';
+import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import './index.less';
 
 /** 排班时段：9:00–18:00 整点（对齐设计原型 admin-booking.html 的时段网格） */
@@ -36,6 +37,8 @@ export default function AppointmentSchedule() {
   const [loading, setLoading] = useState(false);
   // 疗程标记：`${customerId}|${itemName}` → 第 N 疗程（同项目第 N 张卡，按购入先后；无卡不标）
   const [course, setCourse] = useState<Record<string, number>>({});
+  // 医师名册（staffs.title 职务语义）：在职且职务含「医师」的员工姓名
+  const [roster, setRoster] = useState<string[]>([]);
 
   const dayStr = day.format('YYYY-MM-DD');
 
@@ -70,14 +73,38 @@ export default function AppointmentSchedule() {
     load(dayStr);
   }, [dayStr, load]);
 
+  useEffect(() => {
+    // 医师名册一次拉齐：在职（status 1）且职务含「医师」；名册为空回退「当日有约」动态列
+    queryStaffByPage({ current: 1, pageSize: 200 }).then((res) => {
+      setRoster(
+        (res?.data || [])
+          .filter((s) => s.status === 1 && !!s.title && s.title.includes('医师'))
+          .map((s) => s.name || '')
+          .filter(Boolean),
+      );
+    });
+  }, []);
+
   const move = (n: number) => setDay((d) => d.clone().add(n, 'day'));
 
-  /** 列（医师）：本日出现的医师 + 未指派兜底；按姓名稳定排序 */
+  /** 列（医师）：名册全列（在职且职务含「医师」）∪ 本日有约指派（名册外仍可见）；未指派恒最后；名册空回退本日有约 */
   const columns = useMemo(() => {
-    const names = new Set<string>();
-    list.forEach((a) => names.add(a.staffName || UNASSIGNED));
-    return Array.from(names).sort((a, b) => (a === UNASSIGNED ? 1 : b === UNASSIGNED ? -1 : a.localeCompare(b)));
-  }, [list]);
+    const booked = new Set<string>();
+    list.forEach((a) => booked.add(a.staffName || UNASSIGNED));
+    if (roster.length === 0) {
+      return Array.from(booked).sort((a, b) =>
+        a === UNASSIGNED ? 1 : b === UNASSIGNED ? -1 : a.localeCompare(b),
+      );
+    }
+    const extra = Array.from(booked)
+      .filter((n) => n !== UNASSIGNED && !roster.includes(n))
+      .sort((a, b) => a.localeCompare(b));
+    return [
+      ...roster.slice().sort((a, b) => a.localeCompare(b)),
+      ...extra,
+      ...(booked.has(UNASSIGNED) ? [UNASSIGNED] : []),
+    ];
+  }, [list, roster]);
 
   /** 格位索引：`${hh}|${staffName}` → 预约 */
   const cell = useMemo(() => {

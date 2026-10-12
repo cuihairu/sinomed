@@ -89,8 +89,8 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/staff/` | 创建员工（账号唯一、密码 2-20 位、手机号查重） |
-| PUT | `/api/v1/staff/` | 更新员工（携带 `password` 则同步改密） |
+| POST | `/api/v1/staff/` | 创建员工（账号唯一、密码 2-20 位、手机号查重；`title` 职务可空，排班页医师名册=在职且职务含「医师」） |
+| PUT | `/api/v1/staff/` | 更新员工（携带 `password` 则同步改密；`title` 职务同步更新） |
 | GET | `/api/v1/staff/page` | 分页查询员工 |
 | GET | `/api/v1/staff/{id}` | 按 id 查询 |
 | GET | `/api/v1/staff/name/{name}` | 按姓名查询（`{name}` 为路径变量；PathLookupHttpTest 锁死） |

@@ -40,6 +40,10 @@ public class StaffView implements Serializable {
     @Schema(title = "职位",description = "职位" ,example = "1")
     @Builder.Default
     Integer role=99;
+    @Schema(title = "职务",description = "自由文本职务名（如 医师/针灸医师/前台），可空；排班页医师名册=在职且职务含「医师」",example = "针灸医师")
+    String title;
+    @Schema(title = "状态",description = "0 离职 / 1 在职 / 2 休假（只读回显）",example = "1")
+    Integer status;
     @Schema(title = "生日",description = "生日",example = "1990-1-1")
     Date birthday;
     @Schema(title = "创建时间",description = "创建时间",example = "2023-1-1 12:00:00")
@@ -56,6 +60,7 @@ public class StaffView implements Serializable {
         staffEntity.setAddress(address);
         staffEntity.setBirthday(birthday);
         staffEntity.setRole(role);
+        staffEntity.setTitle(title);
         staffEntity.setAvatar(avatar);
         return staffEntity;
     }
@@ -79,6 +84,9 @@ public class StaffView implements Serializable {
         if (role != null && role >= 0  && role != staffEntity.getRole()){
             staffEntity.setRole(role);
         }
+        if (title != null && !title.isEmpty() && !title.equals(staffEntity.getTitle())){
+            staffEntity.setTitle(title);
+        }
         if (birthday != null  && !birthday.equals(staffEntity.getBirthday())){
             staffEntity.setBirthday(birthday);
         }
@@ -98,6 +106,8 @@ public class StaffView implements Serializable {
                 .createTime(staffEntity.getCreateTime())
                 .updateTime(staffEntity.getUpdateTime())
                 .role(staffEntity.getRole())
+                .title(staffEntity.getTitle())
+                .status(staffEntity.getStatus())
                 .build();
     }
 }

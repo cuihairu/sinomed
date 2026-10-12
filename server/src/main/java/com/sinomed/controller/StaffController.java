@@ -104,6 +104,10 @@ public class StaffController {
         if (role != null){
             staffEntity.setRole(role);
         }
+        String title = staffView.getTitle();
+        if (title != null && !title.isEmpty()){
+            staffEntity.setTitle(title);
+        }
         String address = staffView.getAddress();
         if (address!= null && !address.isEmpty()){
             staffEntity.setAddress(address);

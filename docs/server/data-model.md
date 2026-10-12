@@ -214,6 +214,7 @@ append-only：每次结算抵扣（`payType=5`）在同一事务落一条，随�
 | address | String | 地址 |
 | birthday | Date | 生日 |
 | role | Integer | 角色：`< 10` 管理层（`admin`），`>= 10` 普通员工（默认 99） |
+| title | String | 职务（自由文本，可空）：权限档 role 之外的职务语义与名册数据源，如 医师/针灸医师/前台；排班页「医师名册」= 在职（status=1）且职务含「医师」 |
 | status | Integer | 状态：0 离职、1 在职、2 休假（`<= 0` 无法登录） |
 
 索引：姓名、账号、手机号。

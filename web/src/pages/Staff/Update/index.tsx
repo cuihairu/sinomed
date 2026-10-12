@@ -74,6 +74,7 @@ const Update: React.FC = () => {
     <ProFormText colProps={{ md: 12, xl: 6 }} name="phone" label="手机号码" tooltip="方便按手机查找" placeholder="输入手机号码"/>
     <ProFormSelect colProps={{ md: 4, xl: 2 }} name="gender" label="性别" valueEnum={{0:'女',1:'男'}} options={[{value:0,label:"女"},{value:1,label:"男"}]} placeholder="设置性别"/>
     <ProFormSelect colProps={{ md: 4, xl: 2 }} name="role" label="角色" valueEnum={{1:'管理层',99:'员工'}} tooltip="管理员可以查看统计数据，员工只看到自己相关的数据" placeholder="员工"/>
+    <ProFormText colProps={{ md: 4, xl: 2 }} name="title" label="职务" tooltip="自由文本（如 医师/针灸医师/前台）；排班页医师名册=在职且职务含「医师」" placeholder="医师"/>
     <ProFormTextArea
       colProps={{ span: 24 }}
       name="address"
