@@ -4,6 +4,7 @@ import com.sinomed.entity.RefundLogEntity;
 import com.sinomed.entity.SettlementEntity;
 import com.sinomed.vo.ReconciliationView;
 import com.sinomed.vo.SettlementMonthReportView;
+import com.sinomed.vo.SettlementTrendView;
 import com.sinomed.vo.SettlementView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,12 @@ public interface SettlementService {
      * 月份格式非 yyyy-MM 报 400。
      */
     SettlementMonthReportView monthReport(String month);
+
+    /**
+     * 经营趋势：近 N 个月（1-24，含当月）逐月实收/单数/次卡核销与接诊量，
+     * 无数据月零填充、月份升序；月数越界报 400。
+     */
+    SettlementTrendView trend(int months);
 
     /**
      * 退单：一笔结算只能退一次，退款 = 退整单、原路退回（储值补正数流水、

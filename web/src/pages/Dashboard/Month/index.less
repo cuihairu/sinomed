@@ -66,6 +66,58 @@
   }
 }
 
+/* 近 6 月趋势：双柱（实收墨色 / 接诊淡金），同每日报表柱状图语言 */
+.trend-bars {
+  display: flex;
+  gap: 11px;
+  align-items: stretch;
+
+  .bar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+
+    .money {
+      font-size: 10.5px;
+      color: var(--muted);
+      font-family: var(--serif);
+      font-weight: 700;
+    }
+    .pole {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      margin: 6px 0;
+
+      i {
+        display: block;
+        width: 26px;
+        border-radius: 5px 5px 2px 2px;
+
+        &.m {
+          background: var(--brand-tint);
+        }
+        &.t {
+          background: var(--line);
+        }
+      }
+    }
+    .mo {
+      display: block;
+      font-size: 10.5px;
+      color: var(--faint);
+      line-height: 1.5;
+      padding-top: 7px;
+      border-top: 1px solid var(--line);
+    }
+    &.on .pole i.m {
+      background: var(--brand);
+    }
+  }
+}
+
 /* 支付方式构成 */
 .pays {
   display: flex;

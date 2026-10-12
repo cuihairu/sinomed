@@ -17,7 +17,7 @@
 | 收费结算 | Yukang(现金/微信/支付宝/银行卡/医保)、OpenHIS(划价收费)、openhis-clinic | 部分 | `settlements` 结算单 + `/api/v1/settlement`（订单 0/1→2 收款）+ `/api/v1/recharge` 储值流水（余额=合计），管理端 `/billing/settle` 结算台；退费与日对账已实装（`/api/v1/settlement/{id}/refund` 整单原路退回一单只退一次 + `/reconciliation` 按自然日三段对账，管理端 `/billing/reconciliation`，见 [reconciliation](../design/reconciliation.md)）；微信/支付宝为到店扫码收款（静态收款码展示面已实装：`/api/v1/pay-qrcode/{method}` 读 `data/payqrcodes/` 商户码图片出图，缺图 404 如实提示，不接网关），无发票/在线支付真实通道，处方饮片行进结算裁定不做。**界面：[收费结算台](/screenshots/admin-billing.png)** |
 | 患者会员 | TANGKUO/HIS(患者管理)、Yukang(连锁分店)、chinese_medicine_store_cos(会员购买/订单) | 部分 | `customers.level` 会员等级字段存在；储值充值/扣减流水已接线（`recharges`），无折扣/套餐/跨店消费 |
 | 排班 | 调研项目中未见明确实现的排班模块 | 部分 | `signs` 考勤仍是上下班打卡；预约排班已实装——`/appointment/schedule` 医师×时段日网格（占用/空档/格内接待）；周期性员工班表已实装（`/api/v1/shift` 员工×星期×HH:mm 时段、同员工同星期唯一，管理端 `/staff/shifts` 周矩阵加排班/调整/删除，见 StaffShiftHttpTest）；班表与考勤联动已实装（`/api/v1/staff/timesheet/week` 周班次对照：班表计划按星期对照当日打卡，同日最早上班/最晚下班、整小时取整，管理端 `/staff/timesheet/week`；排班网格已联动班表——当日（`staff_shifts` 按星期）在班医师列靠前、无班次名册医师列头弱化标注，展示层联动不做建约拦截）。**界面：[预约排班](/screenshots/admin-booking.png)** |
-| 报表统计 | Yukang(经营统计/处方量趋势)、OpenHIS(图表统计)、openhis-clinic(报表查询) | 部分 | 已有每日报表(总结/复盘/回访)与按月考勤统计；月度收费报表已实装（`GET /api/v1/settlement/report/month` 逐日与支付方式构成、次卡核销单列；见 SettlementReportHttpTest）；无经营趋势分析与图表 |
+| 报表统计 | Yukang(经营统计/处方量趋势)、OpenHIS(图表统计)、openhis-clinic(报表查询) | 部分 | 已有每日报表(总结/复盘/回访)与按月考勤统计；月度收费报表已实装（`GET /api/v1/settlement/report/month` 逐日与支付方式构成、次卡核销单列；见 SettlementReportHttpTest）；经营趋势已实装（`GET /api/v1/settlement/report/trend` 近 N 月逐月实收/单数/次卡核销/接诊量，月度报表页双柱趋势图；见 SettlementTrendHttpTest） |
 | 多门店/连锁 | Yukang(总店聚合/分店独立库)、chinese_medicine_store_cos(多门店) | 未实现 | 单店模型 |
 
 ## 二、中医特色

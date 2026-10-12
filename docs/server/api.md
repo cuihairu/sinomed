@@ -186,6 +186,7 @@
 | POST | `/api/v1/settlement/` | 收款结算：`orderId` + `payType`（`1` 储值 / `2` 微信 / `3` 支付宝 / `4` 现金 / `5` 次卡抵扣）；订单状态 `0/1 → 2` 已完成；储值支付校验余额并落负数流水，不足报 400；次卡抵扣按订单卡项扣 1 次、实收记 0，无有效余次卡报 400；防重复收款按「最近一张结算单未退款」判断（退费重收后一单可多张结算单） |
 | GET | `/api/v1/settlement/page` | 结算单分页（current、pageSize），联出顾客名，时间倒序 |
 | GET | `/api/v1/settlement/report/month?month=` | 月度收费报表：`month=yyyy-MM` 必填（格式非法/月份不存在报 400）；按结算时间聚合当月结算单——`totalCount` 单数、`totalMoney` 实收合计（元）、`cardCount` 次卡核销单数、`days[]` 逐日单数/实收（只列有结算的日，升序）、`payTypes[]` 支付方式构成（`payType`/`payTypeText`/单数/实收，只列出现过的，升序）；储值充值不计入营收 |
+| GET | `/api/v1/settlement/report/trend?months=` | 经营趋势：`months` 1-24 可空（缺省 6，越界报 400）；近 N 月（含当月）逐月聚合实收/结算单数/次卡核销单数与接诊量（`rows[]`：`month`/`money`/`count`/`cardCount`/`treatCount`），无数据月零填充、月份升序 |
 | POST | `/api/v1/settlement/{id}/refund` | 退单：`reason` 必填 ≤100 字；一笔结算只能退一次（`refund_logs.settlement_id` 唯一兜底，已退款报 400「该结算已退款」）；退款 = 退整单、按原 `payType` 原路退回——储值补正数流水（note「退单 #结算id」）、次卡作废该订单核销流水并回补余次（金额记 0）、微信/支付宝/现金仅落退款记录；订单 `2 → 1` 已接单可重收；回退款单视图（联顾客/操作人名） |
 | GET | `/api/v1/settlement/reconciliation?date=` | 日对账单：`date=yyyy-MM-dd` 必填（缺失/非法报 400）；按自然日聚合收款（单数/实收/`incomePayTypes[]`/次卡核销单列）、充值（笔数/金额单列不计营收，只含真实充值——储值支付扣减归收款侧、退款补回归退款侧）、退款（笔数/金额/`refundPayTypes[]` 按原支付方式 + 明细行）；`netMoney` = 实收 - 退款，`cashNetMoney` = 现金收款 - 现金退款（钱箱核对用） |
 

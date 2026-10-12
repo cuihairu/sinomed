@@ -6,12 +6,14 @@ import com.sinomed.entity.OrderEntity;
 import com.sinomed.entity.RechargeEntity;
 import com.sinomed.entity.RefundLogEntity;
 import com.sinomed.entity.SettlementEntity;
+import com.sinomed.entity.TreatEntity;
 import com.sinomed.repository.CardUsageRepository;
 import com.sinomed.repository.CustomerCardRepository;
 import com.sinomed.repository.OrderRepository;
 import com.sinomed.repository.RechargeRepository;
 import com.sinomed.repository.RefundLogRepository;
 import com.sinomed.repository.SettlementRepository;
+import com.sinomed.repository.TreatRepository;
 import com.sinomed.service.CardService;
 import com.sinomed.service.SettlementService;
 import com.sinomed.vo.ReconciliationView;
@@ -20,6 +22,8 @@ import com.sinomed.vo.ReconciliationView.RefundRow;
 import com.sinomed.vo.SettlementMonthReportView;
 import com.sinomed.vo.SettlementMonthReportView.DayRow;
 import com.sinomed.vo.SettlementMonthReportView.PayRow;
+import com.sinomed.vo.SettlementTrendView;
+import com.sinomed.vo.SettlementTrendView.MonthRow;
 import com.sinomed.vo.SettlementView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +33,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +62,7 @@ public class SettlementServiceImpl implements SettlementService {
     private final RefundLogRepository refundLogRepository;
     private final CardUsageRepository cardUsageRepository;
     private final CustomerCardRepository customerCardRepository;
+    private final TreatRepository treatRepository;
 
     /**
      * 收费结算：订单 0 已下单 / 1 已确认 → 2 已完成；落一条结算单（一单一结算，order_id 唯一兜底）。
@@ -180,6 +187,60 @@ public class SettlementServiceImpl implements SettlementService {
                 .days(days)
                 .payTypes(payTypes)
                 .build();
+    }
+
+    @Override
+    public SettlementTrendView trend(int months) {
+        if (months < 1 || months > 24) {
+            throw new IllegalArgumentException("趋势月数需在 1-24");
+        }
+        YearMonth current = YearMonth.now();
+        YearMonth first = current.minusMonths(months - 1L);
+        Date start = Date.from(first.atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date end = Date.from(current.plusMonths(1).atDay(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        // 月键 yyyy-MM -> [单数, 实收, 次卡单数]；TreeMap 升序
+        Map<String, int[]> byMonth = new TreeMap<>();
+        for (SettlementEntity row : settlementRepository.findByCreateTimeBetween(start, end)) {
+            Date time = row.getCreateTime();
+            if (time == null) {
+                continue;
+            }
+            String key = YearMonth.from(time.toInstant().atZone(ZoneId.systemDefault())).toString();
+            int[] agg = byMonth.computeIfAbsent(key, k -> new int[3]);
+            int money = row.getMoney() == null ? 0 : row.getMoney();
+            int payType = row.getPayType() == null ? 0 : row.getPayType();
+            agg[0]++;
+            agg[1] += money;
+            if (payType == PAY_CARD) {
+                agg[2]++;
+            }
+        }
+
+        Map<String, Integer> treatsByMonth = new TreeMap<>();
+        for (TreatEntity treat : treatRepository.findByCreateTimeBetween(start, end)) {
+            Date time = treat.getCreateTime();
+            if (time == null) {
+                continue;
+            }
+            String key = YearMonth.from(time.toInstant().atZone(ZoneId.systemDefault())).toString();
+            treatsByMonth.merge(key, 1, Integer::sum);
+        }
+
+        // 无数据月零填充，月份升序
+        List<MonthRow> trendRows = new ArrayList<>();
+        for (YearMonth m = first; !m.isAfter(current); m = m.plusMonths(1)) {
+            String key = m.toString();
+            int[] agg = byMonth.getOrDefault(key, new int[3]);
+            trendRows.add(MonthRow.builder()
+                    .month(key)
+                    .money(agg[1])
+                    .count(agg[0])
+                    .cardCount(agg[2])
+                    .treatCount(treatsByMonth.getOrDefault(key, 0))
+                    .build());
+        }
+        return SettlementTrendView.builder().months(months).rows(trendRows).build();
     }
 
     private static String payTypeText(int payType) {

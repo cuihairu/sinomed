@@ -11,6 +11,7 @@ import com.sinomed.vo.PageResp;
 import com.sinomed.vo.ReconciliationView;
 import com.sinomed.vo.RefundView;
 import com.sinomed.vo.SettlementMonthReportView;
+import com.sinomed.vo.SettlementTrendView;
 import com.sinomed.vo.SettlementView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -147,6 +148,20 @@ public class SettlementController {
     public SettlementMonthReportView monthReport(
             @Parameter(description = "报表月份 yyyy-MM") @Validated @NotNull @RequestParam String month) {
         return settlementService.monthReport(month);
+    }
+
+    @Operation(summary = "经营趋势", description = "近 N 个月（含当月，1-24，缺省 6）逐月实收/结算单数/次卡核销与接诊量；"
+            + "无数据月零填充、月份升序，供月度报表页趋势图",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "趋势报表", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = SettlementTrendView.class))),
+                    @ApiResponse(responseCode = "400", description = "月数越界", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = MessageView.class)))
+            })
+    @GetMapping("/report/trend")
+    public SettlementTrendView trend(
+            @Parameter(description = "统计月数（1-24）") @RequestParam(required = false, defaultValue = "6") Integer months) {
+        return settlementService.trend(months);
     }
 
     @Operation(summary = "退单", description = "reason 必填 ≤100 字；一笔结算只能退一次（已退款报 400）；"

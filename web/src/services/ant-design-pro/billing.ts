@@ -225,6 +225,30 @@ export async function fetchSettlementMonthReport(
   });
 }
 
+/** 经营趋势：近 N 月逐月实收/单数/次卡核销/接诊量（无数据月零填充，月份升序） */
+export interface SettlementTrendRow {
+  month?: string;
+  money?: number;
+  count?: number;
+  cardCount?: number;
+  treatCount?: number;
+}
+
+/** 经营趋势报表：months=1-24（缺省 6） */
+export async function fetchSettlementTrend(
+  months: number,
+  options?: { [key: string]: any },
+) {
+  return request<{ months?: number; rows?: SettlementTrendRow[] }>(
+    '/api/v1/settlement/report/trend',
+    {
+      method: 'GET',
+      params: { months },
+      ...(options || {}),
+    },
+  );
+}
+
 /** 退单：一笔结算只能退一次；reason 必填 ≤100 字；原路退回，订单回退可重收 */
 export async function refundSettlement(
   id: number,

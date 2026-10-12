@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 public interface TreatRepository extends JpaRepository<TreatEntity,Long>, JpaSpecificationExecutor<TreatEntity> {
@@ -20,4 +21,7 @@ public interface TreatRepository extends JpaRepository<TreatEntity,Long>, JpaSpe
     @Query("select t.customerId as customerId, count(t.id) as visits "
             + "from TreatEntity t where t.customerId in :ids group by t.customerId")
     List<VisitCount> countVisitsByCustomerIds(@Param("ids") Collection<Long> ids);
+
+    /** 按创建时间取接诊单（经营趋势按月聚合接诊量） */
+    List<TreatEntity> findByCreateTimeBetween(Date start, Date end);
 }
