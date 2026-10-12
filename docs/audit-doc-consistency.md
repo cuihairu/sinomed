@@ -136,7 +136,7 @@
 - §⑤ P0 四项均已在前几轮落地：api.md 鉴权约定已显式枚举 4 组业务免登录端点；web.md 卡项/诊断口径已修正（编辑复用 `/item/create?itemId=`，Spread/Update 占位已注明；`/treat/query` 已入表）；features.md 三行已带设计原型链接；admin-themes.png 已重渲（2×2 等比拼图，2026-10-08 产物）；mockups/README.md 渲染记录已建（mobile-home 状态 10-09 同步为已实现，308961a）。
 - §④ 动作 1-6 全部完成，无待办。
 - 新增可开工项期间落地的产品增量：顾客档案「累计消费」订单聚合接口（`GET /api/v1/order/summary`，7afd646）。
-- 遗留待用户定夺：站点标题 `Youngs.fun` 与 PWA 名称改不改（品牌口径）；CI maven.yml `-DskipTests` 是否接测试。
+- 遗留待用户定夺：~~站点标题 `Youngs.fun` 与 PWA 名称改不改~~（✅ 2026-10-12 用户授权自拍板：品牌即「Youngs 医馆」非模板残留——logo 养字标 + 全 mockups + youngs.fun 自有域名证实；清理登录页/Footer 模板句/manifest 模板值三处呈现，manifest 未接线就地校正）；~~CI maven.yml `-DskipTests` 是否接测试~~（✅ 2026-10-12 拍板接测试：去 -DskipTests + m2 缓存，依据与成本核算见 todo 拍板节）。
 
 ## ⑥B 文档扫尾（2026-10-12 复核）
 

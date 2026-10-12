@@ -177,8 +177,7 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 ## 前端遗留项（如实说明）
 
-- 站点标题当前为模板值 `Youngs.fun`（`config/config.ts`），未改为项目名；
-- `config/oneapi.json` 仍为脚手架模板 schema（含 `/api/rule` 等模板端点），驱动 openAPI 插件生成 `src/services/ant-design-pro/api.ts` 与 `typings.d.ts`（其中 `currentUser` 等已手改指向真实后端接口）；
-- `manifest.json` / PWA 名称仍是脚手架默认值。
+- 品牌口径已定（2026-10-12 拍板）：站点品牌即「Youngs 医馆」——logo 养字标 + 全部界面原型 + youngs.fun 自有域名共同证实，非脚手架残留；登录页标题、Footer 文案、`src/manifest.json` 品牌值已统一到此口径（Footer 保留 youngs.fun 业务链接；PWA manifest 尚未接线——config 无引用、不进构建产物，品牌值已就位备接线）；
+- `config/oneapi.json` 仍为脚手架模板 schema（含 `/api/rule` 等模板端点），驱动 openAPI 插件生成 `src/services/ant-design-pro/api.ts` 与 `typings.d.ts`（其中 `currentUser` 等已手改指向真实后端接口）。
 
 > 已清理：脚手架残留页面 `src/pages/Welcome.tsx`、`Admin.tsx`、`TableList/`（不在路由，无引用）；petstore 示例服务 `src/services/swagger/`（`config.ts` openAPI 第二入口一并移除）；卡项占位页 `/item/spread`、`/item/update`（表单实为 `createItem` 建新卡项的误用隐患，已连同路由移除，编辑统一走 `/item/create?itemId=`，2026-10-12 起带 id 提交走 `updateItem` PUT 真实更新；spread「扩散」在原型 admin-items.html 无对应设计，按脚手架残留裁定不补）。

@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
   const intl = useIntl();
   const defaultMessage = intl.formatMessage({
     id: 'app.copyright.produced',
-    defaultMessage: 'Youngs.fun 体验技术部出品',
+    defaultMessage: 'Youngs 医馆出品',
   });
 
   const currentYear = new Date().getFullYear();

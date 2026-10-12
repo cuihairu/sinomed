@@ -150,6 +150,13 @@
 ## 安全与技术债
 - [x] 服务端接口层方法级权限强制（web.md:174：当前只做页面级隐藏）｜✅ 2026-10-12 员工管理写接口（POST/PUT/DELETE /api/v1/staff）@PreAuthorize("hasRole('ADMIN')")（StaffController.java:75+152+272），与 web canAdmin（role==0）同口径；服务端权威映射修正 role 0→ADMIN / 1-9→MANAGER / ≥10→USER（原 1-9 全给 ADMIN、99 员工给 MANAGER 的错位，StaffEntity.getAuthorities:85-96）；越权写 403、读列表不受限，回归 StaffPermissionHttpTest（admin 建删 + clerk 越权 403 + clerk 读 page 200）；web.md 权限节同步｜P2
 
+## 拍板处置（2026-10-12 用户令：待拍板项按仓内决策记录自决+记录，依据不足才留用户项）
+
+- [x] 站点标题 / PWA 名称品牌口径｜拍板：品牌即**「Youngs 医馆」，非模板残留**——证据：logo.svg=石墨底「养」字标（web/public/logo.svg）；全部 10+ 张界面原型品牌均为「Youngs 医馆」（admin-appearance 预览即样例）；Footer 链接 youngs.fun=「泰州最专业养生团队」为运营方自有域名（Footer/index.tsx）。站点 title 'Youngs 医馆'（config.ts:85 / defaultSettings.ts:20）维持不变；清理三处不一致呈现：登录页 `title="Youngs.Fun"`→「Youngs 医馆」（User/Login/index.tsx:145）、Footer 模板句「Youngs.fun 体验技术部出品」→「Youngs 医馆出品」（「体验技术部」是 Ant Design Pro 脚手架措辞残留）、`src/manifest.json` 的 Ant Design Pro 模板品牌值→Youngs 医馆+品牌石墨色。注意：PWA manifest 未接线（config 无引用、不进 dist 产物）属死文件，就地校正备将来接线
+- [x] CI maven.yml `-DskipTests` 是否接测试｜拍板：**接测试**——去掉 `-DskipTests`（`mvn -B package` 即跑全量测试）并加 ~/.m2 缓存对冲时长。依据：main 是交付分支、每日构建滚动二进制从 main 拾取，红线（未经验收测试的 binary 不得对外）下 CI 测试是 push 后唯一自动验收面；后端 204 测试全部文件级 SQLite（`jdbc:sqlite:target/*.db`）无外部服务依赖，ubuntu CI 可跑（desktop serialport 的 libudev 坑只在 cargo 面，与 maven 工作流无关）；本机全套 ~4 分钟，CI 可接受
+- [x] 药典剂量权威数据源｜拍板：终态=**不内置药典数据、诊所自录 `dose_max`**（已实装机制即终态：药材字典「单剂上限」列/表单 + `POST /prescription/dose-check`）。依据：中国药典常用量属权威医学参考数据，仓内硬编码即伪造医学数据；与库存上下限 `stock_min/stock_max` 诊所自录同模式先例。录入属运营动作非代码动作，此项无剩余工程面，闭环
+- [x] 小程序「我的卡项」手机号查卡隐私口径｜拍板：**不做免登录手机号查卡**，保持「规划功能」如实占位。依据：小程序无登录态（kiosk 免登录面=公开目录 items 与只写不读的约期，读他人数据无先例）；手机号无验证码即被当身份凭证，可枚举任意顾客持卡与消费记录，属隐私缺口。重开条件=接入身份绑定（微信 openid 或短信验证码登录）后按身份拉卡——留明确重开路径，非永久放弃
+
 ## 在途工作（未提交，需先收口）
 - 无（web `pnpm test` 存量红已于 2026-10-11 修复：jest.config.ts 改用 createConfig 手工别名绕开 configUmiAlias 的 esbuild-register（Node 24 崩溃点），移除脚手架 login 快照测试，新增 billing 请求契约测试 6 例，测试全绿）
 
