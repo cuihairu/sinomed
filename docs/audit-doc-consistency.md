@@ -138,6 +138,13 @@
 - 新增可开工项期间落地的产品增量：顾客档案「累计消费」订单聚合接口（`GET /api/v1/order/summary`，7afd646）。
 - 遗留待用户定夺：站点标题 `Youngs.fun` 与 PWA 名称改不改（品牌口径）；CI maven.yml `-DskipTests` 是否接测试。
 
+## ⑥B 文档扫尾（2026-10-12 复核）
+
+- todo 清零批次（微信/支付宝条目，方案①静态收款码展示面）拍板已落：todo.md、api.md（新增收款码节 + 收费口径改写到店扫码收款正口径）、web.md 收费结算节、features.md 收费结算行；红线不动——不接支付网关、无发票、#88 在线支付真实通道不做。
+- web.md 散文/表格漂移修复 4 处（均为此前批次代码先行、文档滞后）：`/treat/create` 行补**外设状态条**（desktop.md D10 `peripheral_status` 口径）；`/prescription/create` 行补**剂量上限提示**（dose-check 防抖、诊所自录 `dose_max`、不拦截）；`/prescription/herbs` 行补**单剂上限**（`doseMax` 列/表单）；`/billing/settle` 行补微信/支付宝**收款码**出图与缺码如实提示。
+- api.md 结构核对：叫号自动联动（appointment/status）、dose-check、peripheral 相关均已同步；desktop.md D10、tablet.md 叫号联动此前批次已落。
+- 复核结论：无新增「文档超前于代码」项；「代码超前于文档」项本轮已清零。遗留仍只有 §⑥A 两项待用户定夺（站点标题品牌口径、CI maven.yml `-DskipTests`）。
+
 ## ⑦ 后续建议
 
 - 建立 `docs/design/mockups/README.md` 记录渲染流程，避免「montage 裁剪」等工程问题复发
