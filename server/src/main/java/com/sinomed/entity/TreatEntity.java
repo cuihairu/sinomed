@@ -31,6 +31,10 @@ public class TreatEntity {
     @Column(name = "cid",nullable = false)
     Long customerId;
 
+    // 接诊医师（开单署名，选填，落 staffs.id；历史单/快速单可不署名，署名语义=本次接诊由哪位医师执行）
+    @Column(name = "staff_id")
+    Long staffId;
+
     // 主诉
     @Column(name = "cdesc",columnDefinition = "TEXT")
     String desc;

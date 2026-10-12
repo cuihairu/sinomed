@@ -45,13 +45,13 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/treat/` | 创建诊疗单（`customerId` 必须指向存在的顾客）；脉象支持左右手寸/关/尺分部字段（`pulseCunLeft`/`pulseGuanLeft`/`pulseChiLeft`/`pulseCunRight`/`pulseGuanRight`/`pulseChiRight`，另有总述 `pulse`/`pulseLeft`/`pulseRight` 与补充 `pulseInfo`） |
+| POST | `/api/v1/treat/` | 创建诊疗单（`customerId` 必须指向存在的顾客）；可带 `staffId` 署名接诊医师（选填，回显 `staffName`）；脉象支持左右手寸/关/尺分部字段（`pulseCunLeft`/`pulseGuanLeft`/`pulseChiLeft`/`pulseCunRight`/`pulseGuanRight`/`pulseChiRight`，另有总述 `pulse`/`pulseLeft`/`pulseRight` 与补充 `pulseInfo`） |
 | GET | `/api/v1/treat/{id}` | 按 id 查询 |
 | GET | `/api/v1/treat/customer/{id}` | 按顾客 id 查询全部诊疗单 |
 | GET | `/api/v1/treat/customer/name/{name}` | 按顾客姓名查询（姓名需唯一） |
 | GET | `/api/v1/treat/history` | 分页查询某顾客的诊疗历史（`customerId` 必填，按创建时间倒序） |
 | GET | `/api/v1/treat/fuzzy` | 模糊检索（传 `id` 单查；否则按 `name` / `age` / `phone` 圈定顾客后分页） |
-| PUT | `/api/v1/treat/` | 按 id 全量更新接诊单：id/customerId 必填且须存在，字段以请求体为准，回包含顾客姓名/年龄/性别（更新后驱逐 findById 缓存） |
+| PUT | `/api/v1/treat/` | 按 id 全量更新接诊单：id/customerId 必填且须存在，字段以请求体为准（不带 `staffId` 即清空署名），回包含顾客姓名/年龄/性别与接诊医师署名（更新后驱逐 findById 缓存） |
 | DELETE | `/api/v1/treat/{id}` | 删除诊疗单 |
 
 字段含义见[数据模型 · treats 表](/server/data-model#treats-诊疗单)。针灸处方字段（`acuMethod` 针法 ≤30 字、`retentionMinutes` 留针分钟 1-240 可空、`manipulation` 手法 ≤30 字、`moxaMethod` 灸法 ≤60 字（如 艾条悬灸，每穴 15 分钟）、`acuCourse` 疗程/频次 ≤100 字）随接诊单创建/更新保存，越界 400；空白文本按空处理。见 TreatAcuHttpTest。

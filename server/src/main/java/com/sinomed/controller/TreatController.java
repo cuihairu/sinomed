@@ -4,6 +4,7 @@ import com.sinomed.entity.TreatEntity;
 import com.sinomed.entity.CustomerEntity;
 import com.sinomed.service.TreatService;
 import com.sinomed.service.CustomerService;
+import com.sinomed.service.StaffService;
 import com.sinomed.vo.MessageView;
 import com.sinomed.vo.ExceptionView;
 import com.sinomed.vo.PageResp;
@@ -37,9 +38,12 @@ public class TreatController {
 
     private final CustomerService customerService;
 
-    public TreatController(TreatService treatService, CustomerService customerService) {
+    private final StaffService staffService;
+
+    public TreatController(TreatService treatService, CustomerService customerService, StaffService staffService) {
         this.treatService = treatService;
         this.customerService = customerService;
+        this.staffService = staffService;
     }
 
     @Operation(summary = "查询客人疗程表", description = "根据客人id来查询用表", parameters = {
@@ -65,7 +69,7 @@ public class TreatController {
     @GetMapping("/customer/{id}")
     public List<TreatView> findTreatByUserId(@PathVariable("id") Long id) {
         List<TreatEntity> treats = treatService.findByCustomerId(id);
-        return treats.stream().map(TreatView::FromTreatEntity).toList();
+        return treats.stream().map(this::toTreatView).toList();
     }
 
     @Operation(summary = "查询客人疗程表", description = "根据客人名字来查询用表", parameters = {
@@ -98,7 +102,7 @@ public class TreatController {
         }
         CustomerEntity customer = customerEntityList.get(0);
         List<TreatEntity> treats = treatService.findByCustomerId(customer.getId());
-        return treats.stream().map(TreatView::FromTreatEntity).toList();
+        return treats.stream().map(this::toTreatView).toList();
     }
 
     @GetMapping("/history")
@@ -118,7 +122,7 @@ public class TreatController {
         resp.pages = allByPage.getTotalPages();
         resp.data = new ArrayList<>();
         allByPage.stream().forEach(e->{
-            resp.data.add(TreatView.FromTreatEntity(e));
+            resp.data.add(toTreatView(e));
         });
         return resp;
     }
@@ -170,6 +174,10 @@ public class TreatController {
                 treatView.setPhone(customerEntity.getPhone());
             }
         }
+        // 署名回显：接诊医师姓名按 staffId 解析（选填，未署名留空由前端如实标注）
+        if (treatEntity.getStaffId() != null) {
+            staffService.findById(treatEntity.getStaffId()).ifPresent((s) -> treatView.setStaffName(s.getName()));
+        }
         return treatView;
     }
 
@@ -199,7 +207,7 @@ public class TreatController {
         if (treat.isEmpty()) {
             throw new IllegalArgumentException("没有找到该ID的疗程表");
         }
-        return TreatView.FromTreatEntity(treat.get());
+        return toTreatView(treat.get());
     }
 
     @Operation(summary = "创建疗程表", description = "创建新的疗程表", requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
@@ -233,11 +241,7 @@ public class TreatController {
         }
         TreatEntity entity = treat.ToTreatEntity();
         TreatEntity save = treatService.save(entity);
-        TreatView treatView = TreatView.FromTreatEntity(save);
-        treatView.setName(user.get().getName());
-        treatView.setAge(user.get().getAge());
-        treatView.setGender(user.get().getGender());
-        return treatView;
+        return toTreatView(save);
     }
 
     @Operation(summary = "修改疗程表", description = "按 id 全量更新接诊单（id/customerId 必填且须存在；字段以请求体为准），回包含顾客姓名/年龄/性别", responses = {
@@ -263,13 +267,7 @@ public class TreatController {
         customerService.findById(treat.getCustomerId())
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         TreatEntity saved = treatService.update(treat);
-        TreatView treatView = TreatView.FromTreatEntity(saved);
-        customerService.findById(saved.getCustomerId()).ifPresent((user) -> {
-            treatView.setName(user.getName());
-            treatView.setAge(user.getAge());
-            treatView.setGender(user.getGender());
-        });
-        return treatView;
+        return toTreatView(saved);
     }
 
     @Operation(summary = "创建疗程表", description = "创建新的疗程表", responses = {

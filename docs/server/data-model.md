@@ -36,6 +36,7 @@
 | ---- | ---- | ---- |
 | id | Long | 主键 |
 | cid | Long | 顾客 id（非空，业务外键） |
+| staff_id | Long | 接诊医师 id（可空，staffs.id；开单署名语义=本次接诊由哪位医师执行，历史单可不署名，读取时按 staffs 回显姓名） |
 | cdesc | TEXT | 主诉 |
 | inquiry | TEXT | 问诊 |
 | observation | TEXT | 望诊 |

@@ -32,7 +32,7 @@ const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员
 const levelText = (level?: number) => LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
 const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—');
 
-type TreatRow = { id?: number; createTime?: string; diagnose?: string; desc?: string; plan?: string };
+type TreatRow = { id?: number; createTime?: string; diagnose?: string; desc?: string; plan?: string; staffName?: string };
 
 const Update: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -271,6 +271,7 @@ const Update: React.FC = () => {
                   <div className="v-body">
                     <div className="t">
                       {t.diagnose || t.acuMethod || '接诊记录'}
+                      {t.staffName ? <span className="doc">{t.staffName}</span> : null}
                       {t.acuCourse ? <span className="tag">{t.acuCourse}</span> : null}
                     </div>
                     <div className="s">{summary || t.desc || '—'}</div>

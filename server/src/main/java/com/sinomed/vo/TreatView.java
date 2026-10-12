@@ -20,6 +20,10 @@ public class TreatView implements Serializable {
     Long id;
     @Schema(title = "客人id",description = "用户id",example = "1")
     Long customerId;
+    @Schema(title = "接诊医师id",description = "开单署名医师（选填，staffs.id）",example = "1")
+    Long staffId;
+    @Schema(title = "接诊医师",description = "按 staffId 解析的医师姓名（只读回显）",example = "王中医师")
+    String staffName;
     @Schema(title = "姓名",description = "姓名",example = "崔海涛")
     String name;
     @Schema(title = "手机号码",description = "手机号码",example = "13852299511")
@@ -125,6 +129,7 @@ public class TreatView implements Serializable {
                 .createTime(treat.getCreateTime())
                 .id(treat.getId())
                 .customerId(treat.getCustomerId())
+                .staffId(treat.getStaffId())
                 .desc(treat.getDesc())
                 .inquiry(treat.getInquiry())
                 .observation(treat.getObservation())
@@ -176,6 +181,7 @@ public class TreatView implements Serializable {
         TreatEntity treatEntity = new TreatEntity();
         treatEntity.setId(id);
         treatEntity.setCustomerId(customerId);
+        treatEntity.setStaffId(staffId);
         treatEntity.setDesc(desc);
         treatEntity.setInquiry(inquiry);
         treatEntity.setObservation(observation);

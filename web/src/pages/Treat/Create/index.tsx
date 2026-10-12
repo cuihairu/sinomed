@@ -7,6 +7,7 @@ import {
   fuzzyQueryTreatByPage,
 } from '@/services/ant-design-pro/treat';
 import { fetchCustomerById } from '@/services/ant-design-pro/customer';
+import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import {
   PageContainer,
   ProForm,
@@ -305,6 +306,17 @@ const Create: React.FC = () => {
               <div className="tc-row cols-3">
                 <ProFormDatePicker name="birthday" label="出生年月" placeholder="2000-01-01" />
                 <ProFormDatePicker name="firstTime" label="初诊日期" placeholder="2000-01-01" />
+                <ProFormSelect
+                  name="staffId"
+                  label="接诊医师（署名）"
+                  placeholder="选填，落单后随单署名"
+                  showSearch
+                  optionFilterProp="label"
+                  request={async () => {
+                    const res = await queryStaffByPage({ current: 1, pageSize: 100 });
+                    return (res?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! }));
+                  }}
+                />
               </div>
             </section>
 
@@ -562,7 +574,7 @@ const Create: React.FC = () => {
                     <div className="h" key={t.id}>
                       <div className="d">
                         <b>{moment(t.createTime).format('M-DD')}</b>
-                        {customer?.name || ''}
+                        {t.staffName || '未署名'}
                       </div>
                       <div className="t">{t.diagnose || '接诊记录'}</div>
                       <div className="n">{t.desc || t.plan || '—'}</div>

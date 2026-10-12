@@ -182,6 +182,10 @@ declare namespace API {
     id?: number;
     phone?: string;
     customerId?: number;
+    /** 接诊医师id（开单署名，选填） */
+    staffId?: number;
+    /** 接诊医师姓名（服务端按 staffId 回显） */
+    staffName?: string;
     name?: string;
     gender?: number;
     age?: number;

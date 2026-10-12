@@ -1,7 +1,9 @@
 package com.sinomed;
 
 import com.sinomed.entity.CustomerEntity;
+import com.sinomed.entity.StaffEntity;
 import com.sinomed.repository.CustomerRepository;
+import com.sinomed.repository.StaffRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,6 +12,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -31,6 +34,12 @@ class TreatAcuHttpTest {
 
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private StaffRepository staffRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private final RestTemplate rest = new RestTemplate();
 
@@ -134,5 +143,42 @@ class TreatAcuHttpTest {
             threw = true;
         }
         assertTrue(threw, "未登录应 401");
+    }
+
+    @Test
+    void staffSignatureBindsAndEchoes() {
+        String token = token();
+        // 种一位署名医师（同 StaffPermissionHttpTest 种法：role 99 在职）
+        StaffEntity doc = new StaffEntity();
+        doc.setName("王中医师");
+        doc.setAccount("sig-doc");
+        doc.setRole(99);
+        doc.setStatus(1);
+        doc.setPassword(passwordEncoder.encode("123"));
+        Long staffId = staffRepository.save(doc).getId();
+
+        CustomerEntity customer = new CustomerEntity();
+        customer.setName("署名顾客");
+        customer.setPhone("13900009703");
+        Long customerId = customerRepository.save(customer).getId();
+
+        // 创建带署名：回显 staffId + staffName
+        Map<String, Object> createBody = new java.util.HashMap<>();
+        createBody.put("customerId", customerId);
+        createBody.put("staffId", staffId);
+        createBody.put("desc", "署名回归");
+        Map<?, ?> created = rest.exchange(url("/api/v1/treat/"), HttpMethod.POST,
+                authEntity(createBody, token), Map.class).getBody();
+        assertTrue(created != null && created.get("id") != null, "创建应返回 id：" + created);
+        assertEquals("王中医师", created.get("staffName"), "创建应回显医师署名");
+        assertEquals(staffId.longValue(), ((Number) created.get("staffId")).longValue());
+
+        // 更新清空署名（全量更新，body 不带 staffId）→ staffName 空
+        Long id = ((Number) created.get("id")).longValue();
+        Map<?, ?> updated = rest.exchange(url("/api/v1/treat/"), HttpMethod.PUT,
+                authEntity(Map.of("id", id, "customerId", customerId, "desc", "署名回归"), token), Map.class).getBody();
+        assertTrue(updated != null && updated.get("id") != null, "更新应返回 id：" + updated);
+        assertNull(updated.get("staffId"), "更新不带 staffId 应清空署名");
+        assertNull(updated.get("staffName"), "清空署名后不应回显医师");
     }
 }
