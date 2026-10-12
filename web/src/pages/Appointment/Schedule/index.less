@@ -115,6 +115,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      /* 疗程标记：同项目第 N 张卡=第 N 疗程（无卡不标） */
+      .course {
+        color: var(--amber-deep);
+      }
     }
     .pill {
       flex: none;
@@ -234,6 +239,11 @@
         color: var(--faint);
         font-size: 11.5px;
         margin-top: 2px;
+
+        /* 疗程标记：同项目第 N 张卡=第 N 疗程（无卡不标） */
+        .course {
+          color: var(--amber-deep);
+        }
       }
       .st {
         font-size: 10.5px;

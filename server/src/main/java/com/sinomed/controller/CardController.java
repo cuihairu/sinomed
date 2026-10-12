@@ -79,6 +79,19 @@ public class CardController {
                 .collect(Collectors.toList());
     }
 
+    @Operation(summary = "批量按顾客查持卡", description = "ids 逗号分隔；排班格位疗程标记等聚合场景一次拉齐，返回各顾客持卡（含卡项名）",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "持卡列表（可空）", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CardView.class)))
+            })
+    @GetMapping("/customers")
+    public List<CardView> listByCustomerIds(
+            @Parameter(description = "顾客id 集合，逗号分隔") @NotNull @RequestParam("ids") List<Long> ids) {
+        return cardService.listByCustomerIds(ids).stream()
+                .map(this::decorate)
+                .collect(Collectors.toList());
+    }
+
     @Operation(summary = "停用 / 恢复", description = "status：1 有效 / 0 停用",
             responses = {
                     @ApiResponse(responseCode = "200", description = "更新后的持卡", content = @Content(

@@ -9,6 +9,7 @@ import {
   APPOINTMENT_STATUS,
   type Appointment,
 } from '@/services/ant-design-pro/appointment';
+import { listCardsByCustomers } from '@/services/ant-design-pro/card';
 import './index.less';
 
 /** 排班时段：9:00–18:00 整点（对齐设计原型 admin-booking.html 的时段网格） */
@@ -33,6 +34,8 @@ export default function AppointmentSchedule() {
   const [day, setDay] = useState(moment());
   const [list, setList] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  // 疗程标记：`${customerId}|${itemName}` → 第 N 疗程（同项目第 N 张卡，按购入先后；无卡不标）
+  const [course, setCourse] = useState<Record<string, number>>({});
 
   const dayStr = day.format('YYYY-MM-DD');
 
@@ -41,7 +44,23 @@ export default function AppointmentSchedule() {
     try {
       // 排班页看整日全部预约（含已取消/过号），不做状态过滤
       const res = await queryAppointmentPage({ current: 1, pageSize: 200, date: target });
-      setList(res?.data || []);
+      const rows = res?.data || [];
+      setList(rows);
+      // 疗程标记：按顾客批量拉持卡一次拉齐；同项目第 N 张卡=第 N 疗程，无卡项不标
+      const ids = Array.from(new Set(rows.map((a) => a.customerId).filter((x): x is number => !!x)));
+      if (ids.length === 0) {
+        setCourse({});
+        return;
+      }
+      const cards = await listCardsByCustomers(ids);
+      setCourse(
+        (cards || []).reduce<Record<string, number>>((acc, c) => {
+          if (!c.customerId || !c.itemName) return acc;
+          const key = `${c.customerId}|${c.itemName}`;
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {}),
+      );
     } finally {
       setLoading(false);
     }
@@ -174,7 +193,12 @@ export default function AppointmentSchedule() {
                           <span className={`st ${SLOT_CLASS[a.status ?? 0]}`}>{SLOT_TEXT[a.status ?? 0]}</span>
                           {more > 0 ? <span className="more">+{more}</span> : null}
                         </div>
-                        <div className="s">{a.itemName || '到店再定'}</div>
+                        <div className="s">
+                          {a.itemName || '到店再定'}
+                          {a.customerId && a.itemName && course[`${a.customerId}|${a.itemName}`] ? (
+                            <span className="course"> · 第{course[`${a.customerId}|${a.itemName}`]}疗程</span>
+                          ) : null}
+                        </div>
                       </div>
                       {a.status === APPOINTMENT_STATUS.BOOKED ? (
                         <button type="button" className="go" onClick={() => receive(a)}>
@@ -231,7 +255,12 @@ export default function AppointmentSchedule() {
                 <div className="rv" key={a.id}>
                   <span className="tm">{a.startTime ? moment(a.startTime).format('HH:mm') : '--'}</span>
                   <span className="n">{a.customerName || `顾客${a.customerId}`}</span>
-                  <span className="it">{a.itemName || '到店再定'}</span>
+                  <span className="it">
+                    {a.itemName || '到店再定'}
+                    {a.customerId && a.itemName && course[`${a.customerId}|${a.itemName}`] ? (
+                      <span className="course"> · 第{course[`${a.customerId}|${a.itemName}`]}疗程</span>
+                    ) : null}
+                  </span>
                   <span className="pill">{a.staffName || UNASSIGNED}</span>
                   <button type="button" className="go" onClick={() => receive(a)}>
                     接待

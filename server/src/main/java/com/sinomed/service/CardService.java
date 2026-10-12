@@ -17,6 +17,9 @@ public interface CardService {
     /** 按顾客查持卡（新卡在前，可空列表） */
     List<CustomerCardEntity> listByCustomer(Long customerId);
 
+    /** 批量按顾客查持卡（排班页疗程标记等聚合场景；ids 去空后查询，可空列表） */
+    List<CustomerCardEntity> listByCustomerIds(List<Long> customerIds);
+
     /** 停用 / 恢复：status 1 有效 / 0 停用 */
     CustomerCardEntity setStatus(Long id, Integer status);
 

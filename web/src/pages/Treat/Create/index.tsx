@@ -204,6 +204,17 @@ const Create: React.FC = () => {
     : '暂无到店记录';
 
   const activeCards = cards.filter((c) => c.status === 1);
+  // 疗程口径：同项目第 N 张卡（按购入 createTime 升序）= 第 N 疗程；无卡项不标
+  const courseOf: Record<number, number> = {};
+  const courseSeq: Record<string, number> = {};
+  cards
+    .filter((c) => c.id && c.itemName)
+    .slice()
+    .sort((x, y) => (x.createTime || '').localeCompare(y.createTime || '') || (x.id || 0) - (y.id || 0))
+    .forEach((c) => {
+      courseSeq[c.itemName!] = (courseSeq[c.itemName!] || 0) + 1;
+      courseOf[c.id!] = courseSeq[c.itemName!];
+    });
   // 就诊语境：编辑历史单据 / 有历史记录即复诊（历史单据在下方诊疗记录面板） / 否则初诊建档
   const visitContext = treatId
     ? '编辑历史诊疗单'
@@ -280,7 +291,8 @@ const Create: React.FC = () => {
                   ) : (
                     activeCards.map((c) => (
                       <span className="bal" key={c.id}>
-                        {c.itemName || '卡项'} 余 {c.remainingTimes ?? 0}/{c.totalTimes ?? 0} 次
+                        {c.itemName || '卡项'} · 第{courseOf[c.id!] || 1}疗程 余 {c.remainingTimes ?? 0}/
+                        {c.totalTimes ?? 0} 次
                       </span>
                     ))
                   )}

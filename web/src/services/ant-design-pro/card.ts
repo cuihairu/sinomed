@@ -42,6 +42,17 @@ export async function listCardsByCustomer(
   });
 }
 
+/** 批量按顾客查持卡（排班格位疗程标记等聚合场景，一次拉齐避免逐顾客查询；ids 逗号分隔） */
+export async function listCardsByCustomers(
+  ids: number[],
+  options?: { [key: string]: any },
+) {
+  return request<Card[]>(`/api/v1/card/customers?ids=${ids.join(',')}`, {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
 /** 停用 / 恢复：status 1 有效 / 0 停用 */
 export async function setCardStatus(
   id: number,

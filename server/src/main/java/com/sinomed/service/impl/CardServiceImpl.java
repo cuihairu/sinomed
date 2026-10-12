@@ -76,6 +76,14 @@ public class CardServiceImpl implements CardService {
     }
 
     @Override
+    public List<CustomerCardEntity> listByCustomerIds(List<Long> customerIds) {
+        if (customerIds == null || customerIds.isEmpty()) {
+            return List.of();
+        }
+        return cardRepository.findByCustomerIdIn(customerIds);
+    }
+
+    @Override
     @Transactional
     public CustomerCardEntity setStatus(Long id, Integer status) {
         if (status == null || (status != 0 && status != 1)) {

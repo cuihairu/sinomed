@@ -200,6 +200,7 @@
 | ---- | ---- | ---- |
 | POST | `/api/v1/card/` | 发卡：`customerId` + `itemId` + `totalTimes`（≥1）必填，`sourceOrderId` 可空（溯源购卡订单），`validUntil` 可空=长期有效（毫秒数，过期卡不参与抵扣）；余次=总次数、状态有效 |
 | GET | `/api/v1/card/list` | 按顾客查持卡（`customerId` 必填），新卡在前，联出顾客名与卡项名 |
+| GET | `/api/v1/card/customers?ids=` | 批量按顾客查持卡（`ids` 逗号分隔，可空列表返回 `[]`），联出顾客名与卡项名；排班格位疗程标记等聚合场景一次拉齐，避免逐顾客查询 |
 | PUT | `/api/v1/card/{id}/status?status=` | 停用 / 恢复（`1` 有效 / `0` 停用）；停用卡不参与抵扣 |
 | GET | `/api/v1/card/{id}/usages` | 按持卡查核销记录（新记录在前）：每次结算抵扣一条，含 `timesUsed`（第几次，1 起）、`orderId`、`staffId/staffName`（服务员工，取订单 staffId）、`createTime`；持卡不存在报 400 |
 

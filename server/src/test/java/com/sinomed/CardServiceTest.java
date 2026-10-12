@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
+import java.util.List;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
@@ -171,5 +172,19 @@ class CardServiceTest {
                 .validUntil(Date.from(Instant.now().minus(1, ChronoUnit.DAYS))).build());
         var e = assertThrows(IllegalArgumentException.class, () -> cardService.deduct(only, itemId, null));
         assertTrue(e.getMessage().contains("无可抵扣次卡"));
+    }
+
+    @Test
+    void listByCustomerIdsReturnsCardsAcrossCustomers() {
+        var mine = newCustomer("13900005023");
+        var other = newCustomer("13900005024");
+        cardService.issue(CardView.builder().customerId(mine).itemId(itemId).totalTimes(10).build());
+        cardService.issue(CardView.builder().customerId(other).itemId(itemId).totalTimes(5).build());
+
+        List<CustomerCardEntity> found = cardService.listByCustomerIds(List.of(mine, other));
+        assertEquals(2, found.size());
+        assertTrue(found.stream().anyMatch((c) -> c.getCustomerId().equals(mine)));
+        assertTrue(found.stream().anyMatch((c) -> c.getCustomerId().equals(other)));
+        assertTrue(cardService.listByCustomerIds(List.of()).isEmpty(), "空入参返回空列表");
     }
 }
