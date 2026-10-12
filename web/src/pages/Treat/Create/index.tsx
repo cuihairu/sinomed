@@ -523,19 +523,20 @@ const Create: React.FC = () => {
                   </tr>
                 </thead>
               </table>
-              <div className="add-row">从卡项列表添加项目</div>
               <div className="plan-note">
-                接诊单开单、卡项抵扣与应收合计属规划域（接诊流暂无订单创建接口），界面按原型
-                docs/design/mockups/desktop-workstation 预留单据表结构，接口接入后在此渲染项目行与合计。
+                接诊单开单、卡项抵扣与应收合计属规划域（接诊流暂无订单创建接口，与接诊单-订单关联缺口同源），界面按原型
+                docs/design/mockups/desktop-workstation 预留单据表结构；不做假按钮，「从卡项添加」待订单接口接入后随项目行一并落地。
               </div>
             </section>
           </div>
 
           <aside className="tc-side">
             <div className="tc-total">
-              <div className="tk">应收合计</div>
-              <div className="tv hold">规划功能</div>
-              <div className="td2">接诊流暂无订单/收款接口，按项目现价合计待接口接入后在此显示</div>
+              <div className="tk">收款去向</div>
+              <div className="td2">
+                收款归<a onClick={() => history.push('/billing/settle')}>收费结算台</a>
+                ：按订单计应收（含次卡抵扣），收款后打印小票；接诊流暂无订单接口，本页不做开单试算
+              </div>
             </div>
             <Button className="tc-pay" type="primary" size="large" block onClick={() => formRef.current?.submit()}>
               保存接诊单
@@ -579,6 +580,7 @@ const Create: React.FC = () => {
                 <br />
                 打印小票 <b className="n hold">规划</b> · 扫码定位 <b className="n hold">规划</b>
               </div>
+              <div className="plan-note">打印/扫码计数需收银埋点与扫码事件统计，暂无数据源，不做假数</div>
             </section>
 
             <section className="tc-panel">

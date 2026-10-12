@@ -5,7 +5,7 @@
 ## P0 — UI 按原型核对：差距清单（2026-10-11 全量核对完成）
 
 > 15 组全部核对（原型 `docs/design/mockups/*.html` + `tokens.css` ↔ 实现 web/app/kiosk/tablet/desktop），共 **84 条差距（P0 2 / P1 24 / P2 58）**，逐条带 file:line 证据。
-> 进度（2026-10-12 续批）：已清 75 条（P0 2/2 + P1 20 + P2 51：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9、customer 卡项有效期+建档月份（补 valid_until 列）、herbprescription 炮制列+用法三格（补 process/take_method 列）、app 四主题（H5 端切换+本机记忆，小程序端如实固定石墨）、接口层方法级权限（员工管理写接口 ADMIN 强制+角色映射修正）、herbprescription 目录拼音首字母检索（pinyin-pro 本地算）、代煎费三行账（拍板对齐原型入应收合计）），余 10 条（P2，全部卡点/规划占位/禁碰）：卡点 5 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、desktop 署名医师——均缺数据源）；4 条规划占位（desktop-workstation 开单表/收款/余次/统计）；1 条禁碰（在线支付真实通道）
+> 进度（2026-10-12 续批）：已清 81 条（P0 2/2 + P1 20 + P2 51：herbprescription 辨证条+rx头/特殊煎法提醒/签名行/领取方式/三键、customer 时间线疗程标签+取穴摘要+新建表单文案/会员档位/回访链接+下次回访统计/回访提醒/回访原因+面包屑、treat history 列扩、diagnosis 灸法行+卡项余次实卡+就诊语境、dash-day 角色副行/真实在岗/回访手机号、mobile-home 全部 7 条、orders 全部 5 条、billing 明细/备注/说明行/队列单号+支付图标配色、booking 待到店面板/过号/限约/stat4/联动面板、diagnosis 寸关尺分部+五行生克图、item 分页排序+时长字段、ads 素材分类+排期名+屏幕状态、appearance 文案+预览高、ads 渐变主题化、warn 色入 tokens、叫号条文案、工作站窗口 1360×832、ads 删除裁定保留、ads 快捷叫号草稿态、prescription 过敏审方常显态、billing 头卡会员档位、kiosk/tablet ?theme 入口、kiosk 购物篮空态常驻+留白 40px+封面 16:9、customer 卡项有效期+建档月份（补 valid_until 列）、herbprescription 炮制列+用法三格（补 process/take_method 列）、app 四主题（H5 端切换+本机记忆，小程序端如实固定石墨）、接口层方法级权限（员工管理写接口 ADMIN 强制+角色映射修正）、herbprescription 目录拼音首字母检索（pinyin-pro 本地算）、代煎费三行账（拍板对齐原型入应收合计）、desktop-workstation 收款去向真实跳转结算台+死文本移除（开单表/打印扫码计数按卡点如实标注）+余次题面核销、三条过时审计行（预约/中药处方/收费结算）核销），余 6 条（P2，全部卡点/禁碰）：卡点 5 条（diagnosis 第 N 疗程、booking 格位疗程+医师名单、dash-day 提醒推送（缺通知通道）、desktop 署名医师、desktop-workstation 开单表项目行（需接诊单↔订单模型，与 #85 同源）+打印/扫码计数（无埋点）——均缺数据源）；1 条禁碰（在线支付真实通道）
 > 两条裁定口径已执行：admin-billing 处方饮片行不列为差距；mobile-home 卡项余次「规划功能」占位按忠实占位处理（P2 信息项）。
 > 严重度：P0=原型整块功能缺失；P1=功能在但结构/字段明显不同；P2=表层细节。修完按 mockups README §2 口径重出截图验收。
 
@@ -90,10 +90,10 @@
 
 ### desktop-workstation（7 条）
 - [x] 外设状态条为写死静态文案（原型实时连接态；壳侧 print_html/print_escpos/scanner_start 无状态查询命令）｜✅ 2026-10-12 部分清：状态条按运行环境如实标注——壳内（window.__TAURI__ 检测 index.tsx:96）出「串口事件通道就绪」（remote 能力只放事件监听，收码即监听中 index.tsx:557-596），浏览器出「页顶扫码条/需桌面工作站」，plan-note 分环境说明。余卡点：真实端口连接态需壳侧新增状态查询命令（Rust commands + tauri ACL 权限文件），本轮不动壳｜P1（部分，余壳侧命令）
-- [ ] 接诊单开单表项目行/从卡项添加为「规划功能」占位壳｜原型 desktop-workstation.html:133 / 实现 web/src/pages/Treat/Create/index.tsx:460｜P2
-- [ ] 应收合计+「收款并打印小票」为「规划功能」占位（收款在 Billing/Settle 页）｜原型 desktop-workstation.html:168 / 实现 web/src/pages/Treat/Create/index.tsx:481｜P2
-- [ ] 顾客条卡项余次「规划功能」占位｜原型 desktop-workstation.html:131 / 实现 web/src/pages/Treat/Create/index.tsx:249｜P2
-- [ ] 今日工作站统计：打印/扫码计数「规划」占位（仅接诊数落地）｜原型 desktop-workstation.html:175 / 实现 web/src/pages/Treat/Create/index.tsx:526｜P2
+- [x] 接诊单开单表项目行/从卡项添加为「规划功能」占位壳｜原型 desktop-workstation.html:133 / 实现 web/src/pages/Treat/Create/index.tsx:460｜P2｜✅ 2026-10-12 裁定落不进现口径：项目行需「接诊单↔订单」模型（与 #85 缺 treatId 同源），开单会与 Billing/Settle 收款口径冲突；已移除死的「从卡项添加」文本（不做假按钮），plan-note 注明与订单接口同批落地
+- [x] 应收合计+「收款并打印小票」为「规划功能」占位（收款在 Billing/Settle 页）｜原型 desktop-workstation.html:168 / 实现 web/src/pages/Treat/Create/index.tsx:481｜P2｜✅ 2026-10-12 落地（收款仍归 Billing/Settle 口径）：「应收合计·规划功能」卡改为「收款去向」卡，卡内真实链接跳 /billing/settle（按订单计应收+次卡抵扣+小票打印），本页如实注明不做开单试算
+- [x] 顾客条卡项余次「规划功能」占位｜原型 desktop-workstation.html:131 / 实现 web/src/pages/Treat/Create/index.tsx:249｜P2｜✅ 2026-10-12 核验：题面过时——已实装（定位顾客后 listCardsByCustomer 取实卡，activeCards 渲染「卡项名 余 N/M 次」，无卡/无有效卡均如实标注，index.tsx:276-292），勾选
+- [x] 今日工作站统计：打印/扫码计数「规划」占位（仅接诊数落地）｜原型 desktop-workstation.html:175 / 实现 web/src/pages/Treat/Create/index.tsx:526｜P2｜✅ 2026-10-12 裁定为卡点：今日接诊数真实已落地；打印小票/扫码定位计数需收银埋点与扫码事件统计，全库无此数据源，不做假数——页面 plan-note 如实注明
 - [ ] 近三次诊疗署名显示顾客姓名（原型为诊疗医师）【卡点：无数据源】与顾客时间线医师缺口同源——接诊单模型无 staffId（医师落谁涉及接诊归属语义，待定夺再加），现以顾客名如实标注｜原型 desktop-workstation.html:161 / 实现 web/src/pages/Treat/Create/index.tsx:510｜P2
 - [x] 工作站默认窗口 1280×800（原型 1360×832@1440×900）｜✅ 2026-10-12 默认宽高改 1360×832（desktop/src-tauri/src/config.rs default_width/default_height；存量 config.json 已存值不受影响）｜P2
 
@@ -143,9 +143,9 @@
 **修复优先级建议**：~~P0 2 条（herbprescription 辨证条、mobile-home tabbar）~~（已清）→ P1 中影响数据模型的（billing 多项目明细/整单备注、orders 多品项+查看、booking 过号+限约、diagnosis 寸关尺+五行图）→ 其余 P1 → P2 批量扫尾。修复后按 mockups README §2 口径重出截图验收。
 
 ## 未实现功能（audit-doc-consistency.md 点名；mockups README 状态为「部分实现」，缺口以上表核对为准）
-- [ ] 预约挂号（设计原型：/screenshots/admin-booking.png）
-- [ ] 中药处方（设计原型：/screenshots/…）
-- [ ] 收费结算（设计原型：/screenshots/…）
+- [x] 预约挂号（设计原型：/screenshots/admin-booking.png）｜✅ 2026-10-12 核验为过时审计行：功能已实装（appointments API + /appointment/* 工作台+排班网格 + 小程序自助约期），features.md:11 已带界面交叉链接，admin-booking.png 在 docs/public/screenshots/，audit-doc-consistency C4/4 的补链接建议已应用
+- [x] 中药处方（设计原型：/screenshots/…）｜✅ 2026-10-12 核验为过时审计行：中药处方全链路已实装（开方/计价/审方/代煎膏方流转/模板/方剂库），features.md:14 已带界面交叉链接，admin-herbprescription.png 在位
+- [x] 收费结算（设计原型：/screenshots/…）｜✅ 2026-10-12 核验为过时审计行：结算/退费原路退回/日对账/月报表已实装，features.md:17 已带界面交叉链接，admin-billing.png 在位
 
 ## 安全与技术债
 - [x] 服务端接口层方法级权限强制（web.md:174：当前只做页面级隐藏）｜✅ 2026-10-12 员工管理写接口（POST/PUT/DELETE /api/v1/staff）@PreAuthorize("hasRole('ADMIN')")（StaffController.java:75+152+272），与 web canAdmin（role==0）同口径；服务端权威映射修正 role 0→ADMIN / 1-9→MANAGER / ≥10→USER（原 1-9 全给 ADMIN、99 员工给 MANAGER 的错位，StaffEntity.getAuthorities:85-96）；越权写 403、读列表不受限，回归 StaffPermissionHttpTest（admin 建删 + clerk 越权 403 + clerk 读 page 200）；web.md 权限节同步｜P2
