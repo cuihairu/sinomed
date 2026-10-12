@@ -5,6 +5,7 @@ import com.sinomed.entity.TreatEntity;
 import com.sinomed.repository.TreatRepository;
 import com.sinomed.service.TreatService;
 import com.sinomed.util.DateUtil;
+import com.sinomed.vo.CustomerVisitsVo;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
@@ -22,10 +23,26 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class TreatServiceImpl implements TreatService {
+
+    /** 按顾客批量聚合就诊次数：treats 表按 cid 计数，无记录的顾客不在返回里 */
+    @Override
+    public List<CustomerVisitsVo> countVisitsByCustomerIds(List<Long> customerIds) {
+        if (customerIds == null || customerIds.isEmpty()) {
+            return List.of();
+        }
+        return treatRepository.countVisitsByCustomerIds(customerIds).stream()
+                .map(v -> CustomerVisitsVo.builder()
+                        .customerId(v.getCustomerId())
+                        .visits(v.getVisits())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private final TreatRepository treatRepository;
     public TreatServiceImpl(TreatRepository treatRepository){
         this.treatRepository = treatRepository;

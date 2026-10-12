@@ -8,7 +8,7 @@
 
 | 功能点 | 参考来源项目 | Sinomed 现状 | 说明 |
 | ---- | ---- | ---- | ---- |
-| 预约挂号 | openhis-clinic(预约登记)、ZainZhao/HIS、TANGKUO/HIS(挂号工作站)、hisystem(挂号收费) | 已实现 | `appointments` 表 + `/api/v1/appointment`（建约/待到店列表/到店接待转接诊/取消），管理端 `/appointment/*` 列表工作台 + `/appointment/schedule` 医师×时段排班网格；小程序自助约期已实装（`POST /api/v1/kiosk/appointments` 免登录 + 小程序 `pages/booking`，频控 1 条/日/手机号，不做同时段冲突校验）。**界面：[预约排班](/screenshots/admin-booking.png)** |
+| 预约挂号 | openhis-clinic(预约登记)、ZainZhao/HIS、TANGKUO/HIS(挂号工作站)、hisystem(挂号收费) | 已实现 | `appointments` 表 + `/api/v1/appointment`（建约/待到店列表/到店接待转接诊/取消），管理端 `/appointment/*` 列表工作台 + `/appointment/schedule` 医师×时段排班网格（格位带就诊标记：疗程卡=第 N 疗程、无卡按 treats 就诊记录=复诊/首诊）；小程序自助约期已实装（`POST /api/v1/kiosk/appointments` 免登录 + 小程序 `pages/booking`，频控 1 条/日/手机号，不做同时段冲突校验）。**界面：[预约排班](/screenshots/admin-booking.png)** |
 | 电子病历 | Yukang(主诉/现病史/四诊/辨证/医嘱)、openhis(EMR 模块)、his_mvp | 部分 | `treats` 诊疗单承载主诉、问诊、望诊、触诊、脉象、五行、取穴、诊断、方案、饮食、调理、回访;病史结构已实装（`customer_histories` 逐条记录过敏史/既往史，顾客档案页可增删，见 CustomerHistoryHttpTest）；无独立过敏史/既往史以外的既往史时间线 |
 | 处方(西药/成药) | Yukang(中西成药处方)、openhis-clinic(收费发药) | 未实现 | 西药/成药处方与药品目录未做；中药处方已实装（`prescriptions`/`prescription_items`，配药材字典计价）。**界面：[中药处方笺](/screenshots/admin-herbprescription.png)** |
 | 中药处方 | Yukang(中药/贴敷/外治)、herb-ms-ssm(药材-处方-计价)、his_mvp(中药方剂)、chinese_medicine_store_cos(病症处方) | 部分 | `prescriptions`/`prescription_items` 表 + `/api/v1/prescription`（开方/详情/分页/删除，药味含剂量克数与特殊煎法）+ `/prescription/*` 开方与查询页；药材字典实时计价、配伍审方（十八反/十九畏）、剂量审方（`/prescription/dose-check`，按药材字典 `dose_max` 单剂上限比对，提示不拦截）、代煎与膏方领取流转、病症模板、方剂库检索带方已实装；饮片出入库流水与效期预警已实装（`/api/v1/herb-stock`，开方仍不扣库存）。**界面：[中药处方笺](/screenshots/admin-herbprescription.png)** |

@@ -43,7 +43,7 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 | 路径 | 页面 | 做什么 |
 | ---- | ---- | ---- |
-| `/appointment/schedule` | 排班视图 | 按日看医师×时段占用（9:00–18:00 整点网格，列按**医师名册**（`staffs.title` 职务语义：在职且职务含「医师」；名册空回退当日有约）并**班表联动**——当日（`staff_shifts` 按星期）在班医师列在前、无班次名册医师列头弱化标注「今日无班次」）：空格虚线「可预约」，有约显示顾客/项目与状态标（待到店/已到店/过号/已取消），待到店格内一键「接待」（0→1）；右栏「今日预约」四格统计（总数/已到店/待到店/过号）+「待到店」列表（时段·顾客·项目·医师 + 接待）+「小程序联动」规划说明，日期前后翻页与「今天」；格位与待到店行带**疗程标记**（口径：同项目第 N 张卡按购入先后=第 N 疗程，`GET /card/customers` 按顾客批量拉齐，无卡项不标） |
+| `/appointment/schedule` | 排班视图 | 按日看医师×时段占用（9:00–18:00 整点网格，列按**医师名册**（`staffs.title` 职务语义：在职且职务含「医师」；名册空回退当日有约）并**班表联动**——当日（`staff_shifts` 按星期）在班医师列在前、无班次名册医师列头弱化标注「今日无班次」）：空格虚线「可预约」，有约显示顾客/项目与状态标（待到店/已到店/过号/已取消），待到店格内一键「接待」（0→1）；右栏「今日预约」四格统计（总数/已到店/待到店/过号）+「待到店」列表（时段·顾客·项目·医师 + 接待）+「小程序联动」规划说明，日期前后翻页与「今天」；格位与待到店行带**就诊标记**：疗程卡标记优先（同项目第 N 张卡按购入先后=第 N 疗程，`GET /card/customers` 按顾客批量拉齐）；无卡项按就诊记录标**复诊/首诊**（`GET /treat/visited?ids=` 批量查 treats 聚合计数，有记录=复诊、无=首诊；treats 无项目维度，按顾客口径） |
 | `/appointment/query` | 预约排班 | 今日/全部切换 + 状态 tab（待到店/已接待/过号/已取消带计数）；行操作：到店接待（0→1）、过号（0→8）、取消（0→9）、已接待后「发起接诊」跳 `/treat/create?customerId=`、已取消可删 |
 | `/appointment/create` | 新建预约 | 按手机号定位顾客（未建档提示先建档）→ 时段（日期时间 + 时长 30/60/90 分钟）→ 项目/员工/备注选填；提交发带时区偏移的时间串（服务端 Jackson 默认 UTC，无偏移会平移 8 小时） |
 
@@ -74,7 +74,7 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 | 路径 | 页面 | 做什么 |
 | ---- | ---- | ---- |
-| `/item/create` | 创建卡项 | 名称 / 价格 / 时长（分钟，选填，展示用）/ 描述，支持 `?itemId=` 回填（编辑复用此页） |
+| `/item/create` | 创建卡项 | 名称 / 价格 / 时长（分钟，选填，展示用）/ 描述，支持 `?itemId=` 回填（编辑复用此页，带 id 提交走 `PUT /api/v1/item/` 真实更新，不带 id 新建） |
 | `/item/query` | 卡项查询 | 分页检索与删除，**编辑操作跳转 `/item/create?itemId=` 回填** |
 
 ### 反馈系统（/review）——复盘与回访
@@ -181,4 +181,4 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 - `config/oneapi.json` 仍为脚手架模板 schema（含 `/api/rule` 等模板端点），驱动 openAPI 插件生成 `src/services/ant-design-pro/api.ts` 与 `typings.d.ts`（其中 `currentUser` 等已手改指向真实后端接口）；
 - `manifest.json` / PWA 名称仍是脚手架默认值。
 
-> 已清理：脚手架残留页面 `src/pages/Welcome.tsx`、`Admin.tsx`、`TableList/`（不在路由，无引用）；petstore 示例服务 `src/services/swagger/`（`config.ts` openAPI 第二入口一并移除）；卡项占位页 `/item/spread`、`/item/update`（表单实为 `createItem` 建新卡项的误用隐患，已连同路由移除，编辑统一走 `/item/create?itemId=`，`updateItem` 服务函数保留备用）。
+> 已清理：脚手架残留页面 `src/pages/Welcome.tsx`、`Admin.tsx`、`TableList/`（不在路由，无引用）；petstore 示例服务 `src/services/swagger/`（`config.ts` openAPI 第二入口一并移除）；卡项占位页 `/item/spread`、`/item/update`（表单实为 `createItem` 建新卡项的误用隐患，已连同路由移除，编辑统一走 `/item/create?itemId=`，2026-10-12 起带 id 提交走 `updateItem` PUT 真实更新；spread「扩散」在原型 admin-items.html 无对应设计，按脚手架残留裁定不补）。

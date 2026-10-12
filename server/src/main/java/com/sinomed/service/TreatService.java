@@ -1,6 +1,7 @@
 package com.sinomed.service;
 
 import com.sinomed.entity.TreatEntity;
+import com.sinomed.vo.CustomerVisitsVo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -33,4 +34,9 @@ public interface TreatService {
      * 根据治疗的id查询治疗
      * */
     List<TreatEntity> findAll();
+
+    /**
+     * 按顾客批量查就诊次数（排班页「首诊/复诊」角标）；无诊疗记录的顾客不在返回里
+     * */
+    List<CustomerVisitsVo> countVisitsByCustomerIds(List<Long> customerIds);
 }

@@ -10,6 +10,7 @@ import {
   type Appointment,
 } from '@/services/ant-design-pro/appointment';
 import { listCardsByCustomers } from '@/services/ant-design-pro/card';
+import { fetchTreatVisited } from '@/services/ant-design-pro/treat';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryShiftPage } from '@/services/ant-design-pro/shift';
 import './index.less';
@@ -38,6 +39,8 @@ export default function AppointmentSchedule() {
   const [loading, setLoading] = useState(false);
   // 疗程标记：`${customerId}|${itemName}` → 第 N 疗程（同项目第 N 张卡，按购入先后；无卡不标）
   const [course, setCourse] = useState<Record<string, number>>({});
+  // 复诊标记：有既往诊疗记录的顾客 id 集（treats 按顾客计数；无记录=首诊）
+  const [visited, setVisited] = useState<Set<number>>(new Set());
   // 医师名册（staffs.title 职务语义）：在职且职务含「医师」
   const [roster, setRoster] = useState<{ id: number; name: string }[]>([]);
   // 当日在班医师 id 集（staff_shifts 按当日星期，班表×排班联动）
@@ -52,13 +55,18 @@ export default function AppointmentSchedule() {
       const res = await queryAppointmentPage({ current: 1, pageSize: 200, date: target });
       const rows = res?.data || [];
       setList(rows);
-      // 疗程标记：按顾客批量拉持卡一次拉齐；同项目第 N 张卡=第 N 疗程，无卡项不标
+      // 疗程标记：按顾客批量拉持卡一次拉齐；同项目第 N 张卡=第 N 疗程，无卡项不标。
+      // 首诊/复诊：同批顾客拉就诊次数，有既往诊疗记录=复诊、无=首诊（treats 无项目维度，按顾客口径）
       const ids = Array.from(new Set(rows.map((a) => a.customerId).filter((x): x is number => !!x)));
       if (ids.length === 0) {
         setCourse({});
+        setVisited(new Set());
         return;
       }
-      const cards = await listCardsByCustomers(ids);
+      const [cards, visits] = await Promise.all([
+        listCardsByCustomers(ids),
+        fetchTreatVisited(ids).catch(() => []),
+      ]);
       setCourse(
         (cards || []).reduce<Record<string, number>>((acc, c) => {
           if (!c.customerId || !c.itemName) return acc;
@@ -67,6 +75,7 @@ export default function AppointmentSchedule() {
           return acc;
         }, {}),
       );
+      setVisited(new Set((visits || []).map((v) => v.customerId).filter((x): x is number => !!x)));
     } finally {
       setLoading(false);
     }
@@ -254,6 +263,8 @@ export default function AppointmentSchedule() {
                           {a.itemName || '到店再定'}
                           {a.customerId && a.itemName && course[`${a.customerId}|${a.itemName}`] ? (
                             <span className="course"> · 第{course[`${a.customerId}|${a.itemName}`]}疗程</span>
+                          ) : a.customerId ? (
+                            <span className="course">{visited.has(a.customerId) ? ' · 复诊' : ' · 首诊'}</span>
                           ) : null}
                         </div>
                       </div>
@@ -316,6 +327,8 @@ export default function AppointmentSchedule() {
                     {a.itemName || '到店再定'}
                     {a.customerId && a.itemName && course[`${a.customerId}|${a.itemName}`] ? (
                       <span className="course"> · 第{course[`${a.customerId}|${a.itemName}`]}疗程</span>
+                    ) : a.customerId ? (
+                      <span className="course">{visited.has(a.customerId) ? ' · 复诊' : ' · 首诊'}</span>
                     ) : null}
                   </span>
                   <span className="pill">{a.staffName || UNASSIGNED}</span>

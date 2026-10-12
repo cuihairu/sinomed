@@ -49,6 +49,7 @@
 | GET | `/api/v1/treat/{id}` | 按 id 查询 |
 | GET | `/api/v1/treat/customer/{id}` | 按顾客 id 查询全部诊疗单 |
 | GET | `/api/v1/treat/customer/name/{name}` | 按顾客姓名查询（姓名需唯一） |
+| GET | `/api/v1/treat/visited?ids=` | 按顾客批量查就诊次数（`ids` 逗号分隔必填，缺失 400）：treats 表按顾客聚合计数，回 `[{ customerId, visits }]`；无诊疗记录的顾客（含不存在的 id）不出现在结果里。排班页「首诊/复诊」角标依据——visits ≥ 1 = 复诊、无记录 = 首诊（treats 无项目维度，按顾客口径；疗程卡标记优先） |
 | GET | `/api/v1/treat/history` | 分页查询某顾客的诊疗历史（`customerId` 必填，按创建时间倒序） |
 | GET | `/api/v1/treat/fuzzy` | 模糊检索（传 `id` 单查；否则按 `name` / `age` / `phone` 圈定顾客后分页） |
 | PUT | `/api/v1/treat/` | 按 id 全量更新接诊单：id/customerId 必填且须存在，字段以请求体为准（不带 `staffId` 即清空署名），回包含顾客姓名/年龄/性别与接诊医师署名（更新后驱逐 findById 缓存） |

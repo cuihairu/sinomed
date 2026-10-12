@@ -9,6 +9,7 @@ import com.sinomed.vo.MessageView;
 import com.sinomed.vo.ExceptionView;
 import com.sinomed.vo.PageResp;
 import com.sinomed.vo.TreatView;
+import com.sinomed.vo.CustomerVisitsVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -103,6 +104,21 @@ public class TreatController {
         CustomerEntity customer = customerEntityList.get(0);
         List<TreatEntity> treats = treatService.findByCustomerId(customer.getId());
         return treats.stream().map(this::toTreatView).toList();
+    }
+
+    @Operation(summary = "按顾客批量查就诊次数", description = "ids 逗号分隔；排班页「首诊/复诊」角标等聚合场景一次拉齐：visits ≥ 1 = 有既往诊疗记录（复诊），无记录顾客不出现在结果里（首诊）",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "就诊次数列表（可空）", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CustomerVisitsVo.class)))
+            })
+    @GetMapping("/visited")
+    public List<CustomerVisitsVo> countVisitsByCustomerIds(
+            @Parameter(description = "顾客id 集合，逗号分隔") @Nullable @RequestParam(value = "ids", required = false) List<Long> ids) {
+        // 缺参由这里显式报 400（required=true 的缺参走兜底 500，不合客户端错误语义）
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("ids 集合必填，逗号分隔");
+        }
+        return treatService.countVisitsByCustomerIds(ids);
     }
 
     @GetMapping("/history")

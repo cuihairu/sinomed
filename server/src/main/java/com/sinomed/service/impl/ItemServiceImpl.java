@@ -4,6 +4,7 @@ import com.sinomed.entity.ItemEntity;
 import com.sinomed.repository.ItemRepository;
 import com.sinomed.service.ItemService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
@@ -52,6 +53,7 @@ public class ItemServiceImpl implements ItemService {
      * @param itemEntity
      */
     @Override
+    @CacheEvict(value = "ItemEntity", key = "#itemEntity.id")
     public ItemEntity save(ItemEntity itemEntity) {
         Long id = itemEntity.getId();
         if (id != null){
@@ -70,6 +72,7 @@ public class ItemServiceImpl implements ItemService {
      * @param id
      */
     @Override
+    @CacheEvict(value = "ItemEntity", key = "#id")
     public void deleteById(Long id) {
         itemRepository.deleteById(id);
     }

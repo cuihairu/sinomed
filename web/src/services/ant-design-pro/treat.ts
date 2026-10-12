@@ -62,3 +62,18 @@ export async function fuzzyQueryTreatByPage(params: API.QueryTreatParams,options
     ...(options || {}),
   });
 }
+
+/** 顾客就诊次数（GET /api/v1/treat/visited?ids=，批量）：visits ≥ 1 = 有既往诊疗记录。
+ *  排班页「首诊/复诊」角标依据——复诊=有记录，首诊=无记录（不在返回里）；有疗程卡时疗程标记优先 */
+export interface CustomerVisits {
+  customerId?: number;
+  visits?: number;
+}
+
+export async function fetchTreatVisited(ids: number[], options?: { [key: string]: any }) {
+  return request<CustomerVisits[]>('/api/v1/treat/visited', {
+    method: 'GET',
+    params: { ids: ids.join(',') },
+    ...(options || {}),
+  });
+}

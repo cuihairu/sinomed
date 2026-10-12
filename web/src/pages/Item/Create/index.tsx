@@ -1,6 +1,6 @@
 
 import React, {useState} from 'react';
-import {createItem, fetchItem} from '@/services/ant-design-pro/item';
+import {createItem, fetchItem, updateItem} from '@/services/ant-design-pro/item';
 import {ProForm, ProFormDigit, ProFormSelect, ProFormText, ProFormTextArea} from '@ant-design/pro-components'
 import {Button, Image, message, Upload} from "antd";
 import {UploadOutlined} from '@ant-design/icons';
@@ -77,10 +77,11 @@ const Create: React.FC = () => {
         }}
         layout={'vertical'}
         onFinish={async (values) => {
-          const result = await createItem(values);
-          console.log(result)
+          // 带 id=编辑回填走 PUT 更新；否则新建。此前一律 createItem，编辑实为建新卡（误用隐患）
+          const editing = values.id != null;
+          const result = editing ? await updateItem(values) : await createItem(values);
           if (result.id) {
-            message.success("创建成功")
+            message.success(editing ? "保存成功" : "创建成功")
             return true;
           }
           return false;
