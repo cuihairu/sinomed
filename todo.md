@@ -85,7 +85,7 @@
 - [x] 结算头卡缺会员档位标签与接诊单号（仅掩码手机/内部单号/下单时间）｜✅ 2026-10-12 会员档位标签：选单时 fetchCustomerById 取 level（index.tsx:100-101），头卡名字旁档位药丸（index.tsx:286，LEVEL_TEXT index.tsx:26，样式 index.less .nm .tier）；接诊单号【卡点：无数据源】订单模型无 treatId（OrderEntity 仅 userId/itemId/staffId）且自助机下单本无接诊单可关联，头卡沿用业务单号｜原型 admin-billing.html:114 / 实现 web/src/pages/Billing/Settle/index.tsx:285｜P2
 - [x] 应收合计缺「卡项抵扣已减；支付后余额」说明行｜原型 admin-billing.html:152 / 实现 web/src/pages/Billing/Settle/index.tsx:330（.sub 说明行：次卡实收 0/储值支付后余额/到店收银）｜P2
 - [x] 队列单号格式：原型业务编号「20261008-006」，实现内部 id「#6」｜原型 admin-billing.html:144 / 实现 web/src/pages/Billing/Settle/index.tsx:195（队列行与结算头卡均 orderBusinessNo）｜P2
-- [ ] 微信/支付宝仅记录支付方式（原型扫码收款；在线支付官方口径为规划）｜原型 admin-billing.html:155 / 实现 web/src/pages/Billing/Settle/index.tsx:257｜P2
+- [x] 微信/支付宝仅记录支付方式（原型扫码收款；在线支付官方口径为规划）｜✅ 2026-10-12 拍板走方案①对齐原型补**静态收款码展示面**（到店扫码收款=结算台出示商户收款码，顾客系统外扫码支付，系统只记账；不接支付网关、无回调，web.md「不做在线支付，到店结算」口径不变）：后端新增 `GET /api/v1/pay-qrcode/{method}`（PayQrCodeController，method 白名单 wechat/alipay 之外一律 404，读 `{sinomed.pay.qrcodes-dir:data/payqrcodes}/{method}.png|.jpg|.jpeg` 按扩展名给 Content-Type，缺图 404——沿用 printtemplates 的 data/ 目录约定，商户把收款码图片放服务器即生效、不用重构建；需登录，收款码是商户资产）；web 结算台选中微信/支付宝时 fetch+blob 取图（img 带不上 Bearer，同小票补打口径）出 `.qr-face` 收款码卡，附「到账以商户账单为准，系统只记录支付方式」提示；缺图 404 时琥珀提示块如实告知放图路径 `data/payqrcodes/{wechat|alipay}.png` 与过渡口径（可扫台卡纸质码），**不做假码占位**；支付方式子标签改「扫码收款」，底部说明从「演示口径」改写为到店扫码收款正口径。在线支付真实通道（#88 红线）仍不做｜原型 admin-billing.html:155 / 实现 server/.../PayQrCodeController.java + web/src/pages/Billing/Settle/index.tsx（.qr-face）｜P2
 - [x] 四种支付图标配色统一 brand 单色（原型绿微/蓝支/褐现分色）｜✅ 2026-10-12 图标底色按原型分色：储=brand、微=#5f9e6e、支=#5b7fa6、现=#9a8f7a、次卡=#8a938c（billing.ts PAY_ICON_BG + Settle/index.tsx pi 内联底色，与原型同款内联口径）｜P2
 
 ### desktop-workstation（7 条）

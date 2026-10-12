@@ -12,6 +12,7 @@ import {
   Settlement,
   createRecharge,
   fetchRechargeBalance,
+  payQrCodeUrl,
   querySettlementPage,
   receiptPrintUrl,
   refundSettlement,
@@ -75,6 +76,9 @@ const Settle: React.FC = () => {
   const [refunding, setRefunding] = useState<Settlement | undefined>();
   const [refundReason, setRefundReason] = useState('');
   const [refundBusy, setRefundBusy] = useState(false);
+  /** 到店扫码收款码（微信/支付宝选中时出示商户码）：缺图如实提示，不做假码 */
+  const [qrUrl, setQrUrl] = useState<string>();
+  const [qrMissing, setQrMissing] = useState(false);
 
   const loadQueue = async () => {
     const [queue, recent] = await Promise.all([
@@ -88,6 +92,46 @@ const Settle: React.FC = () => {
   useEffect(() => {
     loadQueue();
   }, []);
+
+  // 收款码随所选支付方式取图：仅微信/支付宝出图，切换即换/清；img 带不上 Bearer，
+  // 走 fetch+blob（同 openReceipt 口径）；卸载与重取时释放 blob URL
+  useEffect(() => {
+    if (payType !== PAY_TYPE.WECHAT && payType !== PAY_TYPE.ALIPAY) {
+      setQrUrl(undefined);
+      setQrMissing(false);
+      return;
+    }
+    const method = payType === PAY_TYPE.WECHAT ? 'wechat' : 'alipay';
+    let url: string | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('jwt');
+        const res = await fetch(payQrCodeUrl(method), {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const objectUrl = URL.createObjectURL(await res.blob());
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        url = objectUrl;
+        setQrUrl(objectUrl);
+        setQrMissing(false);
+      } catch {
+        // 404 = 商户还没放码图：如实提示放图路径，不做假码
+        if (!cancelled) {
+          setQrUrl(undefined);
+          setQrMissing(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [payType]);
 
   const choose = async (order: Order) => {
     setSelected(order);
@@ -372,7 +416,7 @@ const Settle: React.FC = () => {
                                   : cardRest > 0
                                     ? `扣 1 次 · 余 ${cardRest} 次`
                                     : '无有效次卡'
-                                : '记录支付方式'}
+                                : '扫码收款'}
                         </div>
                       </div>
                       <span className="ck" />
@@ -405,10 +449,32 @@ const Settle: React.FC = () => {
                   </div>
                 )}
 
+                {/* 到店扫码收款：选中微信/支付宝出示商户码，顾客扫后点收款记账；缺图如实提示（web.md 口径：不做在线支付） */}
+                {qrUrl && (
+                  <div className="qr-face">
+                    <div className="qt">{PAY_TYPE_TEXT[payType]}收款码 · 顾客扫码支付后点「收款」记账</div>
+                    <img src={qrUrl} alt={`${PAY_TYPE_TEXT[payType]}收款码`} />
+                    <div className="qs">到账以商户账单为准，系统只记录支付方式，不接支付网关</div>
+                  </div>
+                )}
+                {qrMissing && (
+                  <div className="qr-face none">
+                    <div className="qt">{PAY_TYPE_TEXT[payType]}收款码未配置</div>
+                    <div className="qs">
+                      把商户{PAY_TYPE_TEXT[payType]}收款码图片放服务器{' '}
+                      <b>data/payqrcodes/{payType === PAY_TYPE.WECHAT ? 'wechat' : 'alipay'}.png</b>
+                      （或 .jpg）后刷新生效；期间可扫台卡纸质码，本单仍按「{PAY_TYPE_TEXT[payType]}」记录。
+                    </div>
+                  </div>
+                )}
+
                 <Button type="primary" className="btn-pay" loading={busy} onClick={pay}>
                   {storedShort ? `充值 ¥${rechargeAmount ?? need} 并收款 ¥${price}` : `收款 ¥${price}`}
                 </Button>
-                <div className="note">演示口径：微信/支付宝仅记录支付方式；次卡抵扣扣 1 次、实收记 0（需顾客持本单卡项的有效余次卡）；收款后可打印 80mm 小票，历史小票可补打。</div>
+                <div className="note">
+                  微信/支付宝为到店扫码收款：出示商户收款码，顾客扫码支付后点「收款」记账（不接支付网关，到账以商户账单为准）；
+                  次卡抵扣扣 1 次、实收记 0（需顾客持本单卡项的有效余次卡）；收款后可打印 80mm 小票，历史小票可补打。
+                </div>
               </>
             )}
           </section>

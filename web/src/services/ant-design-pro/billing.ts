@@ -1,6 +1,6 @@
 import { request } from '@umijs/max';
 
-/** 支付方式：1 储值 / 2 微信 / 3 支付宝 / 4 现金 / 5 次卡抵扣（微信/支付宝为演示口径：仅记录方式） */
+/** 支付方式：1 储值 / 2 微信 / 3 支付宝 / 4 现金 / 5 次卡抵扣（微信/支付宝为到店扫码收款：出示商户码，不接支付网关） */
 export const PAY_TYPE = {
   STORED_VALUE: 1,
   WECHAT: 2,
@@ -252,3 +252,7 @@ export async function fetchReconciliation(
 
 /** 结算小票打印地址：80mm HTML（需登录；页面须带 token 拉取后写入新窗口，见 Settle 页 openReceipt） */
 export const receiptPrintUrl = (settlementId: number) => `/api/v1/print/receipt/${settlementId}`;
+
+/** 收款码出图地址（GET /api/v1/pay-qrcode/{method}，需登录）：img 标签带不上 Bearer，
+ *  页面用 fetch+blob 取图（同小票补打口径）；缺图 404，页面如实提示未配置 */
+export const payQrCodeUrl = (method: 'wechat' | 'alipay') => `/api/v1/pay-qrcode/${method}`;
