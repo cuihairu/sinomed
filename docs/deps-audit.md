@@ -21,6 +21,7 @@
 - [x] 批5 rust：glib 0.18.5 唯一告警——`cargo update -p glib --precise 0.20.0` 实测被依赖图拒绝（tauri 2.12.1 → gtk ^0.18 → glib ^0.18，0.x 语义跨 minor 即 breaking），blocked 登记；Cargo.lock 零变更
 - [x] 终验（2026-10-08）：dependabot open **188 → 36**（-81%：critical 29→3、high 74→12、medium 74→20、low 11→1），面板剩余 36 条按包聚合 17 项与 upstream-blocked 登记表逐一吻合、零遗漏——swiper/decompress/braces/git-clone/html-minifier/node-forge/http-cache-semantics/webpack-dev-middleware/postcss/mockjs/extract-zip/elliptic/request/sprintf-js/webpack-dev-server/react-router(7.x 线)/vite(vitepress 钉)/glib。全部为 NO-PATCH 或上游依赖树钉死，解除路径=工具链大版本升级（Taro/umi/vitepress/tauri），按轮次口径不动
 - [x] 补批（2026-10-12）：web mockjs high 1 条解除——mockjs 本身 NO-PATCH，但其依赖链 `umi-presets-pro → @umijs/max-plugin-openapi → @umijs/openapi` 属未使用功能（服务层手写维护），移除该 devDep 及 config 中 openAPI/requestRecord 配置，锁文件 -1179 行零 mockjs；web jest 17 绿 + build 绿；dependabot #12 归 fixed。剩余 blocked 35 条口径不变
+- [x] 收口（2026-10-14 复核）：dependabot 面板 open **0**，完成标准「面板归零」达成（fixed 100+、dismissed 18——dismissed 集中在 2026-10-11 手工登记，not_used 14 / tolerable_risk 4，10 包 swiper/decompress/braces/git-clone/extract-zip/request/sprintf-js/elliptic/glib/react-router 全部在登记表内）；登记表 18 行中 webpack-dev-server/vite 已解除（2026-10-13 范围形式 override），余 16 行 NO-PATCH/钉死维持，解除路径仍=工具链大版本升级（Taro/umi/vitepress/tauri），按轮次口径不动
 
 ## upstream-blocked 登记
 
