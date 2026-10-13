@@ -22,59 +22,64 @@
 
 ## Product Preview
 
-A single design language runs across five device targets: a graphite × antique gold theme (the grey and gold from the brand logo), a rice-paper background, and serif headings, plus three switchable theme colors — pine green, cinnabar, and indigo. Below are the interface prototypes for each target (design mockups; all data is fictional demo data). Source files live in [`docs/design/mockups/`](docs/design/mockups/).
+A single design language runs across five device targets: a graphite × antique gold theme (the grey and gold from the brand logo), a rice-paper background, and serif headings, plus three switchable theme colors — pine green, cinnabar, and indigo. Below are screenshots of the implemented pages for each target (all data is fictional demo data).
 
 **Admin frontend** (web · customer records / consultation chart)
 
-<p align="center"><img src="docs/public/screenshots/admin-customer.png" width="880" alt="Admin frontend · customer records (interface prototype)" /></p>
+<p align="center"><img src="docs/public/screenshots/admin-customer.png" width="880" alt="Admin frontend · customer records (implemented)" /></p>
 
-<p align="center"><img src="docs/public/screenshots/admin-diagnosis.png" width="880" alt="Admin frontend · consultation chart: four examinations, pulse reading, acupoint selection, and five-element relationships (interface prototype)" /></p>
+<p align="center"><img src="docs/public/screenshots/admin-diagnosis.png" width="880" alt="Admin frontend · consultation chart: four examinations, pulse reading, acupoint selection, and five-element relationships (implemented)" /></p>
 
 **Theme switching** (admin frontend · appearance settings; four theme colors, one click each)
 
 <p align="center"><img src="docs/public/screenshots/admin-themes.png" width="880" alt="Admin frontend · four theme colors: graphite × antique gold (default, from the logo) / pine green / cinnabar / indigo" /></p>
 
-**Appointment scheduling** (admin frontend · booking / arrival list / arrival-to-consult handoff / per-day doctor-by-time-slot schedule grid; mini-program self-service booking planned)
+**Appointment scheduling** (admin frontend · booking / arrival list / arrival-to-consult handoff / per-day doctor-by-time-slot schedule grid; mini-program self-service booking implemented)
 
-<p align="center"><img src="docs/public/screenshots/admin-booking.png" width="880" alt="Appointment scheduling · booking, arrival list, and the doctor-by-time-slot schedule grid implemented; mini-program self-service booking remains a design prototype" /></p>
+<p align="center"><img src="docs/public/screenshots/admin-booking.png" width="880" alt="Appointment scheduling · booking, arrival list, schedule grid, and mini-program self-service booking implemented" /></p>
 
-**Billing and checkout** (admin frontend · settlement desk: pending-checkout queue + stored-value / WeChat / Alipay / cash payments; the prescription line items, package redemption, and receipt printing from the prototype remain design drafts)
+**Billing and checkout** (admin frontend · settlement desk: pending-checkout queue + stored-value / WeChat / Alipay / cash / per-visit card deduction payments, receipt printing, refund and daily reconciliation)
 
-<p align="center"><img src="docs/public/screenshots/admin-billing.png" width="880" alt="Billing and checkout · pending-checkout queue with stored-value recharge and payment implemented; prescription line items, package redemption, and receipt printing remain design prototypes" /></p>
+<p align="center"><img src="docs/public/screenshots/admin-billing.png" width="880" alt="Billing and checkout · pending-checkout queue, stored-value recharge, per-visit card deduction, and receipt printing implemented" /></p>
 
-**Herbal prescription** (admin frontend · prescription create / query: herb doses and special decoction methods; compatibility review, pricing, and decoction service are planned features)
+**Herbal prescription** (admin frontend · prescription create / query: herb doses and special decoction methods; compatibility review, allergy check, pricing, decoction and paste fulfillment, and the dispensary workbench)
 
-<p align="center"><img src="docs/public/screenshots/admin-herbprescription.png" width="880" alt="Herbal prescription · sheet create and query implemented; compatibility review and decoction service remain design prototypes" /></p>
+<p align="center"><img src="docs/public/screenshots/admin-herbprescription.png" width="880" alt="Herbal prescription · sheet create and query, compatibility review, pricing, decoction and paste fulfillment implemented" /></p>
 
 **Desktop workstation** (desktop · consultation charting + receipt printer / barcode scanner status)
 
-<p align="center"><img src="docs/public/screenshots/desktop-workstation.png" width="880" alt="Desktop workstation · consultation charting (interface prototype)" /></p>
+<p align="center"><img src="docs/public/screenshots/desktop-workstation.png" width="880" alt="Desktop workstation · consultation charting (implemented)" /></p>
 
-**Mini program** (app · customer home; business pages planned)
+**Mini program** (app · bottom tabs: home / self-service booking / card / profile; card lookup and self-service queries pending an identity-verification scheme)
 
-<p align="center"><img src="docs/public/screenshots/mobile-home.png" width="300" alt="Mini program · home (interface prototype)" /></p>
+<p align="center"><img src="docs/public/screenshots/mobile-home.png" width="300" alt="Mini program · home (implemented)" /></p>
 
 **In-store kiosk** (kiosk · service selection and ordering)
 
-<p align="center"><img src="docs/public/screenshots/kiosk-menu.png" width="400" alt="In-store kiosk · service selection (interface prototype)" /></p>
+<p align="center"><img src="docs/public/screenshots/kiosk-menu.png" width="400" alt="In-store kiosk · service selection (implemented)" /></p>
 
 **Waiting-area display** (tablet · promo carousel + queue calls)
 
-<p align="center"><img src="docs/public/screenshots/tablet-screen.png" width="880" alt="Waiting-area display · promo carousel and queue calls (interface prototype)" /></p>
+<p align="center"><img src="docs/public/screenshots/tablet-screen.png" width="880" alt="Waiting-area display · promo carousel and queue calls (implemented)" /></p>
 
-The admin frontend also has prototypes for the daily report, service packages, orders, ad displays, appearance settings, and more; see [`docs/design/mockups/`](docs/design/mockups/) and the [documentation site](https://cuihairu.github.io/sinomed/).
+The admin frontend also has designs for the daily report, service packages, orders, ad displays, appearance settings, and more; see [`docs/design/mockups/`](docs/design/mockups/) and the [documentation site](https://cuihairu.github.io/sinomed/).
 
-## Planned Features (Design Prototypes)
+## Planned Features
 
-For appointment scheduling, the admin-side list / booking / arrival handoff and the per-day schedule grid are implemented; for billing, the settlement desk with stored-value recharge is implemented; for herbal prescription, the sheet create / query is implemented — see Product Preview above. What stays as design prototypes: mini-program self-service booking, receipt printing and per-visit card deduction, and compatibility review with decoction service.
+Implemented today: appointment scheduling (admin list / booking / arrival handoff / per-day schedule grid, plus mini-program self-service booking), billing (settlement desk with stored-value / WeChat / Alipay / cash / per-visit card deduction, receipt printing, refund and daily reconciliation), herbal prescription (create / query with compatibility review, allergy check, pricing, decoction and paste fulfillment, dispensary workbench), desktop workstation, in-store kiosk, waiting-area display.
+
+Still open, by recorded decision: mini-program card lookup and self-service queries (pending a customer identity-verification scheme), Western / patent medicine prescriptions (pending prototype design), online payment gateway (out of scope by policy), multi-store chains, purchase orders and stocktaking, and famous-doctor tiered scheduling. Scope rulings live in `docs/research/features.md`; the audit trail is `docs/审计-文档一致性.md`.
 
 ## Repository Layout
 
 ```
 sinomed/
 ├── server/    # Server (Java 21 / Maven, includes Dockerfile and deployment scripts)
-├── app/       # Mini program (Taro multi-platform project, Node.js 24, pnpm)
 ├── web/       # Admin frontend (Ant Design Pro / Umi, Node.js 24, pnpm)
+├── app/       # Mini program (Taro multi-platform project, Node.js 24, pnpm)
+├── desktop/   # Desktop workstation shell (Tauri 2, Windows)
+├── kiosk/     # In-store kiosk (service selection and ordering)
+├── tablet/    # Waiting-area display (promo carousel + queue calls)
 └── docs/      # Documentation site (VitePress) and research notes
 ```
 

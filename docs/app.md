@@ -3,12 +3,12 @@
 `app/` 是 Taro 多端工程（React + TypeScript + NutUI React Taro），同一套代码编译到微信小程序、H5 等目标。
 
 ::: warning 当前状态
-小程序端已完成**工程初始化 + 白标构建 + 顾客首页 + 自助约期**：首页按 mobile-home 原型实装（品牌头 / 预约横幅 / 今日宜养 / 我的卡项 / 养生贴士 / 白标自检页底），「今日宜养」宫格实拉上架项目（复用自助机只读接口 `GET /api/v1/kiosk/items`），请求封装层见 `src/services/api.ts`；**自助约期已实装**——`pages/booking`（选日期/时段/项目/手机号提交）走免登录写入口 `POST /api/v1/kiosk/appointments`（口径见[小程序自助约期设计](/design/app-booking)），首页预约横幅为其入口。我的卡项仍无接口，界面如实标「规划功能」占位。登录与其余业务页面尚未开发。**顾客侧自助查询（登录 / 我的卡项 / 我的预约）待顾客身份核验方案**：免登录手机号直查会造成横向数据暴露（同[自助约期设计](/design/app-booking) §4 既有边界），验证码或密码又超出演示 MVP 口径，故不做。换商家出包见[换马甲构建指南](/app-white-label)。业务功能以[管理端](/web)为准。
+小程序端已完成**工程初始化 + 白标构建 + 顾客首页 + 自助约期 + 我的 + 卡项占位**：首页按 mobile-home 原型实装（品牌头 / 预约横幅 / 今日宜养 / 我的卡项 / 养生贴士），「今日宜养」宫格实拉上架项目（复用自助机只读接口 `GET /api/v1/kiosk/items`），请求封装层见 `src/services/api.ts`；**自助约期已实装**——`pages/booking`（选日期/时段/项目/手机号提交）走免登录写入口 `POST /api/v1/kiosk/appointments`（口径见[小程序自助约期设计](/design/app-booking)），首页预约横幅为其入口。底部四标签（首页 / 预约 / 卡项 / 我的）：`pages/me` 为本机预约摘要 + 主题切换（仅 H5）+ 白标自检（工程验收用，已从首页挪到此处）；`pages/card` 卡项页仍无接口，界面如实标「规划功能」占位。**顾客侧自助查询（登录 / 我的卡项 / 我的预约）待顾客身份核验方案**：免登录手机号直查会造成横向数据暴露（同[自助约期设计](/design/app-booking) §4 既有边界），验证码或密码又超出演示 MVP 口径，故不做。换商家出包见[换马甲构建指南](/app-white-label)。业务功能以[管理端](/web)为准。
 :::
 
 顾客首页已按设计稿实装（下方为原型稿，数据为虚构演示；实机宫格数据来自真实接口）：
 
-![小程序端 · 首页（界面原型）](/screenshots/mobile-home.png)
+![小程序端 · 首页（已实装界面截图）](/screenshots/mobile-home.png)
 
 ## 工程结构
 
@@ -19,7 +19,7 @@
 | `src/services/brand.ts` | 业务代码侧品牌常量（编译期替换） |
 | `src/services/theme.ts` | 四主题（石墨/松烟绿/朱砂/黛蓝）：H5 端「我的」页切换 + 本机记忆（`data-theme` 挂 documentElement，走 tokens.css 变量组）；小程序端 WXSS 无运行时变量能力，固定石墨 |
 | `src/services/api.ts` | 请求封装层（`Taro.request`；已封装 `GET /api/v1/kiosk/items`，H5 开发态走 devServer 代理，其余端直连白标 apiBase） |
-| `src/app.config.ts` | 页面注册（`pages/index/index`、`pages/booking/index`）、导航栏品牌名/主题色；无 tabBar |
+| `src/app.config.ts` | 页面注册（`pages/index/index`、`pages/booking/index`、`pages/card/index`、`pages/me/index`）、导航栏品牌名/主题色；底部 tabBar 四标签（首页 / 预约 / 卡项 / 我的） |
 | `src/pages/index/` | 顾客首页：品牌头 / 预约横幅（入口 → 自助约期页）/ 今日宜养（宫格实拉上架项目）/ 我的卡项（规划占位）/ 养生贴士 / 白标自检页底（品牌名/主题色/后端域名/页内图标） |
 | `src/pages/me/` | 我的 tab：本机预约摘要与快捷入口；主题区（仅 H5 端渲染）四主题色点切换；白标自检页底（品牌名/主题色/后端域名/页内图标） |
 | `src/pages/booking/` | 自助约期页：日期条（今天起 7 天）→ 时段网格（9:00–17:00 整点，今日已过时段禁选）→ 项目选择（实拉上架项目，可「到店再定」）→ 手机号/称呼提交；成功回执展示预约号与时段，服务端 400 文案原样透出 |

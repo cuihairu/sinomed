@@ -5,7 +5,7 @@
 ## 鉴权约定
 
 - **放行路径**：
-  - 登录与文档：`/api/v1/user/login`、`/doc.html`、`/swagger-ui/**`、`/v3/api-docs/**`、`/swagger-resources/**`、`/webjars/**`
+  - 登录与文档：`/api/v1/user/login`、`/doc.html`、`/swagger-ui.html`、`/swagger-ui/**`、`/v3/api-docs/**`、`/swagger-resources/**`、`/webjars/**`
   - **业务免登录端点（内网设备约定，见对应设计文档）**：
     - `/api/v1/kiosk/**` — 顾客自助机浏览与下单 + 小程序自助约期（只读 + 两个写入口，见 [kiosk.md](/design/kiosk) 与 [app-booking.md](/design/app-booking)）
     - `/api/v1/ads/playlist` — 平板拉取排期（只读 + 屏 code 校验，见 [tablet.md](/design/tablet)）
@@ -13,8 +13,9 @@
     - `/api/v1/print/templates` — 打印模板下发（空白版式无业务数据，见 [desktop.md](/design/desktop) D7）
     - `/media/**` — 广告媒体静态资源（Nginx 托管）
   - `/actuator/**` — 运维监控
-- 其余接口一律需要 `Authorization: Bearer <JWT>`，未认证返回 401。
+- 其余接口一律需要 `Authorization: Bearer <JWT>`，未认证返回 401（含 `POST /error` 前端错误上报——未登录时上报会被 401 吞掉，登录后正常）。
 - 注意 `POST /api/v1/user/register`（注册）不在放行列表内——首次使用需先有账号。
+- 员工管理写接口（`POST`/`PUT`/`DELETE` `/api/v1/staff`）已启用方法级鉴权 `@PreAuthorize("hasRole('ADMIN')")`，非管理员越权返回 403。
 - 登录响应头 `Authorization` 返回 access token、`Refresh` 返回 refresh token（均自带 `Bearer ` 前缀）；access 有效期 1 天，refresh 7 天。刷新接口尚未实现，续期需重新登录。
 
 ## 用户认证 `/api/v1/user`
@@ -156,6 +157,7 @@
 | GET | `/api/v1/order/page` | 分页（current、pageSize、status 可空、pending 可空 `true`=只看待结算 0/1），按创建时间倒序（同秒按 id 倒序），联出顾客名/手机号、卡项名、明细行 `items` 与结算支付方式 `payType` |
 | GET | `/api/v1/order/{id}` | 详情（联顾客名、卡项名与明细行 `items`、备注 `remark`） |
 | PUT | `/api/v1/order/status` | 状态流转：`0→1`、`1→2`，`0/1→9` 取消；其余组合报错（body 带 id 与 status） |
+| GET | `/api/v1/order/summary` | 按顾客汇总：`customerId` 必填，返回 `{ orders, amount }`（订单数与金额合计） |
 | DELETE | `/api/v1/order/{id}` | 删除，仅 `status=9`（已取消）可删，连同明细行 |
 
 ## 预约 `/api/v1/appointment`（需登录）

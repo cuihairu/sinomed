@@ -7,7 +7,7 @@
 | 组件 | 选型 | 版本 |
 | ---- | ---- | ---- |
 | 语言 / 运行时 | Java | 21 |
-| 应用框架 | Spring Boot | 3.5.x |
+| 应用框架 | Spring Boot | 4.1.x |
 | 数据访问 | Spring Data JPA（Hibernate） | 随 Boot |
 | 数据库 | MySQL | 8.0 |
 | 缓存 | Caffeine（本地缓存） | 3.3.x |
@@ -63,6 +63,7 @@
 | 药材字典（开方比价取数） | `HerbController` | 可用 |
 | 饮片出入库（流水登记 / 余额与效期预警） | `HerbStockController` | 可用 |
 | 收费结算与储值（收款 / 充值流水） | `SettlementController`、`RechargeController` | 可用 |
+| 收款码出图（微信/支付宝商户码图片） | `PayQrCodeController` | 可用（读 `data/payqrcodes/` 出图，不接支付网关） |
 | 次卡（发卡 / 停用 / 核销流水） | `CardController` | 可用 |
 | 结算小票套打（80mm HTML，模板可覆盖） | `ReceiptPrintController`、`PrintTemplateController` | 可用 |
 | 自助机（免登录下单 / 自助约期） | `KioskController` | 可用 |
@@ -77,14 +78,14 @@
 
 - 登录走 `POST /api/v1/user/login`，成功后响应体与响应头同时返回 access token（1 天）与 refresh token（7 天），均为 `Bearer` JWT。
 - 除登录与接口文档路径外，所有接口都要求携带 `Authorization: Bearer <token>`。
-- 角色按员工表的 `role` 字段划分：`role < 10` 视为管理层（返回 `admin` 权限集），其余为普通员工；员工 `status <= 0`（离职）无法登录。
-- 权限字符串（`admin:*` / `management:*`）已在代码中定义，但接口层面尚未做方法级鉴权，当前所有登录用户可访问全部接口。
-- 首次启动自动创建 `admin / 123` 管理员账号。
+- 角色按员工表的 `role` 字段划分：`role == 0` 返回 `admin` 权限集，`1-9` 为管理层（`MANAGER` 权限集），`≥10` 为普通员工（`USER`）；员工 `status <= 0`（离职）无法登录。
+- 权限字符串（`admin:*` / `management:*`）已在代码中定义；方法级鉴权已部分启用——员工管理写接口（`POST`/`PUT`/`DELETE` `/api/v1/staff`）加 `@PreAuthorize("hasRole('ADMIN')")`，越权返回 403；其余接口登录即可用。
+- `admin / 123` 管理员账号在**首次以 admin 登录时**自动创建（内置 bcrypt 密码）；演示种子只建 `gu`/`shen`/`su` 三个员工账号。
 
 ## 横切机制
 
-- **审计字段**：所有实体带 `create_time` / `update_time`，由 JPA Auditing 自动维护。
-- **缓存**：按 id 的查询走 Caffeine 缓存（默认约 50 分钟过期），更新 / 删除当前不主动失效，存在短窗口脏读，属已知待优化点。
+- **审计字段**：所有实体带 `create_time` / `update_time`（card_adjusts 仅 `create_time`），由 JPA Auditing 自动维护。
+- **缓存**：按 id 的查询走 Caffeine 缓存（默认约 50 分钟过期），卡项与诊疗单的更新 / 删除已加 `@CacheEvict` 主动失效；缓存失效仍按单 key 粒度，存在短窗口脏读，属已知待优化点。
 - **分页**：`current` 从 1 起始，统一返回 `{ data, total, pages, success }` 结构。
 - **异常**：全局 advice 把参数错误映射 400、认证失败 401、账号锁定 403、其余 500。
 - **接口文档**：Knife4j 中文界面，扫描 `com.sinomed.controller`，入口 `/doc.html`。

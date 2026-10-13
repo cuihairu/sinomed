@@ -1,6 +1,8 @@
 # 数据模型
 
-数据表由 JPA 按实体自动创建（`ddl-auto: update`），主键均为自增 `id`。所有实体带审计字段 `create_time` / `update_time`（JPA Auditing 自动维护）；实体之间不使用外键约束，通过业务 id 字段在服务层关联。
+数据表由 JPA 按实体自动创建（`ddl-auto: update`），主键均为自增 `id`。所有实体带审计字段 `create_time` / `update_time`（JPA Auditing 自动维护；`card_adjusts` 仅 `create_time`）；实体之间不使用外键约束，通过业务 id 字段在服务层关联。
+
+> 范围说明：下列详表覆盖核心业务表；`acupoints`、`ad_schedules`、`ad_screens`、`dispense_logs`、`formula_items`、`formulas`、`herb_stock_logs`、`herbs`、`prescription_items`、`prescription_template_items`、`prescription_templates`、`recharges`、`review_customers`、`review_staffs`、`therapy_templates` 等表以实体与 [api](/server/api) 为准（`TokenEntity` 为死代码，不计入）。
 
 ## customers — 顾客
 
@@ -51,6 +53,7 @@
 | five_aux_left / five_aux_right | TEXT | 五行辅助 |
 | acupoint_left / acupoint_right | TEXT | 取穴（左/右手） |
 | acu_method / manipulation | String | 针灸处方：针法（毫针/电针/温针…）、手法（补法/泻法/平补平泻…），≤30 字，空白按空处理 |
+| moxa_method | String | 针灸处方：灸法（温和灸/雀啄灸/隔物灸…），≤60 字，空白按空处理 |
 | retention_minutes | Integer | 针灸处方：留针分钟（1-240，可空） |
 | acu_course | TEXT | 针灸处方：疗程/频次（自由文本，≤100 字） |
 | diagnose | TEXT | 诊断 |
@@ -75,6 +78,7 @@
 | description | TEXT | 描述 |
 | enabled | Integer | 1 上架、0 下架（Kiosk 只展示上架项；存量行默认 1） |
 | cover | String | 封面图相对 url（可空，`/media` 托管） |
+| duration_minutes | Integer | 时长（分钟，可空，展示用） |
 | sort | Integer | 展示顺序，小者在前 |
 
 ## reviews / review_staffs / review_customers — 反馈与复盘
@@ -91,6 +95,7 @@
 | ---- | ---- | ---- |
 | `orders`（订单） | `user_id`（顾客）、`item_id`（卡项）、`staff_id`、`status`、`price` | 已接线：Kiosk 下单与前台建单均落 `status=0` 并快照卡项现价（前台建单记录 `staff_id`）；`status` 语义 `0` 已下单 → `1` 已确认 → `2` 已完成，`9` 已取消（`0/1→9`，仅 `9` 可删），管理端分页与流转见 [api](/server/api) 订单组；结算信息在 `settlements` 表（一单一结算），订单分页联出支付方式 |
 | `recharges`（储值流水） | `user_id`、`money`、`note`（≤100 字可空，退款补回写「退单 #结算id」） | 已接线：充值为正、储值支付扣减为负，余额 = 流水合计；储值退款原路退回落正数流水（日对账不计入充值）；接口见 [api](/server/api) 储值组 |
+| `order_item`（订单明细） | `order_id`、`item_id`、`name`、`price`、`qty`、`subtotal` | 多品项订单逐行落明细（name/price 为下单时刻快照，qty≥1，subtotal=单价×数量）；订单接口统一联出 `items[]`，存量单无明细行时按 `itemId+price` 回退一行数量 1 |
 
 ## settlements — 结算单（收费结算）
 
@@ -179,7 +184,7 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | remark | String | 备注（症状/需求）；自助约期记「小程序自助」软标记，无 source 列 |
 | create_time / update_time | Date | 审计时间 |
 
-索引：顾客、卡项、时段。接口见 [api](/server/api) 预约组；不做同时段冲突校验（演示边界）。
+索引：顾客、卡项、时段。接口见 [api](/server/api) 预约组；同时段冲突校验：同医师同日同小时已有 `status 0/1` 的预约时拒绝（每时段限约 1 位，`staffId` 空组独立互斥）。
 
 ## prescriptions / prescription_items — 中药处方
 
@@ -198,6 +203,9 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | dispense_status | Integer | 发药状态：0 待发药（默认）/ 1 已发药（开方落 0，单向不回退；代煎/膏方推进「已取」自动置 1） |
 | dispense_time | Date | 发药时间（待发药为空） |
 | dispense_by | Long | 发药操作人 staff_id（自动带出路径留空） |
+| review_staff_id | Long | 药师审核人 staff_id（可空） |
+| check_staff_id | Long | 调配 / 复核人 staff_id（可空） |
+| delivery_type | Integer | 领取方式：`0` 自取（默认）/ `1` 同城配送（代煎勾选取，可空） |
 | usage / take_method | String | 煎法（水煎服，日一剂等）/ 服法（分早晚温服等，可空） |
 | remark | String | 备注 |
 | create_time / update_time | Date | 审计时间 |
@@ -276,7 +284,7 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 
 配套 [tablet/](/design/tablet) Kiosk 端，设计见[平板展示设计](/design/tablet)。文件本体不上库：素材上传落盘 `data/ads/yyyyMM/`（`sinomed.ads.upload-dir` 可改），表里存相对 url。
 
-**ad_materials — 素材**：`name`、`type`（1 图片、2 视频）、`url`、`duration_ms`（轮播停留毫秒）、`enabled`、`sort`（顺序，小者在前）。
+**ad_materials — 素材**：`name`、`type`（1 图片、2 视频）、`url`、`duration_ms`（轮播停留毫秒）、`enabled`、`sort`（顺序，小者在前）；叠加层文案字段 `category`（分类）、`kicker`（眉标）、`title`（标题）、`copy`（正文）、`price`（价格，均可空）。
 
 **ad_screens — 屏**：`code`（唯一，平板以 `?screen=code` 打开）、`name`、`location`、`enabled`、`last_seen_at`（平板拉 playlist 时顺带心跳，管理端按 2 分钟阈值显示在线角标）。
 

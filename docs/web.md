@@ -2,9 +2,9 @@
 
 `web/` 是医馆日常运转的主工作台：Ant Design Pro + Umi（@umijs/max）工程，Node.js 24 / pnpm，中文界面。
 
-界面原型（设计稿 · 数据为虚构演示，石墨×古金主题取自品牌 logo，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色）：
+已实装界面截图（数据为虚构演示，石墨×古金主题取自品牌 logo，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色）：
 
-![管理后台 · 顾客档案（界面原型）](/screenshots/admin-customer.png)
+![管理后台 · 顾客档案（已实装界面截图）](/screenshots/admin-customer.png)
 
 更多分页原型（接诊诊疗单 / 每日报表 / 卡项 / 订单 / 广告屏 / 外观设置）见[文档站首页产品预览](./index.md#产品预览)与仓库 `docs/design/mockups/`。
 
@@ -23,13 +23,13 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 | 位置 | 内容 |
 | ---- | ---- |
-| `config/config.ts` | 站点标题、布局（mix）、国际化（zh-CN 默认）、插件与 openAPI 配置 |
+| `config/config.ts` | 站点标题、布局（side）、国际化（zh-CN 默认）、插件与 openAPI 配置 |
 | `config/routes.ts` | 路由表（页面注册） |
 | `config/proxy.ts` | dev / test / pre 环境代理 |
 | `src/pages/` | 页面组件，按业务域分目录 |
 | `src/services/ant-design-pro/` | 接口定义（与服务端 `/api/v1/**` 一一对应） |
 | `src/access.ts` | 运行时权限：`canAdmin`（管理层）、`canUser`（已登录） |
-| `src/app.tsx` | 启动时拉取当前用户、未登录重定向、水印 |
+| `src/app.tsx` | 启动时拉取当前用户、未登录重定向 |
 | `src/requestErrorConfig.ts` | 从 `localStorage.jwt` 注入 `Authorization: Bearer`，统一错误提示 |
 | `src/locales/` | 菜单等文案多语言 |
 
@@ -66,9 +66,9 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 | `/treat/acupoints` | 穴位字典 | 经络穴位参考库维护页：收录/编辑/删除，穴名唯一；按穴名或拼音码检索（如「足三」/「zusanli」）；接诊页「取穴」检索选中即追加进取穴文本 |
 | `/treat/history` | 诊断历史 | 某顾客的历史诊疗记录（按时间倒序） |
 
-创建诊断页的界面原型（四诊、脉象、取穴、五行生克、调理方案，设计稿）：
+创建诊断页已实装界面截图（四诊、脉象、取穴、五行生克、调理方案）：
 
-![管理后台 · 接诊诊疗单（界面原型）](/screenshots/admin-diagnosis.png)
+![管理后台 · 接诊诊疗单（已实装界面截图）](/screenshots/admin-diagnosis.png)
 
 ### 卡项系统（/item）
 
@@ -116,9 +116,9 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 订单来自门店自助机（kiosk）或前台建单，前台在此接单；不做在线支付，到店结算。
 
-界面原型（订单管理，设计稿）：
+已实装界面截图（订单管理）：
 
-![管理后台 · 订单管理（界面原型）](/screenshots/admin-orders.png)
+![管理后台 · 订单管理（已实装界面截图）](/screenshots/admin-orders.png)
 
 ### 收费结算（/billing）
 
@@ -131,9 +131,9 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 结算口径：实收取订单价格快照（多品项单为各行小计合计，`order_item` 存名称/单价快照），储值支付自动扣减余额（流水合计）；次卡抵扣扣持卡余 1 次、实收记 0，并在同一事务落核销流水（顾客档案持卡栏可查）；微信/支付宝为到店扫码收款：结算台出示商户收款码（`/api/v1/pay-qrcode/{method}` 出图，缺图 404 如实提示未配置、可扫台卡纸质码过渡），顾客扫码支付在系统外完成，系统只按所选方式记账（不接支付网关，到账以商户账单为准）；小票走服务端套打 `GET /api/v1/print/receipt/{settlementId}`（80mm HTML，收款成功后可打印、最近结算可补打）；处方饮片行进结算裁定不做——收费以卡项订单结算为准，处方计价为试算/提示口径。退单原路退回（储值补回余额、次卡回补次数、现金当面退回），日对账页 `/billing/reconciliation` 按自然日三段核对。
 
-界面原型（收费结算台，储值支付/充值与次卡抵扣已实装，原型里的处方饮片行仍为设计稿）：
+已实装界面截图（收费结算台：储值/充值与次卡抵扣已实装；原型里的处方饮片行进结算裁定不做）：
 
-![管理后台 · 收费结算台（界面原型）](/screenshots/admin-billing.png)
+![管理后台 · 收费结算台（已实装界面截图）](/screenshots/admin-billing.png)
 
 ### 处方系统（/prescription）
 
@@ -150,9 +150,9 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 药材名为自由文本；配伍审方（十八反/十九畏）、过敏提示与实时计价已实装——开方页随写随查（审方提示不拦截；定位顾客后按其过敏史原文比对药味，命中时列出 药味 + 记录原文，无命中不占位；计价按药材字典精确同名比价、未收录药名不计费）；代煎已实装——开方页勾选「代煎 N 袋」（袋数=剂数，服务费 ¥3/袋 仅提示，可再选领取方式 自取/同城配送随方存档），查询页列表出代煎状态、详情抽屉流转领取（待煎→可取→已取）；膏方已实装——开方页类型选「膏方」并选收膏方式（炼蜜/清膏/糖膏/阿胶收膏，可清空），开方落「待制作」（膏方按料计不勾代煎），查询页列表出膏方状态、详情抽屉流转（待制作→可取→已取）；病症模板已实装——开方页「套用模板」下拉（仅上架模板），带出后一切可改，另可「存入我的方剂库」把当前方随病症名存为启用模板；方剂库已实装——开方页「方剂库」下拉按方名/拼音检索一键带出全方（药味带出、剂数不变），带出后一切可改。
 
-界面原型（中药处方笺，开方/查询/配伍审方/过敏提示/实时计价/代煎与膏方领取/辨证摘要联动已实装）：
+已实装界面截图（中药处方笺：开方/查询/配伍审方/过敏提示/实时计价/代煎与膏方领取/辨证摘要联动）：
 
-![管理后台 · 中药处方笺（界面原型）](/screenshots/admin-herbprescription.png)
+![管理后台 · 中药处方笺（已实装界面截图）](/screenshots/admin-herbprescription.png)
 
 ### 广告屏系统（/ads）
 
@@ -165,9 +165,19 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 | `/ads/screens` | 屏幕管理 | Kiosk 屏注册、在线状态（正在播 排期名 + 轮播条数）、绑定排期 |
 | `/ads/calls` | 叫号操作 | 前台叫号后，定向屏（或全部屏）在 3 秒内全屏提示号码与诊室；预约接待（0→1）会**自动叫号**（服务端联动，最近叫号列表可见，散客仍手动叫） |
 
-界面原型（素材管理 + 屏幕状态 + 快捷叫号，设计稿）：
+已实装界面截图（素材管理 + 屏幕状态 + 快捷叫号）：
 
-![管理后台 · 广告屏管理（界面原型）](/screenshots/admin-ads.png)
+![管理后台 · 广告屏管理（已实装界面截图）](/screenshots/admin-ads.png)
+
+### 外观设置（/appearance）
+
+站点主题与品牌呈现（设计稿见文档站首页「主题切换」）：
+
+| 路径 | 页面 | 做什么 |
+| ---- | ---- | ---- |
+| `/appearance` | 外观设置 | 四套主题色即点即换：石墨×古金（默认，取自品牌 logo）/ 松烟绿 / 朱砂 / 黛蓝；选择即时生效并记忆，全站 tokens.css 变量组切换 |
+
+未登录入口：`/user/login` 登录页（账号密码登录，登录后按角色落对应首页；无注册入口——账号由管理员创建，见 [api](/server/api) 鉴权约定）。
 
 ## 权限与角色
 
@@ -178,6 +188,6 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 ## 前端遗留项（如实说明）
 
 - 品牌口径已定（2026-10-12 拍板）：站点品牌即「Youngs 医馆」——logo 养字标 + 全部界面原型 + youngs.fun 自有域名共同证实，非脚手架残留；登录页标题、Footer 文案、`src/manifest.json` 品牌值已统一到此口径（Footer 保留 youngs.fun 业务链接；PWA manifest 尚未接线——config 无引用、不进构建产物，品牌值已就位备接线）；
-- `config/oneapi.json` 仍为脚手架模板 schema（含 `/api/rule` 等模板端点），驱动 openAPI 插件生成 `src/services/ant-design-pro/api.ts` 与 `typings.d.ts`（其中 `currentUser` 等已手改指向真实后端接口）。
+- `config/oneapi.json` 仍为脚手架模板 schema（含 `/api/rule` 等模板端点），**保留备查**——pro 插件预置的 openAPI 代码生成 + requestRecord 录制已移除（其依赖链携带无补丁版本的 mockjs），`src/services/ant-design-pro/` 服务层手写维护。
 
 > 已清理：脚手架残留页面 `src/pages/Welcome.tsx`、`Admin.tsx`、`TableList/`（不在路由，无引用）；petstore 示例服务 `src/services/swagger/`（`config.ts` openAPI 第二入口一并移除）；卡项占位页 `/item/spread`、`/item/update`（表单实为 `createItem` 建新卡项的误用隐患，已连同路由移除，编辑统一走 `/item/create?itemId=`，2026-10-12 起带 id 提交走 `updateItem` PUT 真实更新；spread「扩散」在原型 admin-items.html 无对应设计，按脚手架残留裁定不补）。

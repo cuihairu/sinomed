@@ -58,22 +58,22 @@ features:
       src: /icons/inventory.svg
       alt: 部署
     title: 容器化部署
-    details: 提供 Dockerfile 与 docker-compose 编排（MySQL + 服务端 + Nginx），亦支持 systemd 裸机部署。
+    details: 提供 Dockerfile 与 docker-compose 编排（SQLite + 服务端 + Nginx），亦支持 systemd 裸机部署。
 ---
 
 ## 产品预览
 
-一套界面语言贯穿五个设备端：石墨×古金主题（取自品牌 logo 的灰与金）、宣纸底、宋体标题，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色。以下为各端界面原型（设计稿，数据全为虚构演示），源稿在仓库 `docs/design/mockups/`。
+一套界面语言贯穿五个设备端：石墨×古金主题（取自品牌 logo 的灰与金）、宣纸底、宋体标题，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色。以下为各端已实装页面的界面截图（数据全为虚构演示）。
 
 **管理后台**（web · 顾客档案 / 接诊诊疗单）
 
-![管理后台 · 顾客档案（界面原型）](/screenshots/admin-customer.png)
+![管理后台 · 顾客档案（已实装）](/screenshots/admin-customer.png)
 
-![管理后台 · 接诊诊疗单（界面原型）](/screenshots/admin-diagnosis.png)
+![管理后台 · 接诊诊疗单（已实装）](/screenshots/admin-diagnosis.png)
 
 **主题切换**（管理后台 · 外观设置，四套主题色即点即换）
 
-![管理后台 · 四套主题色切换（界面原型）](/screenshots/admin-themes.png)
+![管理后台 · 四套主题色切换（已实装）](/screenshots/admin-themes.png)
 
 **预约排班**（管理后台 · 建约 / 待到店列表 / 到店接待转接诊 / 按日医师×时段排班网格；小程序自助约期已实装：免登录接口 + 小程序约期页）
 
@@ -89,18 +89,18 @@ features:
 
 **桌面工作站**（desktop · 接诊开单 + 外设状态）
 
-![桌面工作站 · 接诊开单（界面原型）](/screenshots/desktop-workstation.png)
+![桌面工作站 · 接诊开单（已实装）](/screenshots/desktop-workstation.png)
 
 **小程序端**（app · 底部四标签：首页 / 预约 / 卡项 / 我的；卡项余次与顾客自助查询仍属规划功能，界面如实占位）
 
-![小程序端 · 首页（界面原型）](/screenshots/mobile-home.png)
+![小程序端 · 首页（已实装）](/screenshots/mobile-home.png)
 
 **门店自助机**（kiosk · 选服务下单）
 
-![门店自助机 · 选服务（界面原型）](/screenshots/kiosk-menu.png)
+![门店自助机 · 选服务（已实装）](/screenshots/kiosk-menu.png)
 
 **候诊区展示屏**（tablet · 广告轮播 + 叫号）
 
-![候诊区展示屏 · 广告轮播与叫号（界面原型）](/screenshots/tablet-screen.png)
+![候诊区展示屏 · 广告轮播与叫号（已实装）](/screenshots/tablet-screen.png)
 
 管理后台还有每日报表、卡项、订单、广告屏、外观设置等页面原型，见仓库 `docs/design/mockups/`。
