@@ -74,7 +74,7 @@ cd server
 docker compose up -d
 ```
 
-> 注意：该编排的 server 服务未注入 `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD`/`SERVER_PORT`，而 `application.yml` 这些占位符无默认值——直接 `up` 会因占位符解析失败起不来。需另注入上述环境变量（参照 `server/dev.yml` 的 environment 段），或直接用仓库根 `compose.yml`（已注入全套 + SQLite）。
+> 注意：`server/docker-compose.yml` 的 server 服务已注入 `DB_HOST`（与 db 同处默认网络，按服务名 db 解析）/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD`/`SERVER_PORT` 全套，直接 `up` 即可起。要改端口或数据库名照 `server/dev.yml` 的 environment 段覆盖；仓库根 `compose.yml` 是演示编排（注入全套 + SQLite）。
 
 ## 方式二：开发调试编排
 

@@ -26,7 +26,7 @@ services:
       - 2347:2347
     depends_on:
       - db
-    # 与 db 同处 compose 默认网络，故按服务名 db 解析；占位符无默认值，必须显式注入
+    # 与 db 同处 compose 默认网络，故按服务名 db 解析；DB_HOST/DB_PORT/DB_NAME 无默认值，必须显式注入（SERVER_PORT 已有默认 2347，此处显式写明）
     environment:
       DB_HOST: db
       DB_PORT: "3306"
