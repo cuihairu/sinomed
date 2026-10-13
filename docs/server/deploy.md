@@ -33,7 +33,7 @@
 | `sinomed.print.templates-dir` | `data/printtemplates`（`PRINT_TEMPLATES_DIR` 可覆盖） | 打印模板覆盖目录 |
 | `sinomed.pay.qrcodes-dir` | 仅 `PayQrCodeController` 的 `@Value` 默认值（yml 未落键） | 收款码图片目录 |
 | `demo.seed` | `false`（`DEMO_SEED` 可覆盖） | 演示数据幂等播种开关 |
-| `spring.cache.*` | 见 application.yml | 注意：`CacheConfig` 自定义 CaffeineCacheManager 覆盖自动配置，yml 的 cache-names/expireAfterAccess 不生效 |
+| `server.port` | `${SERVER_PORT:2347}` | 部署可用 `SERVER_PORT` 覆盖；本地裸跑默认 2347 |
 
 ### 端口约定
 

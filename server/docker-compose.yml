@@ -19,7 +19,6 @@ services:
       MYSQL_INITDB_SKIP_TZINFO: "Asia/Shanghai"
     ports:
         - 3306:3306
-    network_mode: "bridge"
   server:
     container_name: server
     image: cuihairu/sinomed:v0.1.0
@@ -27,6 +26,14 @@ services:
       - 2347:2347
     depends_on:
       - db
+    # 与 db 同处 compose 默认网络，故按服务名 db 解析；占位符无默认值，必须显式注入
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: sinomed
+      DB_USERNAME: sinomed
+      DB_PASSWORD: "Abc$*(12345)67890"
+      SERVER_PORT: "2347"
   web:
     container_name: web 
     image: nginx

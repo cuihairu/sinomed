@@ -3,10 +3,6 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-  cache:
-    cache-names: cache,customer,treat
-    caffeine:
-      spec: initialCapacity=50,maximumSize=10000,expireAfterAccess=300s
   datasource:
     # 默认 MySQL；演示环境可整串换 SQLite（见根目录 compose.yml），如：
     #   DB_URL=jdbc:sqlite:/app/data/sinomed.db?journal_mode=WAL&busy_timeout=5000
@@ -61,7 +57,8 @@ demo:
   seed: ${DEMO_SEED:false}
 
 server:
-  port: ${SERVER_PORT}
+  # 端口：部署时可用 SERVER_PORT 覆盖（compose.yml 已注入），本地裸跑默认 2347
+  port: ${SERVER_PORT:2347}
   servlet:
     session:
       timeout: 24h
