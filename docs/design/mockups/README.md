@@ -203,6 +203,16 @@ rm _tile-*.png
 
 ## 7. 后续维护清单
 
-- [ ] 新增页面 → 同步补 `tokens.css` 变量引用、数据宇宙一致性、渲染命令
-- [ ] 主题色调整 → 同步改 `tokens.css` 四主题块 → 全量重渲 14+4 张
-- [ ] 文档站 build 前 → `pnpm -C docs build` 验证图片路径无 404
+**自动门禁**：`pnpm -C docs check`（`docs/scripts/check-docs.mjs`，零依赖），`docs.yml` 在 build 前调用。VitePress build 本身不校验图片链接，断链只在浏览器里 404 而构建照样绿灯，故单独成检查。
+
+| 项 | 检查内容 |
+|---|---|
+| 图片断链 | 全部 Markdown `![alt](path)` 按 VitePress 语义解析（`/xxx` → `docs/public`，其余相对所在 `.md`）；代码块与行内代码里的示例串跳过 |
+| HTML 绝对路径 | `<img src="/...">` 必须命中 `docs/public` —— VitePress 只对 Markdown 语法重写 base，HTML 标签绝对路径不重写（见上文「注意」） |
+| 原型样式源 | 每份 `design/mockups/*.html` 必须挂 `tokens.css`，否则主题切换失效 |
+| 四主题齐全 | `tokens.css` 保留 `:root` 默认石墨 + `pine`/`cinnabar`/`indigo` 三个 `[data-theme]` 块 |
+
+**仍需人工判断**（门禁覆盖不到）：
+
+- 新增页面 → 数据宇宙一致性（原型样例数据与后端实体口径是否一致）、补渲染命令与截图对照
+- 主题色调整 → 全量重渲 14+4 张（需浏览器 + CJK 字体环境，见 §6 渲染记录）
