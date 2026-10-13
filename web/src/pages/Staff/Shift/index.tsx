@@ -66,7 +66,9 @@ export default () => {
     };
     setSaving(true);
     try {
-      const saved = editing?.id ? await updateShift({ id: editing.id, ...payload }) : await createShift(payload);
+      const saved = editing?.id
+        ? await updateShift({ id: editing.id, ...payload })
+        : await createShift(payload);
       if (saved?.id) {
         message.success(editing?.id ? '班次已更新' : '已加排班');
         setModalOpen(false);
@@ -138,7 +140,9 @@ export default () => {
           <Button type="primary" onClick={openCreate}>
             加排班
           </Button>
-          <span className="sf-count">共 {shifts.length} 条班次 · {staffs.length} 名员工</span>
+          <span className="sf-count">
+            共 {shifts.length} 条班次 · {staffs.length} 名员工
+          </span>
         </div>
         <Table
           rowKey="id"
@@ -214,7 +218,9 @@ export default () => {
               <TimePicker format="HH:mm" minuteStep={30} style={{ width: '100%' }} />
             </Form.Item>
           </div>
-          <p className="sf-note">时段按 30 分钟步进选择；同一员工同一星期仅一条班次，重复保存会提示冲突。</p>
+          <p className="sf-note">
+            时段按 30 分钟步进选择；同一员工同一星期仅一条班次，重复保存会提示冲突。
+          </p>
         </Form>
       </Modal>
     </PageContainer>

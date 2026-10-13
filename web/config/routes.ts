@@ -58,7 +58,7 @@ export default [
         path: '/customer/update',
         component: './Customer/Update',
       },
-    ]
+    ],
   },
   {
     path: '/staff',
@@ -116,7 +116,7 @@ export default [
         path: '/staff/timesheet/week',
         component: './Staff/Timesheet/Week',
       },
-    ]
+    ],
   },
   {
     path: '/',
@@ -147,7 +147,7 @@ export default [
     path: '/treat/',
     icon: 'table',
     name: 'treat',
-    routes:[
+    routes: [
       {
         path: '/treat/create',
         component: './Treat/Create',
@@ -165,14 +165,14 @@ export default [
       {
         path: '/treat/history',
         component: './Treat/History',
-      }
+      },
     ],
   },
   {
     path: '/prescription/',
     icon: 'MedicineBoxOutlined',
     name: 'prescription',
-    routes:[
+    routes: [
       {
         name: 'prescription-create',
         path: '/prescription/create',
@@ -219,7 +219,7 @@ export default [
     path: '/item/',
     icon: 'FileDoneOutlined',
     name: 'item',
-    routes:[
+    routes: [
       {
         name: 'item-create',
         path: '/item/create',
@@ -236,7 +236,7 @@ export default [
     path: '/order/',
     icon: 'AccountBookOutlined',
     name: 'order',
-    routes:[
+    routes: [
       {
         name: 'order-create',
         path: '/order/create',
@@ -245,7 +245,7 @@ export default [
       {
         path: '/order/query',
         component: './Order/Query',
-      }
+      },
     ],
   },
   {
@@ -301,7 +301,7 @@ export default [
     path: '/review/',
     icon: 'WhatsAppOutlined',
     name: 'review',
-    routes:[
+    routes: [
       {
         path: '/review/staff',
         name: 'staff',
@@ -309,7 +309,7 @@ export default [
       },
       {
         path: '/review/customer',
-        name:'customer',
+        name: 'customer',
         component: './Review/Customer',
       },
       {
@@ -320,7 +320,7 @@ export default [
       {
         path: '/review/plan',
         component: './Review/Plan',
-      }
+      },
     ],
   },
   {

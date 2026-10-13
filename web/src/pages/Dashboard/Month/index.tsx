@@ -115,11 +115,21 @@ const MonthDashboard: React.FC = () => {
                     <div className="pole">
                       <i
                         className="m"
-                        style={{ height: `${Math.max(3, Math.round(((r.money ?? 0) / maxTrendMoney) * 72))}px` }}
+                        style={{
+                          height: `${Math.max(
+                            3,
+                            Math.round(((r.money ?? 0) / maxTrendMoney) * 72),
+                          )}px`,
+                        }}
                       />
                       <i
                         className="t"
-                        style={{ height: `${Math.max(3, Math.round(((r.treatCount ?? 0) / maxTreatCount) * 40))}px` }}
+                        style={{
+                          height: `${Math.max(
+                            3,
+                            Math.round(((r.treatCount ?? 0) / maxTreatCount) * 40),
+                          )}px`,
+                        }}
                       />
                     </div>
                     <span className="mo">
@@ -168,7 +178,8 @@ const MonthDashboard: React.FC = () => {
           </div>
 
           <div className="note">
-            演示口径：微信/支付宝仅记录支付方式，不拉起真实收银台；次卡核销单实收记 0（抵扣即收费）。
+            演示口径：微信/支付宝仅记录支付方式，不拉起真实收银台；次卡核销单实收记
+            0（抵扣即收费）。
           </div>
         </Spin>
       </div>

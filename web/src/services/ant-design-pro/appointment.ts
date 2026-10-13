@@ -36,10 +36,7 @@ export interface AppointmentPageResult {
   success?: boolean;
 }
 
-export async function createAppointment(
-  body: Appointment,
-  options?: { [key: string]: any },
-) {
+export async function createAppointment(body: Appointment, options?: { [key: string]: any }) {
   return request<Appointment>('/api/v1/appointment/', {
     method: 'POST',
     data: body,

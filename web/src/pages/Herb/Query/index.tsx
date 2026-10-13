@@ -2,7 +2,13 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { Button, Form, Input, InputNumber, message, Modal, Popconfirm } from 'antd';
 import { useRef, useState } from 'react';
-import { createHerb, deleteHerb, queryHerbByPage, updateHerb, type Herb } from '@/services/ant-design-pro/herb';
+import {
+  createHerb,
+  deleteHerb,
+  queryHerbByPage,
+  updateHerb,
+  type Herb,
+} from '@/services/ant-design-pro/herb';
 import './index.less';
 
 /** 分 → 元展示（每克单价） */
@@ -67,7 +73,9 @@ export default () => {
       title: '单剂上限',
       dataIndex: 'doseMax',
       width: 110,
-      render: (_, record) => <span className="tm">{record.doseMax != null ? `${record.doseMax} 克` : '—'}</span>,
+      render: (_, record) => (
+        <span className="tm">{record.doseMax != null ? `${record.doseMax} 克` : '—'}</span>
+      ),
     },
     {
       title: '收录时间',
@@ -154,15 +162,32 @@ export default () => {
             label="每克价格（分）"
             rules={[{ required: true, message: '每克价格必须大于 0' }]}
           >
-            <InputNumber min={1} precision={0} style={{ width: '100%' }} placeholder="如 5（即 ¥0.05/克）" />
+            <InputNumber
+              min={1}
+              precision={0}
+              style={{ width: '100%' }}
+              placeholder="如 5（即 ¥0.05/克）"
+            />
           </Form.Item>
-          <Form.Item name="stockMin" label="库存下限（克）" tooltip="可空=不预警；库存余额看板对低于下限的药材标预警">
+          <Form.Item
+            name="stockMin"
+            label="库存下限（克）"
+            tooltip="可空=不预警；库存余额看板对低于下限的药材标预警"
+          >
             <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="如 500" />
           </Form.Item>
-          <Form.Item name="stockMax" label="库存上限（克）" tooltip="可空=不预警；库存余额看板对高于上限的药材标预警">
+          <Form.Item
+            name="stockMax"
+            label="库存上限（克）"
+            tooltip="可空=不预警；库存余额看板对高于上限的药材标预警"
+          >
             <InputNumber min={0} precision={0} style={{ width: '100%' }} placeholder="如 5000" />
           </Form.Item>
-          <Form.Item name="doseMax" label="单剂上限（克）" tooltip="可空=不预警；开方时药味单剂克数严格大于该值即提示（不拦截，由医师判断）">
+          <Form.Item
+            name="doseMax"
+            label="单剂上限（克）"
+            tooltip="可空=不预警；开方时药味单剂克数严格大于该值即提示（不拦截，由医师判断）"
+          >
             <InputNumber min={0.1} precision={1} style={{ width: '100%' }} placeholder="如 10" />
           </Form.Item>
         </Form>

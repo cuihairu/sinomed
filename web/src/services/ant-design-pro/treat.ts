@@ -1,6 +1,6 @@
 import { request } from '@umijs/max';
 
-export async function createTreat(body: API.Treat,options?: { [key: string]: any }) {
+export async function createTreat(body: API.Treat, options?: { [key: string]: any }) {
   return request<API.Treat>('/api/v1/treat/', {
     method: 'POST',
     headers: {
@@ -12,7 +12,7 @@ export async function createTreat(body: API.Treat,options?: { [key: string]: any
 }
 
 /** 编辑态全量更新：PUT /api/v1/treat/，id/customerId 必填且须存在 */
-export async function updateTreat(body: API.Treat,options?: { [key: string]: any }) {
+export async function updateTreat(body: API.Treat, options?: { [key: string]: any }) {
   return request<API.Treat>('/api/v1/treat/', {
     method: 'PUT',
     headers: {
@@ -23,7 +23,7 @@ export async function updateTreat(body: API.Treat,options?: { [key: string]: any
   });
 }
 
-export async function fetchTreatById(id:number|string,options?: { [key: string]: any }) {
+export async function fetchTreatById(id: number | string, options?: { [key: string]: any }) {
   return request<API.Treat>(`/api/v1/treat/${id}`, {
     method: 'GET',
     headers: {
@@ -32,7 +32,7 @@ export async function fetchTreatById(id:number|string,options?: { [key: string]:
     ...(options || {}),
   });
 }
-export async function deleteTreat(id: number,options?: { [key: string]: any }) {
+export async function deleteTreat(id: number, options?: { [key: string]: any }) {
   return request<API.MessageResp>(`/api/v1/treat/${id}`, {
     method: 'DELETE',
     headers: {
@@ -41,7 +41,10 @@ export async function deleteTreat(id: number,options?: { [key: string]: any }) {
     ...(options || {}),
   });
 }
-export async function queryTreatByPage(params: API.QueryTreatParams,options?: { [key: string]: any }) {
+export async function queryTreatByPage(
+  params: API.QueryTreatParams,
+  options?: { [key: string]: any },
+) {
   return request<API.QueryTreatResult>('/api/v1/treat/history', {
     method: 'GET',
     params: params,
@@ -52,7 +55,10 @@ export async function queryTreatByPage(params: API.QueryTreatParams,options?: { 
   });
 }
 
-export async function fuzzyQueryTreatByPage(params: API.QueryTreatParams,options?: { [key: string]: any }) {
+export async function fuzzyQueryTreatByPage(
+  params: API.QueryTreatParams,
+  options?: { [key: string]: any },
+) {
   return request<API.QueryTreatResult>('/api/v1/treat/fuzzy', {
     method: 'GET',
     params: params,

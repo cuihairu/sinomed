@@ -66,9 +66,7 @@ export async function queryTherapyTemplatePage(
 }
 
 /** 上架模板（enabled=1，名称升序）：接诊页「套用外治模板」取数入口 */
-export async function queryEnabledTherapyTemplates(
-  options?: { [key: string]: any },
-) {
+export async function queryEnabledTherapyTemplates(options?: { [key: string]: any }) {
   return request<TherapyTemplate[]>('/api/v1/therapy-template/enabled', {
     method: 'GET',
     ...(options || {}),
@@ -76,10 +74,7 @@ export async function queryEnabledTherapyTemplates(
 }
 
 /** 删除模板（演示环境口径，无留痕） */
-export async function deleteTherapyTemplate(
-  id: number,
-  options?: { [key: string]: any },
-) {
+export async function deleteTherapyTemplate(id: number, options?: { [key: string]: any }) {
   return request<{ message?: string }>(`/api/v1/therapy-template/${id}`, {
     method: 'DELETE',
     ...(options || {}),

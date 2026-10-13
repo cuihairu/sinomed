@@ -1,6 +1,6 @@
 import { request } from '@umijs/max';
 
-export async function createItem(body: API.Item,options?: { [key: string]: any }) {
+export async function createItem(body: API.Item, options?: { [key: string]: any }) {
   return request<API.Item>('/api/v1/item/', {
     method: 'POST',
     headers: {
@@ -11,7 +11,7 @@ export async function createItem(body: API.Item,options?: { [key: string]: any }
   });
 }
 
-export async function fetchItem(id:number|string,options?: { [key: string]: any }) {
+export async function fetchItem(id: number | string, options?: { [key: string]: any }) {
   return request<API.Item>(`/api/v1/item/${id}`, {
     method: 'GET',
     headers: {
@@ -21,10 +21,13 @@ export async function fetchItem(id:number|string,options?: { [key: string]: any 
   });
 }
 
-export async function queryItemByPage(params: API.QueryItemParams,options?: { [key: string]: any }) {
+export async function queryItemByPage(
+  params: API.QueryItemParams,
+  options?: { [key: string]: any },
+) {
   return request<API.QueryItemResult>('/api/v1/item/page', {
     method: 'GET',
-    params:params,
+    params: params,
     headers: {
       'Content-Type': 'application/json',
     },
@@ -32,7 +35,7 @@ export async function queryItemByPage(params: API.QueryItemParams,options?: { [k
   });
 }
 
-export async function updateItem(body: API.Item,options?: { [key: string]: any }) {
+export async function updateItem(body: API.Item, options?: { [key: string]: any }) {
   return request<API.Item>('/api/v1/item/', {
     method: 'PUT',
     headers: {
@@ -43,7 +46,7 @@ export async function updateItem(body: API.Item,options?: { [key: string]: any }
   });
 }
 
-export async function deleteItem(id: number,options?: { [key: string]: any }) {
+export async function deleteItem(id: number, options?: { [key: string]: any }) {
   return request<API.Item>(`/api/v1/item/${id}`, {
     method: 'DELETE',
     headers: {

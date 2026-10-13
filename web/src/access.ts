@@ -5,6 +5,6 @@ export default function access(initialState: { currentUser?: API.CurrentUser } |
   const { currentUser } = initialState ?? {};
   return {
     canAdmin: currentUser && currentUser.access === 'admin',
-    canUser: currentUser ,
+    canUser: currentUser,
   };
 }

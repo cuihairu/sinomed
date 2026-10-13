@@ -33,10 +33,7 @@ export interface FormulaPageResult {
 }
 
 /** 建方剂：name + pinyin（全拼小写字母）+ herbs（至少 1 味）必填 */
-export async function createFormula(
-  body: Formula,
-  options?: { [key: string]: any },
-) {
+export async function createFormula(body: Formula, options?: { [key: string]: any }) {
   return request<Formula>('/api/v1/formula/', {
     method: 'POST',
     data: body,
@@ -45,10 +42,7 @@ export async function createFormula(
 }
 
 /** 更新方剂：按 id 全量更新，药味全量替换；换名撞其他方剂报 400 */
-export async function updateFormula(
-  body: Formula,
-  options?: { [key: string]: any },
-) {
+export async function updateFormula(body: Formula, options?: { [key: string]: any }) {
   return request<Formula>('/api/v1/formula/', {
     method: 'PUT',
     data: body,
@@ -69,10 +63,7 @@ export async function queryFormulaPage(
 }
 
 /** 删除方剂（连同药味；不影响已开处方；演示环境口径，无留痕） */
-export async function deleteFormula(
-  id: number,
-  options?: { [key: string]: any },
-) {
+export async function deleteFormula(id: number, options?: { [key: string]: any }) {
   return request<{ message?: string }>(`/api/v1/formula/${id}`, {
     method: 'DELETE',
     ...(options || {}),

@@ -144,6 +144,14 @@ export default defineConfig({
     // 解决首次加载时白屏的问题
     { src: '/scripts/loading.js', async: true },
   ],
+  /**
+   * @name PWA manifest 与主题色
+   * @description manifest.json 放 public/ 随构建产物原样输出到 dist 根；
+   *              图标在 public/icons/（128/192/512 三档已就位）。
+   *              主题色与品牌口径一致（石墨×古金 #353a37）。
+   */
+  links: [{ rel: 'manifest', href: '/manifest.json' }],
+  metas: [{ name: 'theme-color', content: '#353a37' }],
   mfsu: {
     strategy: 'normal',
   },

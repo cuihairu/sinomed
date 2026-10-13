@@ -2,7 +2,6 @@
 /* eslint-disable */
 
 declare namespace API {
-
   type QueryCustomerParams = {
     pageSize?: number;
     current?: number;
@@ -11,7 +10,7 @@ declare namespace API {
     phone?: string;
     startTime?: string;
     endTime?: string;
-  }
+  };
   type QueryItemParams = {
     pageSize?: number;
     current?: number;
@@ -20,17 +19,17 @@ declare namespace API {
     price?: string;
     startTime?: string;
     endTime?: string;
-  }
+  };
 
   type MessageResp = {
     message: string;
-  }
+  };
 
   type QueryCustomerResult = {
     total?: number;
     pages?: number;
     data?: Customer[];
-  }
+  };
 
   type Customer = {
     name?: string;
@@ -41,6 +40,9 @@ declare namespace API {
     level?: number;
     birthday?: string;
     id?: number;
+    createTime?: string;
+    updateTime?: string;
+    firstDate?: string;
   };
   type Staff = {
     account?: string;
@@ -68,12 +70,12 @@ declare namespace API {
     phone?: string;
     startTime?: string;
     endTime?: string;
-  }
+  };
   type QueryStaffResult = {
     total?: number;
     pages?: number;
     data?: Staff[];
-  }
+  };
   type Sign = {
     signType: number;
   };
@@ -83,7 +85,7 @@ declare namespace API {
     name?: string;
     signType?: number;
     signTime?: string;
-  }
+  };
 
   type CurrentUser = {
     name?: string;
@@ -248,6 +250,9 @@ declare namespace API {
     durationMinutes?: number;
     createTime?: string;
     updateTime?: string;
+    enabled?: number;
+    cover?: string;
+    sort?: number;
   };
   type QueryItemParams = {
     pageSize?: number;
@@ -256,12 +261,12 @@ declare namespace API {
     name?: string;
     startTime?: string;
     endTime?: string;
-  }
+  };
   type QueryItemResult = {
     total?: number;
     pages?: number;
     data?: Item[];
-  }
+  };
   type Leave = {
     account?: string;
     name?: string;
@@ -274,28 +279,28 @@ declare namespace API {
     id?: number;
   };
 
-  type Timesheet ={
-      name?: string;
-      signType?: number;
-      time?: string;
+  type Timesheet = {
+    name?: string;
+    signType?: number;
+    time?: string;
   };
   type StaffTimesheet = {
     staffId?: number;
     name?: string;
     total?: number;
     data?: DayTimesheet[];
-  }
+  };
   type DayTimesheet = {
     day?: number;
     total?: number;
     startTime?: string;
     endTime?: string;
     data?: Timesheet[];
-  }
+  };
   type MonthTimesheet = {
     month?: number;
-    data?:StaffTimesheet[];
-  }
+    data?: StaffTimesheet[];
+  };
   type WeekTimesheetDay = {
     date?: string;
     weekday?: number;
@@ -305,27 +310,27 @@ declare namespace API {
     signStart?: string;
     signEnd?: string;
     hours?: number;
-  }
+  };
   type WeekTimesheetStaff = {
     staffId?: number;
     name?: string;
     days?: WeekTimesheetDay[];
-  }
+  };
   type WeekTimesheet = {
     weekStart?: string;
     staffs?: WeekTimesheetStaff[];
-  }
+  };
   type Review = {
     id?: number;
     day?: Date;
     good?: string;
-    improvement?:string;
+    improvement?: string;
     createTime?: string;
     updateTime?: string;
-
   };
   type ReviewStaff = {
-    id: number|string;
+    /** 后端 ReviewStaffView.id 为可空 Long；新建时不传，列表/编辑回显才用 */
+    id?: number | string;
     name?: string;
     cost?: number;
     done?: string;
@@ -334,10 +339,10 @@ declare namespace API {
     advice?: string;
     createTime?: string;
     updateTime?: string;
-
   };
   type ReviewCustomer = {
-    id: number|string;
+    /** 后端 ReviewCustomerView.id 为可空 Long；新建时不传，列表/编辑回显才用 */
+    id?: number | string;
     name?: string;
     last?: Date;
     done?: string;
@@ -354,10 +359,10 @@ declare namespace API {
     customerId?: number;
     startTime?: string;
     endTime?: string;
-  }
+  };
   type QueryTreatResult = {
     total?: number;
     pages?: number;
     data?: Treat[];
-  }
+  };
 }

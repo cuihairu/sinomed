@@ -3,6 +3,8 @@ import { DatePicker, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useCallback, useEffect, useState } from 'react';
 import moment from 'moment';
+// DatePicker 的 disabledDate 回调拿到的是 Dayjs，与 antd 同源的 dayjs 比较（moment 仅存历史用法）
+import dayjs from 'dayjs';
 import {
   PAY_TYPE_TEXT,
   fetchReconciliation,
@@ -33,7 +35,11 @@ export default function BillingReconciliation() {
   }, [date, load]);
 
   const payColumns: ColumnsType<ReconPayRow> = [
-    { title: '支付方式', dataIndex: 'payTypeText', render: (_, r) => PAY_TYPE_TEXT[r.payType ?? 0] || r.payTypeText },
+    {
+      title: '支付方式',
+      dataIndex: 'payTypeText',
+      render: (_, r) => PAY_TYPE_TEXT[r.payType ?? 0] || r.payTypeText,
+    },
     { title: '笔数', dataIndex: 'count', width: 90, render: (_, r) => `${r.count ?? 0} 笔` },
     { title: '金额', dataIndex: 'money', width: 130, render: (_, r) => `¥${r.money ?? 0}` },
   ];
@@ -51,12 +57,37 @@ export default function BillingReconciliation() {
   ];
 
   const refundColumns: ColumnsType<RefundRecord> = [
-    { title: '结算单', dataIndex: 'settlementId', width: 90, render: (_, r) => `S-${r.settlementId ?? ''}` },
-    { title: '顾客', dataIndex: 'customerName', width: 110, render: (_, r) => r.customerName || '-' },
-    { title: '金额', dataIndex: 'money', width: 100, render: (_, r) => <b className="rc-out">-¥{r.money ?? 0}</b> },
-    { title: '原支付方式', dataIndex: 'payType', width: 110, render: (_, r) => PAY_TYPE_TEXT[r.payType ?? 0] || '-' },
+    {
+      title: '结算单',
+      dataIndex: 'settlementId',
+      width: 90,
+      render: (_, r) => `S-${r.settlementId ?? ''}`,
+    },
+    {
+      title: '顾客',
+      dataIndex: 'customerName',
+      width: 110,
+      render: (_, r) => r.customerName || '-',
+    },
+    {
+      title: '金额',
+      dataIndex: 'money',
+      width: 100,
+      render: (_, r) => <b className="rc-out">-¥{r.money ?? 0}</b>,
+    },
+    {
+      title: '原支付方式',
+      dataIndex: 'payType',
+      width: 110,
+      render: (_, r) => PAY_TYPE_TEXT[r.payType ?? 0] || '-',
+    },
     { title: '退款理由', dataIndex: 'reason', ellipsis: true },
-    { title: '操作人', dataIndex: 'staffName', width: 100, render: (_, r) => r.staffName || <span className="faint">未记录</span> },
+    {
+      title: '操作人',
+      dataIndex: 'staffName',
+      width: 100,
+      render: (_, r) => r.staffName || <span className="faint">未记录</span>,
+    },
     {
       title: '退款时间',
       dataIndex: 'createTime',
@@ -75,7 +106,7 @@ export default function BillingReconciliation() {
           <DatePicker
             value={date ? moment(date) : undefined}
             allowClear={false}
-            disabledDate={(d) => d.isAfter(moment(), 'day')}
+            disabledDate={(d) => d.isAfter(dayjs(), 'day')}
             onChange={(d) => setDate(d ? d.format('YYYY-MM-DD') : moment().format('YYYY-MM-DD'))}
           />
           <span className="faint">对账日 {date}（充值不计营收；退款按原支付方式构成）</span>
@@ -86,7 +117,8 @@ export default function BillingReconciliation() {
             <span className="k">实收</span>
             <b>¥{report?.incomeMoney ?? 0}</b>
             <span className="sub">
-              {report?.incomeCount ?? 0} 单{report?.cardCount ? ` · 次卡核销 ${report.cardCount} 单（实收 0）` : ''}
+              {report?.incomeCount ?? 0} 单
+              {report?.cardCount ? ` · 次卡核销 ${report.cardCount} 单（实收 0）` : ''}
             </span>
           </div>
           <div className="stat">
@@ -151,8 +183,8 @@ export default function BillingReconciliation() {
         </section>
 
         <div className="rc-note faint">
-          口径：微信/支付宝退款为演示口径仅落退款记录，不真转；次卡退款作废核销流水并回补余次、金额记 0；
-          储值退款补回余额（不计入充值）。订单退款后回「已接单」，可在结算台重新收款。
+          口径：微信/支付宝退款为演示口径仅落退款记录，不真转；次卡退款作废核销流水并回补余次、金额记
+          0； 储值退款补回余额（不计入充值）。订单退款后回「已接单」，可在结算台重新收款。
         </div>
       </div>
     </PageContainer>

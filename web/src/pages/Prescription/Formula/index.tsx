@@ -34,18 +34,26 @@ export default () => {
       pinyin: record.pinyin,
       source: record.source,
       indication: record.indication,
-      herbs: (record.herbs || []).map((h) => ({ herb: h.herb, weight: h.weight, special: h.special })),
+      herbs: (record.herbs || []).map((h) => ({
+        herb: h.herb,
+        weight: h.weight,
+        special: h.special,
+      })),
     });
     setModalOpen(true);
   };
 
   const submit = async () => {
     const values = await form.validateFields();
-    const herbs = (values.herbs || []).filter((h: any) => (h.herb || '').trim() !== '' || h.weight != null);
+    const herbs = (values.herbs || []).filter(
+      (h: any) => (h.herb || '').trim() !== '' || h.weight != null,
+    );
     const payload = { ...values, pinyin: (values.pinyin || '').trim().toLowerCase(), herbs };
     setSaving(true);
     try {
-      const saved = editing?.id ? await updateFormula({ id: editing.id, ...payload }) : await createFormula(payload);
+      const saved = editing?.id
+        ? await updateFormula({ id: editing.id, ...payload })
+        : await createFormula(payload);
       if (saved?.id) {
         message.success(editing?.id ? '方剂已更新' : '方剂已收录');
         setModalOpen(false);
@@ -128,7 +136,8 @@ export default () => {
       content={
         <span className="fm-tip">
           经典方剂参考库：开方页「方剂库」按方名或拼音（如 <code>xiaoyao</code>）检索，
-          <b>一键带出全方</b>——带出后随处方自由增减，不写回方剂库。药味克数为文献常用量口径，仅作参考。
+          <b>一键带出全方</b>
+          ——带出后随处方自由增减，不写回方剂库。药味克数为文献常用量口径，仅作参考。
         </span>
       }
     >
@@ -219,7 +228,11 @@ export default () => {
                       <MinusCircleOutlined onClick={() => remove(field.name)} className="fm-del" />
                     </div>
                   ))}
-                  <Button type="dashed" onClick={() => add({ herb: '', weight: undefined })} icon={<PlusOutlined />}>
+                  <Button
+                    type="dashed"
+                    onClick={() => add({ herb: '', weight: undefined })}
+                    icon={<PlusOutlined />}
+                  >
                     添加一味
                   </Button>
                 </>

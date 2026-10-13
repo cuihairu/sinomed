@@ -24,10 +24,7 @@ export interface AcupointPageResult {
 }
 
 /** 收录穴位：name + pinyin（全拼小写字母）+ meridian（归经）必填 */
-export async function createAcupoint(
-  body: Acupoint,
-  options?: { [key: string]: any },
-) {
+export async function createAcupoint(body: Acupoint, options?: { [key: string]: any }) {
   return request<Acupoint>('/api/v1/acupoint/', {
     method: 'POST',
     data: body,
@@ -36,10 +33,7 @@ export async function createAcupoint(
 }
 
 /** 更新穴位：按 id 全量更新；换名撞其他穴位报 400 */
-export async function updateAcupoint(
-  body: Acupoint,
-  options?: { [key: string]: any },
-) {
+export async function updateAcupoint(body: Acupoint, options?: { [key: string]: any }) {
   return request<Acupoint>('/api/v1/acupoint/', {
     method: 'PUT',
     data: body,
@@ -60,10 +54,7 @@ export async function queryAcupointPage(
 }
 
 /** 删除穴位（不影响已开接诊单；演示环境口径，无留痕） */
-export async function deleteAcupoint(
-  id: number,
-  options?: { [key: string]: any },
-) {
+export async function deleteAcupoint(id: number, options?: { [key: string]: any }) {
   return request<{ message?: string }>(`/api/v1/acupoint/${id}`, {
     method: 'DELETE',
     ...(options || {}),

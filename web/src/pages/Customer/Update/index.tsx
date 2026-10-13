@@ -34,15 +34,31 @@ import {
   ProFormSelect,
   ProFormInstance,
 } from '@ant-design/pro-components';
-import { Button, DatePicker, Drawer, Form, Input, InputNumber, message, Modal, Popconfirm, Radio, Select } from 'antd';
+import {
+  Button,
+  DatePicker,
+  Drawer,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Popconfirm,
+  Radio,
+  Select,
+} from 'antd';
 import { history, useSearchParams } from '@umijs/max';
 import moment from 'moment';
+// DatePicker 的 disabledDate 回调拿到的是 Dayjs，与 antd 同源的 dayjs 比较（moment 仅存历史用法）
+import dayjs from 'dayjs';
 import './index.less';
 
 /** 会员等级展示口径：1 普通 / 2 银卡 / 3 金卡（演示种子数据即此三档） */
 const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员', 3: '金卡会员' };
-const levelText = (level?: number) => LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
-const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—');
+const levelText = (level?: number) =>
+  LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
+const maskPhone = (p?: string) =>
+  p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—';
 
 type TreatRow = {
   id?: number;
@@ -75,7 +91,10 @@ const Update: React.FC = () => {
   const [usages, setUsages] = useState<CardUsage[]>([]);
   const [usageLoading, setUsageLoading] = useState(false);
   /** 疗程卡营销：加次 / 转卡（同一弹窗按 mode 切换表单），调整流水单独弹窗 */
-  const [adjustTarget, setAdjustTarget] = useState<{ card: Card; mode: 'gift' | 'transfer' } | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<{
+    card: Card;
+    mode: 'gift' | 'transfer';
+  } | null>(null);
   const [adjustForm] = Form.useForm();
   const [adjusting, setAdjusting] = useState(false);
   const [transferOptions, setTransferOptions] = useState<{ label: string; value: number }[]>([]);
@@ -135,7 +154,9 @@ const Update: React.FC = () => {
     setIssueOpen(true);
     if (itemOptions.length === 0) {
       const res = await queryItemByPage({ current: 1, pageSize: 100 });
-      setItemOptions((res?.data || []).map((i) => ({ label: i.name || `卡项${i.id}`, value: i.id! })));
+      setItemOptions(
+        (res?.data || []).map((i) => ({ label: i.name || `卡项${i.id}`, value: i.id! })),
+      );
     }
   };
 
@@ -207,7 +228,10 @@ const Update: React.FC = () => {
         await adjustCard(target.card.id, { times: values.times, reason: values.reason });
         message.success('已加次');
       } else {
-        await transferCard(target.card.id, { customerId: values.customerId, reason: values.reason });
+        await transferCard(target.card.id, {
+          customerId: values.customerId,
+          reason: values.reason,
+        });
         message.success('已转卡');
       }
       setAdjustTarget(null);
@@ -269,13 +293,21 @@ const Update: React.FC = () => {
   const upcomingReview = reviews
     .filter((r) => r.day && moment(r.day as any).isSameOrAfter(todayStart))
     .sort((a, b) => moment(a.day as any).valueOf() - moment(b.day as any).valueOf())[0];
-  const nextReviewText = upcomingReview?.day ? moment(upcomingReview.day as any).format('MM-DD') : '无计划';
+  const nextReviewText = upcomingReview?.day
+    ? moment(upcomingReview.day as any).format('MM-DD')
+    : '无计划';
   const reviewNoteText = upcomingReview?.advice || '到店回访，可提前一天确认到店时间';
 
   return (
     <PageContainer
       title={customer ? `${customer.name || ''} · 顾客档案` : '顾客档案'}
-      breadcrumb={{ items: [{ title: '顾客' }, { title: <a href="/customer/query">顾客查询</a> }, { title: customer?.name || '—' }] }}
+      breadcrumb={{
+        items: [
+          { title: '顾客' },
+          { title: <a href="/customer/query">顾客查询</a> },
+          { title: customer?.name || '—' },
+        ],
+      }}
     >
       <div className="cu-head">
         <div className="avatar">{(customer?.name || '客').slice(0, 1)}</div>
@@ -289,7 +321,9 @@ const Update: React.FC = () => {
             <span>
               {customer?.gender === 1 ? '男' : '女'} · {customer?.age ?? '—'} 岁
             </span>
-            {customer?.createTime ? <span>{moment(customer.createTime).format('YYYY-MM')} 建档</span> : null}
+            {customer?.createTime ? (
+              <span>{moment(customer.createTime).format('YYYY-MM')} 建档</span>
+            ) : null}
             {customer?.address ? <span>{customer.address}</span> : null}
             <span>{lastVisitText}</span>
           </p>
@@ -380,7 +414,9 @@ const Update: React.FC = () => {
             <a onClick={openIssue}>发卡</a>
           </h3>
           {cards.length === 0 ? (
-            <div className="plan-note">暂无持卡记录，可点「发卡」为顾客登记次卡（余次与结算抵扣联动）。</div>
+            <div className="plan-note">
+              暂无持卡记录，可点「发卡」为顾客登记次卡（余次与结算抵扣联动）。
+            </div>
           ) : (
             cards.map((c) => (
               <div className="card-row" key={c.id}>
@@ -393,7 +429,10 @@ const Update: React.FC = () => {
                   <div className="cd-bar">
                     <i
                       style={{
-                        width: `${Math.min(100, Math.round(((c.remainingTimes ?? 0) / (c.totalTimes || 1)) * 100))}%`,
+                        width: `${Math.min(
+                          100,
+                          Math.round(((c.remainingTimes ?? 0) / (c.totalTimes || 1)) * 100),
+                        )}%`,
                       }}
                     />
                   </div>
@@ -462,14 +501,18 @@ const Update: React.FC = () => {
           </Button>
         </div>
         {histories.length === 0 ? (
-          <div className="plan-note">暂无病史记录；有过敏史或慢性病的顾客建议先记上，开方时调阅。</div>
+          <div className="plan-note">
+            暂无病史记录；有过敏史或慢性病的顾客建议先记上，开方时调阅。
+          </div>
         ) : (
           <div className="his-list">
             {histories.map((h) => (
               <div className="his-row" key={h.id}>
                 <span className={`his-tag t${h.type ?? 0}`}>{h.type === 0 ? '过敏' : '既往'}</span>
                 <span className="his-content">{h.content}</span>
-                <span className="his-time">{h.createTime ? moment(h.createTime).format('YYYY-MM-DD') : '—'}</span>
+                <span className="his-time">
+                  {h.createTime ? moment(h.createTime).format('YYYY-MM-DD') : '—'}
+                </span>
                 <Popconfirm title="删除这条病史？" onConfirm={() => h.id && removeHistory(h.id)}>
                   <a className="his-del">删除</a>
                 </Popconfirm>
@@ -489,7 +532,11 @@ const Update: React.FC = () => {
         cancelText="取消"
       >
         <Form form={issueForm} layout="vertical">
-          <Form.Item name="itemId" label="卡项（次卡）" rules={[{ required: true, message: '请选择卡项' }]}>
+          <Form.Item
+            name="itemId"
+            label="卡项（次卡）"
+            rules={[{ required: true, message: '请选择卡项' }]}
+          >
             <Select options={itemOptions} placeholder="选择卡项" />
           </Form.Item>
           <Form.Item
@@ -500,8 +547,15 @@ const Update: React.FC = () => {
           >
             <InputNumber min={1} precision={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="validUntil" label="有效期至" tooltip="选填，不填=长期有效；过期后该卡不再参与结算抵扣">
-            <DatePicker style={{ width: '100%' }} disabledDate={(d) => d && d.isBefore(moment().startOf('day'))} />
+          <Form.Item
+            name="validUntil"
+            label="有效期至"
+            tooltip="选填，不填=长期有效；过期后该卡不再参与结算抵扣"
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              disabledDate={(d) => d && d.isBefore(dayjs().startOf('day'))}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -523,7 +577,9 @@ const Update: React.FC = () => {
             {usages.map((u) => (
               <div className="usage-row" key={u.id}>
                 <span className="u-n">第 {u.timesUsed ?? '—'} 次</span>
-                <span className="u-t">{u.createTime ? moment(u.createTime).format('YYYY-MM-DD HH:mm') : '—'}</span>
+                <span className="u-t">
+                  {u.createTime ? moment(u.createTime).format('YYYY-MM-DD HH:mm') : '—'}
+                </span>
                 <span className="u-s">{u.staffName ? `服务：${u.staffName}` : '服务：—'}</span>
                 <span className="u-o">{u.orderId ? `订单 #${u.orderId}` : '历史补录'}</span>
               </div>
@@ -553,10 +609,20 @@ const Update: React.FC = () => {
               label="赠加次数"
               rules={[{ required: true, message: '赠加次数必须在 1-99' }]}
             >
-              <InputNumber min={1} max={99} precision={0} style={{ width: '100%' }} placeholder="1-99" />
+              <InputNumber
+                min={1}
+                max={99}
+                precision={0}
+                style={{ width: '100%' }}
+                placeholder="1-99"
+              />
             </Form.Item>
           ) : (
-            <Form.Item name="customerId" label="转入顾客" rules={[{ required: true, message: '请选择转入顾客' }]}>
+            <Form.Item
+              name="customerId"
+              label="转入顾客"
+              rules={[{ required: true, message: '请选择转入顾客' }]}
+            >
               <Select
                 showSearch
                 filterOption={false}
@@ -577,7 +643,9 @@ const Update: React.FC = () => {
               maxLength={100}
               showCount
               rows={2}
-              placeholder={adjustTarget?.mode === 'transfer' ? '如：顾客转赠家人' : '如：老客回馈、疗程续赠'}
+              placeholder={
+                adjustTarget?.mode === 'transfer' ? '如：顾客转赠家人' : '如：老客回馈、疗程续赠'
+              }
             />
           </Form.Item>
         </Form>
@@ -598,9 +666,15 @@ const Update: React.FC = () => {
             {adjusts.map((a) => (
               <div className="usage-row" key={a.id}>
                 <span className="u-n">{a.type === 2 ? '转卡' : `赠 ${a.times ?? '—'} 次`}</span>
-                <span className="u-t">{a.createTime ? moment(a.createTime).format('YYYY-MM-DD HH:mm') : '—'}</span>
+                <span className="u-t">
+                  {a.createTime ? moment(a.createTime).format('YYYY-MM-DD HH:mm') : '—'}
+                </span>
                 <span className="u-s">
-                  {a.type === 2 ? `转入：${a.customerName || '—'}` : a.staffName ? `操作：${a.staffName}` : '操作：—'}
+                  {a.type === 2
+                    ? `转入：${a.customerName || '—'}`
+                    : a.staffName
+                    ? `操作：${a.staffName}`
+                    : '操作：—'}
                 </span>
                 <span className="u-o">
                   {a.staffName && a.type === 2 ? `操作：${a.staffName}` : a.reason || '—'}
@@ -661,7 +735,11 @@ const Update: React.FC = () => {
             placeholder="1"
           />
           <ProFormDatePicker colProps={{ md: 12, xl: 12 }} label="生日" name="birthday" />
-          <ProFormTextArea colProps={{ span: 24 }} name="address" label="详细的工作地址或家庭住址" />
+          <ProFormTextArea
+            colProps={{ span: 24 }}
+            name="address"
+            label="详细的工作地址或家庭住址"
+          />
         </ProForm>
       </Drawer>
     </PageContainer>

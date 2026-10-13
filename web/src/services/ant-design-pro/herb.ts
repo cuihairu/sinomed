@@ -101,7 +101,14 @@ export interface HerbStockBalance {
 
 /** 登记出入库（出库不得超过当前库存；入库效期不得早于今天） */
 export async function createStockLog(
-  body: { herbId: number; type: number; quantity: number; expiry?: string; supplier?: string; note?: string },
+  body: {
+    herbId: number;
+    type: number;
+    quantity: number;
+    expiry?: string;
+    supplier?: string;
+    note?: string;
+  },
   options?: { [key: string]: any },
 ) {
   return request<HerbStockLog>('/api/v1/herb-stock/', {

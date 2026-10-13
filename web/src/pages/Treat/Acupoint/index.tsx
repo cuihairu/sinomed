@@ -42,7 +42,9 @@ export default () => {
     const payload = { ...values, pinyin: (values.pinyin || '').trim().toLowerCase() };
     setSaving(true);
     try {
-      const saved = editing?.id ? await updateAcupoint({ id: editing.id, ...payload }) : await createAcupoint(payload);
+      const saved = editing?.id
+        ? await updateAcupoint({ id: editing.id, ...payload })
+        : await createAcupoint(payload);
       if (saved?.id) {
         message.success(editing?.id ? '穴位已更新' : '穴位已收录');
         setModalOpen(false);
@@ -190,10 +192,18 @@ export default () => {
             <Input placeholder="如 足阳明胃经" maxLength={20} />
           </Form.Item>
           <Form.Item name="location" label="体表定位">
-            <Input.TextArea placeholder="如 犊鼻下 3 寸，胫骨前嵴外 1 横指" rows={2} maxLength={80} />
+            <Input.TextArea
+              placeholder="如 犊鼻下 3 寸，胫骨前嵴外 1 横指"
+              rows={2}
+              maxLength={80}
+            />
           </Form.Item>
           <Form.Item name="indication" label="主治">
-            <Input.TextArea placeholder="如 健脾和胃、扶正培元，主治胃痛、腹胀" rows={2} maxLength={80} />
+            <Input.TextArea
+              placeholder="如 健脾和胃、扶正培元，主治胃痛、腹胀"
+              rows={2}
+              maxLength={80}
+            />
           </Form.Item>
         </Form>
       </Modal>

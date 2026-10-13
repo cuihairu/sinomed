@@ -11,7 +11,8 @@ import {
 } from '@/services/ant-design-pro/prescription';
 import './index.less';
 
-const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '');
+const maskPhone = (p?: string) =>
+  p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '';
 
 /** 状态过滤：0 待发药 / 1 已发药 / undefined 全部 */
 type StatusFilter = 0 | 1 | undefined;
@@ -125,7 +126,8 @@ export default function Dispensary() {
       render: (_, entity) =>
         entity.dispenseStatus === 1 ? (
           <span className="dp done">
-            已发药{entity.dispenseTime ? ` · ${moment(entity.dispenseTime).format('MM-DD HH:mm')}` : ''}
+            已发药
+            {entity.dispenseTime ? ` · ${moment(entity.dispenseTime).format('MM-DD HH:mm')}` : ''}
           </span>
         ) : (
           <span className="dp todo">待发药</span>
@@ -135,7 +137,8 @@ export default function Dispensary() {
       title: '开方时间',
       dataIndex: 'createTime',
       width: 120,
-      render: (_, entity) => (entity.createTime ? moment(entity.createTime).format('MM-DD HH:mm') : '-'),
+      render: (_, entity) =>
+        entity.createTime ? moment(entity.createTime).format('MM-DD HH:mm') : '-',
     },
     {
       title: '操作',
@@ -144,15 +147,17 @@ export default function Dispensary() {
       width: 100,
       fixed: 'right',
       render: (_, entity) =>
-        entity.dispenseStatus === 0 ? [
-          <a key="dispense" className="op-go" onClick={() => openDispense(entity)}>
-            发药
-          </a>,
-        ] : [
-          <span key="none" className="faint">
-            —
-          </span>,
-        ],
+        entity.dispenseStatus === 0
+          ? [
+              <a key="dispense" className="op-go" onClick={() => openDispense(entity)}>
+                发药
+              </a>,
+            ]
+          : [
+              <span key="none" className="faint">
+                —
+              </span>,
+            ],
     },
   ];
 

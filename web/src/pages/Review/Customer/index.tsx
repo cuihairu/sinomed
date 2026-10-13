@@ -1,18 +1,13 @@
-import type {
-  EditableFormInstance,
-  ProColumns,
-  ProFormInstance,
-} from '@ant-design/pro-components';
-import moment from "moment";
+import type { EditableFormInstance, ProColumns, ProFormInstance } from '@ant-design/pro-components';
+import moment from 'moment';
+import { EditableProTable, ProForm, ProFormRadio } from '@ant-design/pro-components';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  EditableProTable,
-  ProForm,
-  ProFormRadio,
-} from '@ant-design/pro-components';
-import React, {useEffect, useRef, useState} from 'react';
-import {createReviewCustomerBulk, fetchReviewCustomerBulk,deleteReviewCustomer} from "@/services/ant-design-pro/review";
-import {message} from "antd";
-
+  createReviewCustomerBulk,
+  fetchReviewCustomerBulk,
+  deleteReviewCustomer,
+} from '@/services/ant-design-pro/review';
+import { message } from 'antd';
 
 type DataSourceType = {
   id: React.Key;
@@ -26,7 +21,7 @@ type DataSourceType = {
 };
 
 export default () => {
-  const today = new Date()
+  const today = new Date();
   const [editableKeys, setEditableRowKeys] = useState<React.Key[]>(() => []);
   const formRef = useRef<ProFormInstance<any>>();
   const editorFormRef = useRef<EditableFormInstance<DataSourceType>>();
@@ -66,15 +61,15 @@ export default () => {
         <a
           key="delete"
           onClick={() => {
-            const tableDataSource = formRef.current?.getFieldValue(
-              'table',
-            ) as DataSourceType[];
-            if ((typeof record.id === 'number') && (record.id >0) ){
-              deleteReviewCustomer(record.id).then(()=>{
-                message.success("数据删除成功");
-              }).catch( ()=>{
-                message.error("数据删除失败，请刷新再试");
-              });
+            const tableDataSource = formRef.current?.getFieldValue('table') as DataSourceType[];
+            if (typeof record.id === 'number' && record.id > 0) {
+              deleteReviewCustomer(record.id)
+                .then(() => {
+                  message.success('数据删除成功');
+                })
+                .catch(() => {
+                  message.error('数据删除失败，请刷新再试');
+                });
             }
             formRef.current?.setFieldsValue({
               table: tableDataSource.filter((item) => item.id !== record.id),
@@ -86,11 +81,11 @@ export default () => {
       ],
     },
   ];
-  useEffect( () => {
-    fetchReviewCustomerBulk(new Date).then((data)=>{
-      formRef.current?.setFieldsValue({table: data});
-    })
-  },[]);
+  useEffect(() => {
+    fetchReviewCustomerBulk(new Date()).then((data) => {
+      formRef.current?.setFieldsValue({ table: data });
+    });
+  }, []);
 
   return (
     <ProForm<{
@@ -103,15 +98,15 @@ export default () => {
       validateTrigger="onBlur"
       onFinish={async (value) => {
         console.log(value);
-        for(let i=0;i<value.table.length;i++){
-          value.table[i].day = today
+        for (let i = 0; i < value.table.length; i++) {
+          value.table[i].day = today;
         }
-        const ret = await createReviewCustomerBulk(value.table)
-        if (ret?.message && ret.message === 'ok'){
-          message.success("保存数据成功")
-          return true
+        const ret = await createReviewCustomerBulk(value.table as API.ReviewCustomer[]);
+        if (ret?.message && ret.message === 'ok') {
+          message.success('保存数据成功');
+          return true;
         }
-        message.error("保存数据失败")
+        message.error('保存数据失败');
         return false;
       }}
     >
@@ -121,15 +116,13 @@ export default () => {
           x: 960,
         }}
         editableFormRef={editorFormRef}
-        headerTitle={`当日报表:${moment(today).format("YYYY-MM-DD")}`}
+        headerTitle={`当日报表:${moment(today).format('YYYY-MM-DD')}`}
         maxLength={10000}
         name="table"
-        recordCreatorProps={
-          {
-            position: 'bottom',
-            record: () => ({ id: -(Math.random() * 1000000000).toFixed(0) }),
-          }
-        }
+        recordCreatorProps={{
+          position: 'bottom',
+          record: () => ({ id: -(Math.random() * 1000000000).toFixed(0) }),
+        }}
         toolBarRender={() => [
           <ProFormRadio.Group
             key="render"
@@ -148,10 +141,7 @@ export default () => {
           editableKeys,
           onChange: setEditableRowKeys,
           actionRender: (row, config, defaultDom) => {
-            return [
-              defaultDom.save,
-              defaultDom.delete || defaultDom.cancel,
-            ];
+            return [defaultDom.save, defaultDom.delete || defaultDom.cancel];
           },
         }}
       />

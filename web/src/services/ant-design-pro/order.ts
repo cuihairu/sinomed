@@ -47,9 +47,12 @@ export interface Order {
 export const orderBusinessNo = (order?: Pick<Order, 'id' | 'createTime'>) => {
   if (!order?.id) return '-';
   const day = order.createTime ? new Date(order.createTime) : undefined;
-  const date = day && !Number.isNaN(day.getTime())
-    ? `${day.getFullYear()}${String(day.getMonth() + 1).padStart(2, '0')}${String(day.getDate()).padStart(2, '0')}-`
-    : '';
+  const date =
+    day && !Number.isNaN(day.getTime())
+      ? `${day.getFullYear()}${String(day.getMonth() + 1).padStart(2, '0')}${String(
+          day.getDate(),
+        ).padStart(2, '0')}-`
+      : '';
   return `${date}${String(order.id).padStart(3, '0')}`;
 };
 
@@ -86,10 +89,7 @@ export async function fetchOrder(id: number, options?: { [key: string]: any }) {
 }
 
 /** 按顾客汇总消费：累计消费=已完成订单价格合计 */
-export async function fetchOrderSummary(
-  customerId: number,
-  options?: { [key: string]: any },
-) {
+export async function fetchOrderSummary(customerId: number, options?: { [key: string]: any }) {
   return request<OrderSummary>('/api/v1/order/summary', {
     method: 'GET',
     params: { customerId },
@@ -111,7 +111,12 @@ export async function updateOrderStatus(
 
 /** 前台建单：单品传 itemId，多品项传 items[{itemId,qty}]；价格取卡项现价快照并落明细行，落 status=0 待接待 */
 export async function createOrder(
-  body: { customerId: number; itemId?: number; items?: { itemId: number; qty: number }[]; staffId?: number },
+  body: {
+    customerId: number;
+    itemId?: number;
+    items?: { itemId: number; qty: number }[];
+    staffId?: number;
+  },
   options?: { [key: string]: any },
 ) {
   return request<Order>('/api/v1/order/', {

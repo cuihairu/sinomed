@@ -13,7 +13,9 @@ import { fetchCustomerById, fetchCustomerByPhone } from '@/services/ant-design-p
  * 壳内串口模式（desktop.md D9）：桌面工作站配置了串口扫码枪时由壳读码并广播
  * scanner-code 事件，这里订阅后走同一套定位流程；浏览器无 __TAURI__ 自动退化。
  */
-export default function ScannerInput({ onLocated }: { onLocated?: (customer: API.Customer) => void } = {}) {
+export default function ScannerInput({
+  onLocated,
+}: { onLocated?: (customer: API.Customer) => void } = {}) {
   const inputRef = useRef<InputRef>(null);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -67,21 +69,33 @@ export default function ScannerInput({ onLocated }: { onLocated?: (customer: API
   });
 
   useEffect(() => {
-    const tauri = (window as unknown as {
-      __TAURI__?: { event?: { listen?: (name: string, handler: (ev: { payload: unknown }) => Promise<() => void>) => Promise<() => void> } };
-    }).__TAURI__;
+    const tauri = (
+      window as unknown as {
+        __TAURI__?: {
+          event?: {
+            listen?: (
+              name: string,
+              handler: (ev: { payload: unknown }) => Promise<() => void>,
+            ) => Promise<() => void>;
+          };
+        };
+      }
+    ).__TAURI__;
     if (!tauri?.event?.listen) return;
     let cancelled = false;
     let unlisten: (() => void) | undefined;
-    tauri.event.listen('scanner-code', ({ payload }: { payload: unknown }) => {
-      if (typeof payload === 'string' && payload.trim()) {
-        setCode('');
-        locateRef.current(payload);
-      }
-    }).then((stop: () => void) => {
-      if (cancelled) stop();
-      else unlisten = stop;
-    });
+    tauri.event
+      .listen('scanner-code', async ({ payload }: { payload: unknown }) => {
+        if (typeof payload === 'string' && payload.trim()) {
+          setCode('');
+          locateRef.current(payload);
+        }
+        return () => undefined;
+      })
+      .then((stop: () => void) => {
+        if (cancelled) stop();
+        else unlisten = stop;
+      });
     return () => {
       cancelled = true;
       unlisten?.();

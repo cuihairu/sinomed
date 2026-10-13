@@ -26,10 +26,7 @@ export interface ShiftPageResult {
 }
 
 /** 加排班：staffId + weekday（1-7）+ start/end（HH:mm，start < end）必填；同员工同星期唯一 */
-export async function createShift(
-  body: Shift,
-  options?: { [key: string]: any },
-) {
+export async function createShift(body: Shift, options?: { [key: string]: any }) {
   return request<Shift>('/api/v1/shift/', {
     method: 'POST',
     data: body,
@@ -38,10 +35,7 @@ export async function createShift(
 }
 
 /** 更新班次：按 id 全量更新；换员工/星期撞已有班次报 400 */
-export async function updateShift(
-  body: Shift,
-  options?: { [key: string]: any },
-) {
+export async function updateShift(body: Shift, options?: { [key: string]: any }) {
   return request<Shift>('/api/v1/shift/', {
     method: 'PUT',
     data: body,
@@ -62,10 +56,7 @@ export async function queryShiftPage(
 }
 
 /** 某员工整周班次（weekday 升序） */
-export async function queryShiftByStaff(
-  staffId: number,
-  options?: { [key: string]: any },
-) {
+export async function queryShiftByStaff(staffId: number, options?: { [key: string]: any }) {
   return request<Shift[]>(`/api/v1/shift/staff/${staffId}`, {
     method: 'GET',
     ...(options || {}),
@@ -73,10 +64,7 @@ export async function queryShiftByStaff(
 }
 
 /** 删除班次（不影响考勤记录；演示环境口径，无留痕） */
-export async function deleteShift(
-  id: number,
-  options?: { [key: string]: any },
-) {
+export async function deleteShift(id: number, options?: { [key: string]: any }) {
   return request<{ message?: string }>(`/api/v1/shift/${id}`, {
     method: 'DELETE',
     ...(options || {}),

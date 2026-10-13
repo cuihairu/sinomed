@@ -24,7 +24,10 @@ import { useSearchParams, history } from '@umijs/max';
 import moment from 'moment';
 import ScannerInput from '@/components/ScannerInput';
 import { queryAcupointPage, type Acupoint } from '@/services/ant-design-pro/acupoint';
-import { queryEnabledTherapyTemplates, type TherapyTemplate } from '@/services/ant-design-pro/therapy';
+import {
+  queryEnabledTherapyTemplates,
+  type TherapyTemplate,
+} from '@/services/ant-design-pro/therapy';
 import { listCardsByCustomer, type Card } from '@/services/ant-design-pro/card';
 import './index.less';
 
@@ -80,12 +83,22 @@ type Treat = {
   review?: string;
 };
 
-type TreatRow = { id?: number; createTime?: string; diagnose?: string; desc?: string; plan?: string };
+type TreatRow = {
+  id?: number;
+  createTime?: string;
+  diagnose?: string;
+  desc?: string;
+  plan?: string;
+  /** 接诊医师姓名（后台 TreatView.staffName；为空时前端回退「未署名」） */
+  staffName?: string;
+};
 
 /** 会员等级展示口径：1 普通 / 2 银卡 / 3 金卡（与顾客档案页一致） */
 const LEVEL_TEXT: Record<number, string> = { 1: '普通会员', 2: '银卡会员', 3: '金卡会员' };
-const levelText = (level?: number) => LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
-const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—');
+const levelText = (level?: number) =>
+  LEVEL_TEXT[level ?? 0] ?? (level ? `会员 L${level}` : '普通会员');
+const maskPhone = (p?: string) =>
+  p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '—';
 
 /** 壳侧外设只读状态（peripheral_status 命令，desktop.md D10）：
  *  扫码枪运行时 / 小票机上次打印结果 / 默认打印机名。纯查询不改外设。 */
@@ -97,9 +110,13 @@ type PeripheralStatus = {
 
 /** 壳内 invoke（tauri 注入 `__TAURI__.core.invoke`）；浏览器无注入返回 undefined 自动退化 */
 async function shellInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T | undefined> {
-  const invoke = (window as unknown as {
-    __TAURI__?: { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } };
-  }).__TAURI__?.core?.invoke;
+  const invoke = (
+    window as unknown as {
+      __TAURI__?: {
+        core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> };
+      };
+    }
+  ).__TAURI__?.core?.invoke;
   if (!invoke) return undefined;
   try {
     return (await invoke(cmd, args)) as T;
@@ -137,13 +154,20 @@ function PeripheralPanel({ inShell }: { inShell: boolean }) {
     const stops: Array<() => void> = [];
     void refresh();
     const timer = window.setInterval(() => void refresh(), 30000);
-    const tauri = (window as unknown as {
-      __TAURI__?: { event?: { listen?: (n: string, h: (ev: { payload: unknown }) => void) => Promise<() => void> } };
-    }).__TAURI__;
+    const tauri = (
+      window as unknown as {
+        __TAURI__?: {
+          event?: {
+            listen?: (n: string, h: (ev: { payload: unknown }) => void) => Promise<() => void>;
+          };
+        };
+      }
+    ).__TAURI__;
     // scanner-status / scanner-error 本就放行给远程页（core:event:default），据此即时刷新，不等轮询
     ['scanner-status', 'scanner-error'].forEach((name) => {
-      tauri?.event
-        ?.listen(name, () => void refresh())
+      const handle = tauri?.event?.listen;
+      if (!handle) return;
+      void handle(name, () => void refresh())
         .then((stop) => {
           if (cancelled) stop();
           else stops.push(stop);
@@ -176,7 +200,8 @@ function PeripheralPanel({ inShell }: { inShell: boolean }) {
           <span className="tag dim">系统打印</span>
         </div>
         <div className="plan-note">
-          浏览器环境：按页面可用能力如实标注；进入桌面工作站后扫码枪走串口、小票机走 escpos 直连、打印机取配置预选名。
+          浏览器环境：按页面可用能力如实标注；进入桌面工作站后扫码枪走串口、小票机走 escpos
+          直连、打印机取配置预选名。
         </div>
       </>
     );
@@ -194,10 +219,10 @@ function PeripheralPanel({ inShell }: { inShell: boolean }) {
   const scannerTag = scanner?.error
     ? '打开失败'
     : scanner?.state === 'listening'
-      ? `监听中${scanner.port ? ` · ${scanner.port}` : ''}`
-      : scanner?.port
-        ? `未开监听 · ${scanner.port}`
-        : '未配串口（HID 键盘）';
+    ? `监听中${scanner.port ? ` · ${scanner.port}` : ''}`
+    : scanner?.port
+    ? `未开监听 · ${scanner.port}`
+    : '未配串口（HID 键盘）';
   const scannerWarn = !!scanner?.error;
   const scannerDim = !scannerWarn && scanner?.state !== 'listening';
 
@@ -205,8 +230,8 @@ function PeripheralPanel({ inShell }: { inShell: boolean }) {
   const escposTag = escpos?.error
     ? `上次失败 · ${ago(escpos.agoSec)}`
     : escpos?.status === 'ok'
-      ? `上次成功 ${escpos.bytes ?? 0} 字节 · ${ago(escpos.agoSec)}`
-      : '按需直连';
+    ? `上次成功 ${escpos.bytes ?? 0} 字节 · ${ago(escpos.agoSec)}`
+    : '按需直连';
   const escposWarn = !!escpos?.error;
   const escposDim = !escposWarn && escpos?.status !== 'ok';
 
@@ -239,6 +264,65 @@ function PeripheralPanel({ inShell }: { inShell: boolean }) {
         {escpos?.error ? `小票机：${escpos.error}。` : ''}
       </div>
     </>
+  );
+}
+
+/** 五行生克定位图：五节点定位（火心/木肝/土脾/金肺/水肾，中宫为脾）+ 四指标实时值（随录入联动，对齐原型 admin-diagnosis.html） */
+function WuxingLive() {
+  const form = Form.useFormInstance();
+  const benZiL = Form.useWatch('fiveBenZiLeft', form);
+  const benZiR = Form.useWatch('fiveBenZiRight', form);
+  const benKeL = Form.useWatch('fiveBenKeLeft', form);
+  const benKeR = Form.useWatch('fiveBenKeRight', form);
+  const nanJinL = Form.useWatch('fiveNanJinLeft', form);
+  const nanJinR = Form.useWatch('fiveNanJinRight', form);
+  const rateL = Form.useWatch('fiveRateLeft', form);
+  const rateR = Form.useWatch('fiveRateRight', form);
+  const pair = (l?: string, r?: string) => `${l || '-'} / ${r || '-'}`;
+  return (
+    <div className="wx-live">
+      <div className="wx-map">
+        <span className="wline h" />
+        <span className="wline v" />
+        <div className="wx fire">
+          火<i>心</i>
+        </div>
+        <div className="wx wood">
+          木<i>肝</i>
+        </div>
+        <div className="wx center">
+          土<i>脾</i>
+        </div>
+        <div className="wx metal">
+          金<i>肺</i>
+        </div>
+        <div className="wx water">
+          水<i>肾</i>
+        </div>
+      </div>
+      <div className="wx-ratio">
+        <div className="r">
+          <div className="k">
+            本<i>生</i>
+          </div>
+          <div className="v">{pair(benZiL, benZiR)}</div>
+        </div>
+        <div className="r">
+          <div className="k">
+            克<i>乘</i>
+          </div>
+          <div className="v">{pair(benKeL, benKeR)}</div>
+        </div>
+        <div className="r">
+          <div className="k">难经</div>
+          <div className="v">{pair(nanJinL, nanJinR)}</div>
+        </div>
+        <div className="r">
+          <div className="k">缓急</div>
+          <div className="v">{pair(rateL, rateR)}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -351,7 +435,11 @@ const Create: React.FC = () => {
     history.replace(`/treat/create?customerId=${c.id}`);
   }, []);
 
-  const lastVisit = treats.map((t) => t.createTime).filter(Boolean).sort().pop();
+  const lastVisit = treats
+    .map((t) => t.createTime)
+    .filter(Boolean)
+    .sort()
+    .pop();
   const lastVisitText = lastVisit
     ? moment().diff(moment(lastVisit), 'days') === 0
       ? '今天到店'
@@ -365,7 +453,9 @@ const Create: React.FC = () => {
   cards
     .filter((c) => c.id && c.itemName)
     .slice()
-    .sort((x, y) => (x.createTime || '').localeCompare(y.createTime || '') || (x.id || 0) - (y.id || 0))
+    .sort(
+      (x, y) => (x.createTime || '').localeCompare(y.createTime || '') || (x.id || 0) - (y.id || 0),
+    )
     .forEach((c) => {
       courseSeq[c.itemName!] = (courseSeq[c.itemName!] || 0) + 1;
       courseOf[c.id!] = courseSeq[c.itemName!];
@@ -374,8 +464,8 @@ const Create: React.FC = () => {
   const visitContext = treatId
     ? '编辑历史诊疗单'
     : treatTotal > 0
-      ? '复诊，历史诊疗单见下方诊疗记录'
-      : '初诊建档';
+    ? '复诊，历史诊疗单见下方诊疗记录'
+    : '初诊建档';
 
   return (
     <PageContainer
@@ -446,8 +536,8 @@ const Create: React.FC = () => {
                   ) : (
                     activeCards.map((c) => (
                       <span className="bal" key={c.id}>
-                        {c.itemName || '卡项'} · 第{courseOf[c.id!] || 1}疗程 余 {c.remainingTimes ?? 0}/
-                        {c.totalTimes ?? 0} 次
+                        {c.itemName || '卡项'} · 第{courseOf[c.id!] || 1}疗程 余{' '}
+                        {c.remainingTimes ?? 0}/{c.totalTimes ?? 0} 次
                       </span>
                     ))
                   )}
@@ -478,10 +568,13 @@ const Create: React.FC = () => {
                   label="接诊医师（署名）"
                   placeholder="选填，落单后随单署名"
                   showSearch
-                  optionFilterProp="label"
+                  fieldProps={{ optionFilterProp: 'label' }}
                   request={async () => {
                     const res = await queryStaffByPage({ current: 1, pageSize: 100 });
-                    return (res?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! }));
+                    return (res?.data || []).map((s) => ({
+                      label: s.name || `员工${s.id}`,
+                      value: s.id!,
+                    }));
                   }}
                 />
               </div>
@@ -604,7 +697,11 @@ const Create: React.FC = () => {
               <h3>取穴</h3>
               <div className="tc-row cols-2">
                 <div className="tc-ap">
-                  <ProFormText name="acupointLeft" label="取穴-反应点 左" placeholder="穴位名，如 足三里、三阴交" />
+                  <ProFormText
+                    name="acupointLeft"
+                    label="取穴-反应点 左"
+                    placeholder="穴位名，如 足三里、三阴交"
+                  />
                   <Select
                     className="tc-ap-pick"
                     showSearch
@@ -612,14 +709,21 @@ const Create: React.FC = () => {
                     allowClear
                     value={null}
                     placeholder="字典选穴"
-                    options={acupoints.map((a) => ({ label: `${a.name} ${a.pinyin}`, value: a.name! }))}
+                    options={acupoints.map((a) => ({
+                      label: `${a.name} ${a.pinyin}`,
+                      value: a.name!,
+                    }))}
                     onDropdownVisibleChange={loadAcupoints}
                     onFocus={loadAcupoints}
                     onChange={(v) => v && appendAcupoint('acupointLeft', v as string)}
                   />
                 </div>
                 <div className="tc-ap">
-                  <ProFormText name="acupointRight" label="取穴-反应点 右" placeholder="穴位名，如 内关、太冲" />
+                  <ProFormText
+                    name="acupointRight"
+                    label="取穴-反应点 右"
+                    placeholder="穴位名，如 内关、太冲"
+                  />
                   <Select
                     className="tc-ap-pick"
                     showSearch
@@ -627,14 +731,20 @@ const Create: React.FC = () => {
                     allowClear
                     value={null}
                     placeholder="字典选穴"
-                    options={acupoints.map((a) => ({ label: `${a.name} ${a.pinyin}`, value: a.name! }))}
+                    options={acupoints.map((a) => ({
+                      label: `${a.name} ${a.pinyin}`,
+                      value: a.name!,
+                    }))}
                     onDropdownVisibleChange={loadAcupoints}
                     onFocus={loadAcupoints}
                     onChange={(v) => v && appendAcupoint('acupointRight', v as string)}
                   />
                 </div>
               </div>
-              <div className="tc-ap-note">穴位字典：按穴名/拼音检索（如 足三 / zusanli），选中即追加；维护见「接诊 → 穴位字典」</div>
+              <div className="tc-ap-note">
+                穴位字典：按穴名/拼音检索（如 足三 / zusanli），选中即追加；维护见「接诊 →
+                穴位字典」
+              </div>
             </section>
 
             <section className="tc-panel">
@@ -647,18 +757,30 @@ const Create: React.FC = () => {
                   allowClear
                   value={undefined}
                   placeholder="套用外治模板（带出方法/取穴/疗程）"
-                  options={therapyTemplates.map((t) => ({ label: `${t.name}｜${t.method}`, value: t.id! }))}
+                  options={therapyTemplates.map((t) => ({
+                    label: `${t.name}｜${t.method}`,
+                    value: t.id!,
+                  }))}
                   onDropdownVisibleChange={loadTherapyTemplates}
                   onFocus={loadTherapyTemplates}
                   onChange={(v) => v && applyTherapyTemplate(v as number)}
                 />
               </div>
               <div className="tc-ap-note">
-                外治模板只存建议值：套用后方法/取穴/疗程可随时改，不会写回模板；维护见「中药处方 → 外治模板」
+                外治模板只存建议值：套用后方法/取穴/疗程可随时改，不会写回模板；维护见「中药处方 →
+                外治模板」
               </div>
               <div className="tc-row cols-2">
-                <ProFormText name="acuMethod" label="针法" placeholder="如 毫针、电针、温针、耳针" />
-                <ProFormText name="moxaMethod" label="灸法" placeholder="如 艾条悬灸，每穴 15 分钟" />
+                <ProFormText
+                  name="acuMethod"
+                  label="针法"
+                  placeholder="如 毫针、电针、温针、耳针"
+                />
+                <ProFormText
+                  name="moxaMethod"
+                  label="灸法"
+                  placeholder="如 艾条悬灸，每穴 15 分钟"
+                />
               </div>
               <div className="tc-row cols-2">
                 <ProFormDigit
@@ -669,9 +791,18 @@ const Create: React.FC = () => {
                   max={240}
                   fieldProps={{ precision: 0 }}
                 />
-                <ProFormText name="manipulation" label="手法" placeholder="如 平补平泻、提插捻转、补法" />
+                <ProFormText
+                  name="manipulation"
+                  label="手法"
+                  placeholder="如 平补平泻、提插捻转、补法"
+                />
               </div>
-              <ProFormTextArea name="acuCourse" label="疗程/频次" placeholder="如 每周 2 次 × 4 周" rows={2} />
+              <ProFormTextArea
+                name="acuCourse"
+                label="疗程/频次"
+                placeholder="如 每周 2 次 × 4 周"
+                rows={2}
+              />
             </section>
 
             <section className="tc-panel">
@@ -704,7 +835,8 @@ const Create: React.FC = () => {
               </table>
               <div className="plan-note">
                 接诊单开单、卡项抵扣与应收合计属规划域（接诊流暂无订单创建接口，与接诊单-订单关联缺口同源），界面按原型
-                docs/design/mockups/desktop-workstation 预留单据表结构；不做假按钮，「从卡项添加」待订单接口接入后随项目行一并落地。
+                docs/design/mockups/desktop-workstation
+                预留单据表结构；不做假按钮，「从卡项添加」待订单接口接入后随项目行一并落地。
               </div>
             </section>
           </div>
@@ -717,7 +849,13 @@ const Create: React.FC = () => {
                 ：按订单计应收（含次卡抵扣），收款后打印小票；接诊流暂无订单接口，本页不做开单试算
               </div>
             </div>
-            <Button className="tc-pay" type="primary" size="large" block onClick={() => formRef.current?.submit()}>
+            <Button
+              className="tc-pay"
+              type="primary"
+              size="large"
+              block
+              onClick={() => formRef.current?.submit()}
+            >
               保存接诊单
             </Button>
             <Button className="tc-pay ghost" size="large" block onClick={() => window.print()}>
@@ -754,12 +892,13 @@ const Create: React.FC = () => {
             <section className="tc-panel">
               <h3>今日工作站</h3>
               <div className="td2">
-                今日接诊{' '}
-                <b className="n">{todayTotal ?? '—'}</b> 单
+                今日接诊 <b className="n">{todayTotal ?? '—'}</b> 单
                 <br />
                 打印小票 <b className="n hold">规划</b> · 扫码定位 <b className="n hold">规划</b>
               </div>
-              <div className="plan-note">打印/扫码计数需收银埋点与扫码事件统计，暂无数据源，不做假数</div>
+              <div className="plan-note">
+                打印/扫码计数需收银埋点与扫码事件统计，暂无数据源，不做假数
+              </div>
             </section>
 
             <section className="tc-panel">
@@ -774,48 +913,3 @@ const Create: React.FC = () => {
 };
 
 export default Create;
-
-/** 五行生克定位图：五节点定位（火心/木肝/土脾/金肺/水肾，中宫为脾）+ 四指标实时值（随录入联动，对齐原型 admin-diagnosis.html） */
-function WuxingLive() {
-  const form = Form.useFormInstance();
-  const benZiL = Form.useWatch('fiveBenZiLeft', form);
-  const benZiR = Form.useWatch('fiveBenZiRight', form);
-  const benKeL = Form.useWatch('fiveBenKeLeft', form);
-  const benKeR = Form.useWatch('fiveBenKeRight', form);
-  const nanJinL = Form.useWatch('fiveNanJinLeft', form);
-  const nanJinR = Form.useWatch('fiveNanJinRight', form);
-  const rateL = Form.useWatch('fiveRateLeft', form);
-  const rateR = Form.useWatch('fiveRateRight', form);
-  const pair = (l?: string, r?: string) => `${l || '-'} / ${r || '-'}`;
-  return (
-    <div className="wx-live">
-      <div className="wx-map">
-        <span className="wline h" />
-        <span className="wline v" />
-        <div className="wx fire">火<i>心</i></div>
-        <div className="wx wood">木<i>肝</i></div>
-        <div className="wx center">土<i>脾</i></div>
-        <div className="wx metal">金<i>肺</i></div>
-        <div className="wx water">水<i>肾</i></div>
-      </div>
-      <div className="wx-ratio">
-        <div className="r">
-          <div className="k">本<i>生</i></div>
-          <div className="v">{pair(benZiL, benZiR)}</div>
-        </div>
-        <div className="r">
-          <div className="k">克<i>乘</i></div>
-          <div className="v">{pair(benKeL, benKeR)}</div>
-        </div>
-        <div className="r">
-          <div className="k">难经</div>
-          <div className="v">{pair(nanJinL, nanJinR)}</div>
-        </div>
-        <div className="r">
-          <div className="k">缓急</div>
-          <div className="v">{pair(rateL, rateR)}</div>
-        </div>
-      </div>
-    </div>
-  );
-}

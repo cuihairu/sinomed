@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { PageContainer, ProForm, ProFormText, ProFormTextArea, ProFormSelect, ProFormDateTimePicker } from '@ant-design/pro-components';
+import {
+  PageContainer,
+  ProForm,
+  ProFormTextArea,
+  ProFormSelect,
+  ProFormDateTimePicker,
+} from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { Button, message } from 'antd';
 import moment from 'moment';
@@ -27,8 +33,12 @@ const Create: React.FC = () => {
       queryStaffByPage({ current: 1, pageSize: 100 }),
       queryItemByPage({ current: 1, pageSize: 100 }),
     ]);
-    setStaffOptions((staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })));
-    setItemOptions((items?.data || []).map((i) => ({ label: i.name || `卡项${i.id}`, value: i.id! })));
+    setStaffOptions(
+      (staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })),
+    );
+    setItemOptions(
+      (items?.data || []).map((i) => ({ label: i.name || `卡项${i.id}`, value: i.id! })),
+    );
   };
 
   const findCustomer = async () => {
@@ -52,7 +62,10 @@ const Create: React.FC = () => {
   };
 
   return (
-    <PageContainer title="新建预约" content="按手机号定位顾客 → 选时段与项目；顾客到店后在「预约排班」点「到店接待」，再发起接诊。">
+    <PageContainer
+      title="新建预约"
+      content="按手机号定位顾客 → 选时段与项目；顾客到店后在「预约排班」点「到店接待」，再发起接诊。"
+    >
       <div className="ap-create">
         <div className="ap-customer">
           <h3>1 · 顾客</h3>
@@ -98,7 +111,9 @@ const Create: React.FC = () => {
               customerId: customer.id,
               itemId: values.itemId,
               staffId: values.staffId,
-              startTime: values.startTime ? moment(values.startTime).format('YYYY-MM-DDTHH:mm:ssZ') : null,
+              startTime: values.startTime
+                ? moment(values.startTime).format('YYYY-MM-DDTHH:mm:ssZ')
+                : undefined,
               duration: values.duration,
               remark: values.remark,
             };
@@ -151,7 +166,12 @@ const Create: React.FC = () => {
             options={itemOptions}
             fieldProps={{ onFocus: loadOptions }}
           />
-          <ProFormTextArea name="remark" label="备注" placeholder="症状 / 需求，选填" fieldProps={{ rows: 3 }} />
+          <ProFormTextArea
+            name="remark"
+            label="备注"
+            placeholder="症状 / 需求，选填"
+            fieldProps={{ rows: 3 }}
+          />
         </ProForm>
       </div>
     </PageContainer>

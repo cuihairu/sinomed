@@ -36,7 +36,8 @@ const TABS = [
   { key: APPOINTMENT_STATUS.CANCELLED, label: '已取消' },
 ];
 
-const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '');
+const maskPhone = (p?: string) =>
+  p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '';
 
 const statusPill = (status?: number) => {
   if (status == null || STATUS_TEXT[status] === undefined) return '-';
@@ -267,7 +268,9 @@ export default function AppointmentQuery() {
         actionRef={actionRef}
         search={false}
         options={false}
-        rowClassName={(entity) => (entity.status === APPOINTMENT_STATUS.CANCELLED ? 'ap-cancel' : '')}
+        rowClassName={(entity) =>
+          entity.status === APPOINTMENT_STATUS.CANCELLED ? 'ap-cancel' : ''
+        }
         request={async (params) => {
           const res = await queryAppointmentPage({
             current: params.current,

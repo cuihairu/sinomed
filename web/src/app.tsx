@@ -1,6 +1,5 @@
 import { Footer, Question, SelectLang, AvatarDropdown, AvatarName } from '@/components';
 import { LinkOutlined } from '@ant-design/icons';
-import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
@@ -8,13 +7,20 @@ import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
 import ThemeProvider from '@/components/ThemeProvider';
-import { antdTokenOverrides, readTheme, restoreTheme, siderTokenOverrides, themeDef } from '@/theme';
+import {
+  antdTokenOverrides,
+  readTheme,
+  restoreTheme,
+  SettingsWithToken,
+  siderTokenOverrides,
+  themeDef,
+} from '@/theme';
 import React from 'react';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
 /** 启动回放已存主题：data-theme 属性 + ProLayout colorPrimary/侧栏 token（外观设置页可即时改） */
-function themedSettings(): Partial<LayoutSettings> {
+function themedSettings(): SettingsWithToken {
   restoreTheme();
   const key = readTheme();
   return {
@@ -28,24 +34,23 @@ function themedSettings(): Partial<LayoutSettings> {
         ...siderTokenOverrides(key),
       },
     },
-  } as Partial<LayoutSettings>;
+  } as SettingsWithToken;
 }
 
 /**
  * @see  https://umijs.org/zh-CN/plugins/plugin-initial-state
  * */
 export async function getInitialState(): Promise<{
-  settings?: Partial<LayoutSettings>;
+  settings?: SettingsWithToken;
   currentUser?: API.CurrentUser;
   loading?: boolean;
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
     try {
-      return  await queryCurrentUser({
+      return await queryCurrentUser({
         skipErrorHandler: true,
       });
-
     } catch (error) {
       history.push(loginPath);
     }

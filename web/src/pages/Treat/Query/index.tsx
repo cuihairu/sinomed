@@ -1,11 +1,10 @@
 import { EllipsisOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable, TableDropdown } from '@ant-design/pro-components';
-import {Button, Dropdown, message} from 'antd';
+import { Button, Dropdown, message } from 'antd';
 import { useRef } from 'react';
-import { fuzzyQueryTreatByPage,deleteTreat } from '@/services/ant-design-pro/treat';
+import { fuzzyQueryTreatByPage, deleteTreat } from '@/services/ant-design-pro/treat';
 import { history } from '@umijs/max';
-
 
 export const waitTimePromise = async (time: number = 100) => {
   return new Promise((resolve) => {
@@ -40,7 +39,7 @@ const columns: ProColumns<TreatInfo>[] = [
     dataIndex: 'id',
     ellipsis: true,
     copyable: true,
-    width: "6%"
+    width: '6%',
   },
   {
     title: '创建时间',
@@ -53,37 +52,41 @@ const columns: ProColumns<TreatInfo>[] = [
     dataIndex: 'name',
     ellipsis: true,
     copyable: true,
-    width: "8%"
+    width: '8%',
   },
   {
     title: '手机号码',
     dataIndex: 'phone',
     copyable: true,
     ellipsis: true,
-  },{
+  },
+  {
     title: '年龄',
     dataIndex: 'age',
     ellipsis: true,
-    width: "6%",
+    width: '6%',
   },
   {
     title: '性别',
     dataIndex: 'gender',
     valueType: 'select',
     valueEnum: {
-      0: {text: '女'},
-      1: {text: '男'}
+      0: { text: '女' },
+      1: { text: '男' },
     },
-    fieldProps:{
-      options:[{
-        label: '女',
-        value: 0
-      },{
-        label: '男',
-        value: 1
-      }],
+    fieldProps: {
+      options: [
+        {
+          label: '女',
+          value: 0,
+        },
+        {
+          label: '男',
+          value: 1,
+        },
+      ],
     },
-    width: "6%",
+    width: '6%',
     ellipsis: true,
     formItemProps: {
       rules: [
@@ -98,7 +101,7 @@ const columns: ProColumns<TreatInfo>[] = [
     title: '主述',
     dataIndex: 'desc',
     ellipsis: true,
-    width: "28%"
+    width: '28%',
   },
   {
     title: '创建时间',
@@ -118,7 +121,7 @@ const columns: ProColumns<TreatInfo>[] = [
     title: '主述',
     dataIndex: 'desc',
     ellipsis: true,
-    width: "20%",
+    width: '20%',
     hideInTable: true,
   },
   {
@@ -131,7 +134,7 @@ const columns: ProColumns<TreatInfo>[] = [
         onClick={() => {
           if (record.id) {
             history.push(`/treat/create?treatId=${record.id}`);
-          }else{
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -143,22 +146,17 @@ const columns: ProColumns<TreatInfo>[] = [
         onClick={() => {
           if (record.id) {
             deleteTreat(record.id).then(() => {
-                message.success('删除成功');
-                action?.reload();
+              message.success('删除成功');
+              action?.reload();
             });
-          }else{
+          } else {
             message.warning('记录id不存,无法删除,请刷新再试');
           }
         }}
       >
         删除
       </a>,
-      <TableDropdown
-        key="actionGroup"
-        onSelect={() => action?.reload()}
-        menus={[
-        ]}
-      />,
+      <TableDropdown key="actionGroup" onSelect={() => action?.reload()} menus={[]} />,
     ],
   },
 ];
@@ -178,7 +176,7 @@ export default () => {
           data: msg.data,
           success: true,
           total: msg.total,
-        }
+        };
       }}
       editable={{
         type: 'multiple',

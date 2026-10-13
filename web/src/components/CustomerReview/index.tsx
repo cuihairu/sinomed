@@ -10,7 +10,7 @@ interface CustomerReview {
 }
 
 interface CustomerReviewTableProps {
-  data: CustomerReview[]
+  data: CustomerReview[];
 }
 
 const columns: ColumnsType<CustomerReview> = [
@@ -32,7 +32,9 @@ const columns: ColumnsType<CustomerReview> = [
   },
 ];
 
-const CustomerReviewTable: React.FC<CustomerReviewTableProps> = (props ) => <Table columns={columns} dataSource={props.data} />;
+const CustomerReviewTable: React.FC<CustomerReviewTableProps> = (props) => (
+  <Table columns={columns} dataSource={props.data} />
+);
 
-export {CustomerReview};
+export { CustomerReview };
 export default CustomerReviewTable;

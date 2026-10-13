@@ -1,9 +1,9 @@
 import { EllipsisOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable, TableDropdown } from '@ant-design/pro-components';
-import {Button, Dropdown, message} from 'antd';
+import { Button, Dropdown, message } from 'antd';
 import { useRef } from 'react';
-import { queryStaffByPage,deleteStaff } from '@/services/ant-design-pro/staff';
+import { queryStaffByPage, deleteStaff } from '@/services/ant-design-pro/staff';
 import { history } from '@umijs/max';
 
 export const waitTimePromise = async (time: number = 100) => {
@@ -55,9 +55,9 @@ const columns: ProColumns<Staff>[] = [
     dataIndex: 'role',
     valueType: 'select',
     valueEnum: {
-      0: {text: '管理员'},
-      1: {text: '领导'},
-      99: {text: '员工'}
+      0: { text: '管理员' },
+      1: { text: '领导' },
+      99: { text: '员工' },
     },
     ellipsis: true,
     formItemProps: {
@@ -76,16 +76,15 @@ const columns: ProColumns<Staff>[] = [
     ellipsis: true,
     tip: '目前只会根据员工的名字和手机号码查询',
     formItemProps: {
-      rules: [
-      ],
+      rules: [],
     },
-  },{
+  },
+  {
     title: '年龄',
     dataIndex: 'age',
     ellipsis: true,
     formItemProps: {
-      rules: [
-      ],
+      rules: [],
     },
   },
   {
@@ -93,17 +92,20 @@ const columns: ProColumns<Staff>[] = [
     dataIndex: 'gender',
     valueType: 'select',
     valueEnum: {
-      0: {text: '女'},
-      1: {text: '男'}
+      0: { text: '女' },
+      1: { text: '男' },
     },
-    fieldProps:{
-      options:[{
-        label: '女',
-        value: 0
-      },{
-        label: '男',
-        value: 1
-      }],
+    fieldProps: {
+      options: [
+        {
+          label: '女',
+          value: 0,
+        },
+        {
+          label: '男',
+          value: 1,
+        },
+      ],
     },
     ellipsis: true,
     formItemProps: {
@@ -147,7 +149,7 @@ const columns: ProColumns<Staff>[] = [
         onClick={() => {
           if (record.id) {
             history.push(`/staff/update?staffId=${record.id}`);
-          }else{
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -158,15 +160,15 @@ const columns: ProColumns<Staff>[] = [
         key="delete"
         onClick={() => {
           if (record.id) {
-             deleteStaff(record.id).then(res => {
-               if (res.id){
-                   message.success('删除成功');
-                   action?.reload();
-               }else{
-                 message.warning('没有找到该员工');
-               }
-             });
-          }else{
+            deleteStaff(record.id).then((res) => {
+              if (res.id) {
+                message.success('删除成功');
+                action?.reload();
+              } else {
+                message.warning('没有找到该员工');
+              }
+            });
+          } else {
             message.warning('记录id不存,无法删除,请刷新再试');
           }
         }}
@@ -176,9 +178,7 @@ const columns: ProColumns<Staff>[] = [
       <TableDropdown
         key="actionGroup"
         onSelect={() => action?.reload()}
-        menus={[
-          { key: 'copy', name: '复制' },
-        ]}
+        menus={[{ key: 'copy', name: '复制' }]}
       />,
     ],
   },
@@ -198,7 +198,7 @@ export default () => {
           data: msg.data,
           success: true,
           total: msg.total,
-        }
+        };
       }}
       editable={{
         type: 'multiple',

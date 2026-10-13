@@ -33,7 +33,9 @@ const Create: React.FC = () => {
       queryStaffByPage({ current: 1, pageSize: 100 }),
       queryItemByPage({ current: 1, pageSize: 100 }),
     ]);
-    setStaffOptions((staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })));
+    setStaffOptions(
+      (staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })),
+    );
     const opts = (items?.data || []).map((i) => ({
       label: `${i.name || `卡项${i.id}`}${i.price != null ? ` · ¥${i.price}` : ''}`,
       value: i.id!,
@@ -165,11 +167,13 @@ const Create: React.FC = () => {
                 precision={0}
                 value={l.qty}
                 onChange={(v) =>
-                  setLines(lines.map((old) =>
-                    old.itemId === l.itemId
-                      ? { ...old, qty: v ?? 1, subtotal: (old.price ?? 0) * (v ?? 1) }
-                      : old,
-                  ))
+                  setLines(
+                    lines.map((old) =>
+                      old.itemId === l.itemId
+                        ? { ...old, qty: v ?? 1, subtotal: (old.price ?? 0) * (v ?? 1) }
+                        : old,
+                    ),
+                  )
                 }
               />
               <span className="lsub">¥{(l.price ?? 0) * (l.qty ?? 1)}</span>

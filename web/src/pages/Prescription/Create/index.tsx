@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { Button, Checkbox, Input, InputNumber, Modal, Radio, Select, message } from 'antd';
-import { CheckCircleFilled, MinusCircleOutlined, PlusOutlined, WarningFilled } from '@ant-design/icons';
+import {
+  CheckCircleFilled,
+  MinusCircleOutlined,
+  PlusOutlined,
+  WarningFilled,
+} from '@ant-design/icons';
 import moment from 'moment';
 import {
   checkAllergy,
@@ -50,7 +55,14 @@ const herbInitials = (name: string) => {
   return v;
 };
 
-type CustomerBrief = { id?: number; name?: string; phone?: string; level?: number; gender?: number; age?: number };
+type CustomerBrief = {
+  id?: number;
+  name?: string;
+  phone?: string;
+  level?: number;
+  gender?: number;
+  age?: number;
+};
 
 const Create: React.FC = () => {
   const [customer, setCustomer] = useState<CustomerBrief | undefined>();
@@ -147,7 +159,13 @@ const Create: React.FC = () => {
     if (tpl.herbs && tpl.herbs.length > 0) {
       setApplying(true);
       try {
-        setHerbs(tpl.herbs.map((h) => ({ herb: h.herb || '', weight: h.weight, special: h.special || undefined })));
+        setHerbs(
+          tpl.herbs.map((h) => ({
+            herb: h.herb || '',
+            weight: h.weight,
+            special: h.special || undefined,
+          })),
+        );
         if (tpl.doses && tpl.doses > 0) {
           setDoses(tpl.doses);
         }
@@ -175,7 +193,13 @@ const Create: React.FC = () => {
     setFormulaId(id);
     const fml = formulas.find((f) => f.id === id);
     if (!fml || !fml.herbs || fml.herbs.length === 0) return;
-    setHerbs(fml.herbs.map((h) => ({ herb: h.herb || '', weight: h.weight, special: h.special || undefined })));
+    setHerbs(
+      fml.herbs.map((h) => ({
+        herb: h.herb || '',
+        weight: h.weight,
+        special: h.special || undefined,
+      })),
+    );
     message.success(`已按方剂「${fml.name}」带出全方 ${fml.herbs.length} 味，可继续增减`);
   };
 
@@ -261,7 +285,9 @@ const Create: React.FC = () => {
     const timer = setTimeout(async () => {
       try {
         const result = await checkDose(
-          herbs.filter((r) => (r.herb || '').trim()).map((r) => ({ herb: r.herb!, weight: r.weight })),
+          herbs
+            .filter((r) => (r.herb || '').trim())
+            .map((r) => ({ herb: r.herb!, weight: r.weight })),
         );
         if (seq === doseSeq.current) {
           setDose(result);
@@ -305,7 +331,9 @@ const Create: React.FC = () => {
   const loadStaff = async () => {
     if (staffOptions.length > 0) return;
     const staffs = await queryStaffByPage({ current: 1, pageSize: 100 });
-    setStaffOptions((staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })));
+    setStaffOptions(
+      (staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })),
+    );
   };
 
   const findCustomer = async () => {
@@ -376,7 +404,11 @@ const Create: React.FC = () => {
         usage: usage.trim() || undefined,
         remark: remark.trim() || undefined,
         enabled: 1,
-        herbs: rows.map((r) => ({ herb: (r.herb || '').trim(), weight: r.weight, special: r.special || undefined })),
+        herbs: rows.map((r) => ({
+          herb: (r.herb || '').trim(),
+          weight: r.weight,
+          special: r.special || undefined,
+        })),
       });
       message.success(`已存入我的方剂库「${name}」，可在「套用模板」带出`);
       setTplModal(false);
@@ -431,8 +463,15 @@ const Create: React.FC = () => {
       });
       if (created?.id) {
         message.success(
-          `处方 Rx-${moment(created.createTime).format('YYYYMMDD')}-${String(created.id).padStart(3, '0')} 已开` +
-            (ptype === 1 ? `，膏方${craft ? `（${craft}）` : ''}已转药房待制作` : decoction ? `，代煎 ${doses} 袋已转药房待煎` : ''),
+          `处方 Rx-${moment(created.createTime).format('YYYYMMDD')}-${String(created.id).padStart(
+            3,
+            '0',
+          )} 已开` +
+            (ptype === 1
+              ? `，膏方${craft ? `（${craft}）` : ''}已转药房待制作`
+              : decoction
+              ? `，代煎 ${doses} 袋已转药房待煎`
+              : ''),
         );
         history.push('/prescription/query');
       }
@@ -501,7 +540,10 @@ const Create: React.FC = () => {
               allowClear
               placeholder="套用模板（按病症带出药味）"
               style={{ minWidth: 260, marginLeft: 12 }}
-              options={templates.map((t) => ({ label: `${t.name}（${t.doses ?? 7} 付）`, value: t.id! }))}
+              options={templates.map((t) => ({
+                label: `${t.name}（${t.doses ?? 7} 付）`,
+                value: t.id!,
+              }))}
               value={templateId}
               onDropdownVisibleChange={loadTemplates}
               onFocus={loadTemplates}
@@ -515,7 +557,10 @@ const Create: React.FC = () => {
               allowClear
               placeholder="方剂库（按方名/拼音带出全方）"
               style={{ minWidth: 260, marginLeft: 12 }}
-              options={formulas.map((f) => ({ label: `${f.name} ${f.pinyin} · ${f.herbs?.length ?? 0} 味`, value: f.id! }))}
+              options={formulas.map((f) => ({
+                label: `${f.name} ${f.pinyin} · ${f.herbs?.length ?? 0} 味`,
+                value: f.id!,
+              }))}
               value={formulaId}
               onDropdownVisibleChange={loadFormulas}
               onFocus={loadFormulas}
@@ -525,7 +570,9 @@ const Create: React.FC = () => {
           <div className={`dx-strip${treats.length === 0 ? ' none' : ''}`}>
             <span className="lab">辨证摘要</span>
             {treats.length === 0 ? (
-              <span className="empty">该顾客暂无接诊单（诊疗记录），可先在「诊疗 → 开单」建档，或直接开方</span>
+              <span className="empty">
+                该顾客暂无接诊单（诊疗记录），可先在「诊疗 → 开单」建档，或直接开方
+              </span>
             ) : (
               <>
                 <Select
@@ -534,7 +581,9 @@ const Create: React.FC = () => {
                   value={treatId}
                   onChange={setTreatId}
                   options={treats.map((t) => ({
-                    label: `#${t.id} · ${t.createTime ? moment(t.createTime).format('YYYY-MM-DD') : ''}${
+                    label: `#${t.id} · ${
+                      t.createTime ? moment(t.createTime).format('YYYY-MM-DD') : ''
+                    }${
                       t.desc ? ` · ${t.desc.length > 12 ? `${t.desc.slice(0, 12)}…` : t.desc}` : ''
                     }`,
                     value: t.id!,
@@ -548,7 +597,9 @@ const Create: React.FC = () => {
                   治法/方案
                   <b>{treat?.plan || '接诊单未填'}</b>
                 </span>
-                {treat?.acuCourse ? <span className="cell course">疗程：{treat.acuCourse}</span> : null}
+                {treat?.acuCourse ? (
+                  <span className="cell course">疗程：{treat.acuCourse}</span>
+                ) : null}
               </>
             )}
           </div>
@@ -607,7 +658,9 @@ const Create: React.FC = () => {
             loading={dirLoading}
             onDropdownVisibleChange={loadHerbDir}
             onFocus={loadHerbDir}
-            notFoundContent={dirLoading ? '目录加载中…' : '字典暂无药材，先到「处方 → 药材字典」维护'}
+            notFoundContent={
+              dirLoading ? '目录加载中…' : '字典暂无药材，先到「处方 → 药材字典」维护'
+            }
             options={herbDir.map((h) => ({
               label: (
                 <span className="dir-opt">
@@ -756,9 +809,13 @@ const Create: React.FC = () => {
                   </div>
                 ) : null}
                 {(pricing.unknownHerbs?.length ?? 0) > 0 ? (
-                  <div className="unknown">未收录（不计费）：{pricing.unknownHerbs!.join('、')}</div>
+                  <div className="unknown">
+                    未收录（不计费）：{pricing.unknownHerbs!.join('、')}
+                  </div>
                 ) : null}
-                <div className="note">按药材字典实时试算、无快照；应收=饮片+代煎，实际收费仍以卡项订单结算为准</div>
+                <div className="note">
+                  按药材字典实时试算、无快照；应收=饮片+代煎，实际收费仍以卡项订单结算为准
+                </div>
               </div>
             )}
           </div>
@@ -803,7 +860,8 @@ const Create: React.FC = () => {
                   代煎 {doses} 袋
                 </Checkbox>
                 <i className="dfee">
-                  服务费 {fenToYuan(decoctFeeFen)}（¥3/袋）计入计价应收；实际收费仍以卡项订单结算为准
+                  服务费 {fenToYuan(decoctFeeFen)}
+                  （¥3/袋）计入计价应收；实际收费仍以卡项订单结算为准
                   {decoction ? '；今日 17:00 前可取，加急 2 小时' : ''}
                 </i>
               </label>
@@ -869,7 +927,13 @@ const Create: React.FC = () => {
             <div className="u">
               <div className="k">剂数</div>
               <div className="v">
-                <InputNumber min={1} precision={0} value={doses} onChange={(v) => setDoses(v ?? 7)} /> 付
+                <InputNumber
+                  min={1}
+                  precision={0}
+                  value={doses}
+                  onChange={(v) => setDoses(v ?? 7)}
+                />{' '}
+                付
               </div>
             </div>
             <div className="u">
@@ -912,7 +976,9 @@ const Create: React.FC = () => {
             </span>
           </div>
           <div className="foot">
-            <span className="hint">演示口径：计价按药材字典实时试算（无快照），库存为规划功能；代煎费计入应收合计、领取流转见处方查询；审方提示不拦截</span>
+            <span className="hint">
+              演示口径：计价按药材字典实时试算（无快照），库存为规划功能；代煎费计入应收合计、领取流转见处方查询；审方提示不拦截
+            </span>
             <div className="btns">
               <Button size="large" onClick={() => setTplModal(true)}>
                 存入我的方剂库
@@ -935,7 +1001,8 @@ const Create: React.FC = () => {
             onCancel={() => setTplModal(false)}
           >
             <div className="tpl-tip">
-              以病症名存为启用模板（1–20 字，唯一），含当前药味、剂数{decoction ? '与代煎建议' : ''}；可在开方页「套用模板」带出。
+              以病症名存为启用模板（1–20 字，唯一），含当前药味、剂数{decoction ? '与代煎建议' : ''}
+              ；可在开方页「套用模板」带出。
             </div>
             <Input
               placeholder="病症名，如 脾胃虚寒"

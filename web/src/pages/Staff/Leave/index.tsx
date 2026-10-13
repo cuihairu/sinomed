@@ -3,7 +3,13 @@ import { PageContainer } from '@ant-design/pro-components';
 import { Button, DatePicker, Popconfirm, Radio, Select, message } from 'antd';
 import { DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { queryLeavePage, queryStaffByPage, deleteLeave, createLeave, type StaffLeave } from '@/services/ant-design-pro/staff';
+import {
+  queryLeavePage,
+  queryStaffByPage,
+  deleteLeave,
+  createLeave,
+  type StaffLeave,
+} from '@/services/ant-design-pro/staff';
 import './index.less';
 
 const LEAVE_TYPE_TEXT: Record<number, string> = { 0: '病假', 1: '事假' };
@@ -32,7 +38,9 @@ const Leave: React.FC = () => {
   const loadStaff = async () => {
     if (staffOptions.length > 0) return;
     const staffs = await queryStaffByPage({ current: 1, pageSize: 100 });
-    setStaffOptions((staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })));
+    setStaffOptions(
+      (staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })),
+    );
   };
 
   const submit = async () => {
@@ -113,7 +121,12 @@ const Leave: React.FC = () => {
             </label>
             <label>
               起止时间
-              <DatePicker.RangePicker showTime={{ format: 'HH:mm' }} format="YYYY-MM-DD HH:mm" value={range} onChange={setRange} />
+              <DatePicker.RangePicker
+                showTime={{ format: 'HH:mm' }}
+                format="YYYY-MM-DD HH:mm"
+                value={range}
+                onChange={setRange}
+              />
             </label>
             <label>
               事由
@@ -135,7 +148,13 @@ const Leave: React.FC = () => {
         <div className="lv-panel">
           <h3>
             近期请假
-            <Button type="text" size="small" className="refresh" onClick={loadLeaves} icon={<ReloadOutlined />} />
+            <Button
+              type="text"
+              size="small"
+              className="refresh"
+              onClick={loadLeaves}
+              icon={<ReloadOutlined />}
+            />
           </h3>
           {leaves.length === 0 && <div className="lv-empty">暂无请假记录</div>}
           {leaves.map((l) => (
@@ -144,13 +163,21 @@ const Leave: React.FC = () => {
                 <b>{l.staffName || `员工 ${l.staffId}`}</b>
                 <i>{l.reason}</i>
               </span>
-              <span className={`tp t${l.leaveType ?? 0}`}>{LEAVE_TYPE_TEXT[l.leaveType ?? 0] ?? l.leaveType}</span>
+              <span className={`tp t${l.leaveType ?? 0}`}>
+                {LEAVE_TYPE_TEXT[l.leaveType ?? 0] ?? l.leaveType}
+              </span>
               <span className="tm">
                 {l.startTime ? moment(l.startTime).format('MM-DD HH:mm') : ''}
                 {l.endTime ? ` ~ ${moment(l.endTime).format('MM-DD HH:mm')}` : ''}
               </span>
               <Popconfirm title="删除这条请假记录？" onConfirm={() => l.id && remove(l.id)}>
-                <Button type="text" size="small" className="del" icon={<DeleteOutlined />} title="删除" />
+                <Button
+                  type="text"
+                  size="small"
+                  className="del"
+                  icon={<DeleteOutlined />}
+                  title="删除"
+                />
               </Popconfirm>
             </div>
           ))}

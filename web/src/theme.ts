@@ -6,7 +6,15 @@
  * ③ ProLayout 侧栏选中块等经 initialState.settings.token.sider 覆盖（外观设置页切换时 bump）。
  * 选择持久化 localStorage('sinomed-theme')，getInitialState 启动时回放。
  */
+import type { ProLayoutProps, Settings as ProSettings } from '@ant-design/pro-components';
+
 export type ThemeKey = 'graphite' | 'pine' | 'cinnabar' | 'indigo';
+
+/**
+ * ProSettings（PureSettings）没声明 token 字段，ProLayoutProps 才有；但运行时 settings
+ * 确实携带 token（defaultSettings / themedSettings / 外观设置页都写入），ProLayout 也消费它。
+ */
+export type SettingsWithToken = Partial<ProSettings> & { token?: ProLayoutProps['token'] };
 
 export const STORAGE_KEY = 'sinomed-theme';
 

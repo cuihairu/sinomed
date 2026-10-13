@@ -1,10 +1,10 @@
 import { EllipsisOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable, TableDropdown } from '@ant-design/pro-components';
-import {Button, Dropdown, message} from 'antd';
+import { Button, Dropdown, message } from 'antd';
 import { useRef } from 'react';
-import { useSearchParams,history } from '@umijs/max';
-import {deleteTreat, queryTreatByPage} from "@/services/ant-design-pro/treat";
+import { useSearchParams, history } from '@umijs/max';
+import { deleteTreat, queryTreatByPage } from '@/services/ant-design-pro/treat';
 
 export const waitTimePromise = async (time: number = 100) => {
   return new Promise((resolve) => {
@@ -13,7 +13,6 @@ export const waitTimePromise = async (time: number = 100) => {
     }, time);
   });
 };
-
 
 type TreatInfo = {
   id?: number; // 诊断单id
@@ -38,21 +37,21 @@ const columns: ProColumns<TreatInfo>[] = [
     ellipsis: true,
     copyable: true,
     hideInSearch: true,
-    width: '8%'
+    width: '8%',
   },
   {
     title: '主述',
     dataIndex: 'desc',
     ellipsis: true,
     hideInSearch: true,
-    width: '18%'
+    width: '18%',
   },
   {
     title: '辨证',
     dataIndex: 'diagnose',
     ellipsis: true,
     hideInSearch: true,
-    width: '16%'
+    width: '16%',
   },
   {
     title: '治法/方案',
@@ -65,16 +64,14 @@ const columns: ProColumns<TreatInfo>[] = [
     dataIndex: 'acuCourse',
     ellipsis: true,
     hideInSearch: true,
-    width: '12%'
+    width: '12%',
   },
   {
     title: '取穴',
     hideInSearch: true,
     width: '14%',
     render: (_, record) =>
-      [record.acupointLeft, record.acupointRight]
-        .filter(Boolean)
-        .join(' / ') || '—',
+      [record.acupointLeft, record.acupointRight].filter(Boolean).join(' / ') || '—',
   },
   {
     title: '创建时间',
@@ -100,7 +97,7 @@ const columns: ProColumns<TreatInfo>[] = [
         onClick={() => {
           if (record.id) {
             history.push(`/treat/create?treatId=${record.id}`);
-          }else{
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -111,32 +108,27 @@ const columns: ProColumns<TreatInfo>[] = [
         key="delete"
         onClick={() => {
           if (record.id) {
-            deleteTreat(record.id).then( () => {
+            deleteTreat(record.id).then(() => {
               message.success('删除成功');
               action?.reload();
-            })
+            });
           }
         }}
       >
         删除
       </a>,
-      <TableDropdown
-        key="actionGroup"
-        onSelect={() => action?.reload()}
-        menus={[
-        ]}
-      />,
+      <TableDropdown key="actionGroup" onSelect={() => action?.reload()} menus={[]} />,
     ],
   },
 ];
 
 export default () => {
-  const [searchParams ] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const actionRef = useRef<ActionType>();
-  const customerId = searchParams.get("customerId");
-  if ((!customerId) || isNaN(parseInt(customerId))) {
-    message.error("没有传入顾客id,请选择顾客,再选择诊断创建诊断表")
-    history.push("/customer/query")
+  const customerId = searchParams.get('customerId');
+  if (!customerId || isNaN(parseInt(customerId))) {
+    message.error('没有传入顾客id,请选择顾客,再选择诊断创建诊断表');
+    history.push('/customer/query');
     return null;
   }
   const id = parseInt(customerId);
@@ -146,7 +138,7 @@ export default () => {
       columns={columns}
       actionRef={actionRef}
       params={{
-        customerId: id
+        customerId: id,
       }}
       cardBordered
       request={async (params = {}, sort, filter) => {
@@ -162,7 +154,7 @@ export default () => {
           data: msg.data,
           success: true,
           total: msg.total,
-        }
+        };
       }}
       editable={{
         type: 'multiple',

@@ -140,10 +140,7 @@ export async function createRecharge(
 }
 
 /** 储值余额 = recharges 流水合计 */
-export async function fetchRechargeBalance(
-  customerId: number,
-  options?: { [key: string]: any },
-) {
+export async function fetchRechargeBalance(customerId: number, options?: { [key: string]: any }) {
   return request<RechargeBalance>('/api/v1/recharge/balance', {
     method: 'GET',
     params: { customerId },
@@ -214,10 +211,7 @@ export interface SettlementMonthReport {
 }
 
 /** 月度收费报表：month=yyyy-MM */
-export async function fetchSettlementMonthReport(
-  month: string,
-  options?: { [key: string]: any },
-) {
+export async function fetchSettlementMonthReport(month: string, options?: { [key: string]: any }) {
   return request<SettlementMonthReport>('/api/v1/settlement/report/month', {
     method: 'GET',
     params: { month },
@@ -235,10 +229,7 @@ export interface SettlementTrendRow {
 }
 
 /** 经营趋势报表：months=1-24（缺省 6） */
-export async function fetchSettlementTrend(
-  months: number,
-  options?: { [key: string]: any },
-) {
+export async function fetchSettlementTrend(months: number, options?: { [key: string]: any }) {
   return request<{ months?: number; rows?: SettlementTrendRow[] }>(
     '/api/v1/settlement/report/trend',
     {
@@ -263,10 +254,7 @@ export async function refundSettlement(
 }
 
 /** 日对账单：date=yyyy-MM-dd */
-export async function fetchReconciliation(
-  date: string,
-  options?: { [key: string]: any },
-) {
+export async function fetchReconciliation(date: string, options?: { [key: string]: any }) {
   return request<Reconciliation>('/api/v1/settlement/reconciliation', {
     method: 'GET',
     params: { date },

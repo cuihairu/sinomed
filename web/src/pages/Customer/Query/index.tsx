@@ -1,10 +1,10 @@
 import { EllipsisOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import {Button, Dropdown, message} from 'antd';
+import { Button, Dropdown, message } from 'antd';
 import { history } from '@umijs/max';
 import { useRef } from 'react';
-import { queryCustomerByPage,deleteCustomer} from '@/services/ant-design-pro/customer';
+import { queryCustomerByPage, deleteCustomer } from '@/services/ant-design-pro/customer';
 import ScannerInput from '@/components/ScannerInput';
 export const waitTimePromise = async (time: number = 100) => {
   return new Promise((resolve) => {
@@ -78,7 +78,8 @@ const columns: ProColumns<Customer>[] = [
         },
       ],
     },
-  },{
+  },
+  {
     title: '年龄',
     dataIndex: 'age',
     ellipsis: true,
@@ -96,17 +97,20 @@ const columns: ProColumns<Customer>[] = [
     dataIndex: 'gender',
     valueType: 'select',
     valueEnum: {
-      0: {text: '女'},
-      1: {text: '男'}
+      0: { text: '女' },
+      1: { text: '男' },
     },
-    fieldProps:{
-      options:[{
-        label: '女',
-        value: 0
-      },{
-        label: '男',
-        value: 1
-      }],
+    fieldProps: {
+      options: [
+        {
+          label: '女',
+          value: 0,
+        },
+        {
+          label: '男',
+          value: 1,
+        },
+      ],
     },
     ellipsis: true,
     formItemProps: {
@@ -149,8 +153,8 @@ const columns: ProColumns<Customer>[] = [
         key="createTreat"
         onClick={() => {
           if (record.id) {
-              history.push(`/treat/create?customerId=${record.id}`);
-          }else{
+            history.push(`/treat/create?customerId=${record.id}`);
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -162,7 +166,7 @@ const columns: ProColumns<Customer>[] = [
         onClick={() => {
           if (record.id) {
             history.push(`/customer/update?customerId=${record.id}`);
-          }else{
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -174,7 +178,7 @@ const columns: ProColumns<Customer>[] = [
         onClick={() => {
           if (record.id) {
             history.push(`/treat/history?customerId=${record.id}`);
-          }else{
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -186,7 +190,7 @@ const columns: ProColumns<Customer>[] = [
         onClick={() => {
           if (record.id) {
             history.push(`/review/plan?customerId=${record.id}`);
-          }else{
+          } else {
             message.error('记录id不存,该数据可不可以编辑');
           }
         }}
@@ -198,10 +202,10 @@ const columns: ProColumns<Customer>[] = [
         onClick={() => {
           if (record.id) {
             deleteCustomer(record.id).then(() => {
-                message.success('删除成功');
-                action?.reload();
+              message.success('删除成功');
+              action?.reload();
             });
-          }else{
+          } else {
             message.warning('记录id不存,无法删除,请刷新再试');
           }
         }}
@@ -218,69 +222,68 @@ export default () => {
     <>
       <ScannerInput />
       <ProTable<Customer>
-      columns={columns}
-      actionRef={actionRef}
-      cardBordered
-      request={async (params = {}, sort, filter) => {
-        console.log(sort, filter);
-         const msg = await queryCustomerByPage(params);
-         return {
-           data: msg.data,
-           success: true,
-           total: msg.total,
-         }
-      }}
-      editable={{
-        type: 'multiple',
-      }}
-      columnsState={{
-        persistenceKey: 'pro-table-singe-demos-Customer',
-        persistenceType: 'localStorage',
-        onChange(value) {
-          console.log('value: ', value);
-        },
-      }}
-      rowKey="id"
-      search={{
-        labelWidth: 'auto',
-      }}
-      options={{
-        setting: {
-          listsHeight: 400,
-        },
-      }}
-      form={{
-        // 由于配置了 transform，提交的参与与定义的不同这里需要转化一下
-        syncToUrl: (values, type) => {
-          if (type === 'get') {
-            return {
-              ...values,
-              created_at: [values.startTime, values.endTime],
-            };
-          }
-          return values;
-        },
-      }}
-      pagination={{
-        pageSize: 10,
-        onChange: (page) => console.log(page),
-      }}
-      dateFormatter="string"
-      headerTitle="已经查询到的客人信息:"
-      toolBarRender={() => [
-        <Dropdown
-          key="menu"
-          menu={{
-            items: [
-            ],
-          }}
-        >
-          <Button>
-            <EllipsisOutlined />
-          </Button>
-        </Dropdown>,
-      ]}
-    />
+        columns={columns}
+        actionRef={actionRef}
+        cardBordered
+        request={async (params = {}, sort, filter) => {
+          console.log(sort, filter);
+          const msg = await queryCustomerByPage(params);
+          return {
+            data: msg.data,
+            success: true,
+            total: msg.total,
+          };
+        }}
+        editable={{
+          type: 'multiple',
+        }}
+        columnsState={{
+          persistenceKey: 'pro-table-singe-demos-Customer',
+          persistenceType: 'localStorage',
+          onChange(value) {
+            console.log('value: ', value);
+          },
+        }}
+        rowKey="id"
+        search={{
+          labelWidth: 'auto',
+        }}
+        options={{
+          setting: {
+            listsHeight: 400,
+          },
+        }}
+        form={{
+          // 由于配置了 transform，提交的参与与定义的不同这里需要转化一下
+          syncToUrl: (values, type) => {
+            if (type === 'get') {
+              return {
+                ...values,
+                created_at: [values.startTime, values.endTime],
+              };
+            }
+            return values;
+          },
+        }}
+        pagination={{
+          pageSize: 10,
+          onChange: (page) => console.log(page),
+        }}
+        dateFormatter="string"
+        headerTitle="已经查询到的客人信息:"
+        toolBarRender={() => [
+          <Dropdown
+            key="menu"
+            menu={{
+              items: [],
+            }}
+          >
+            <Button>
+              <EllipsisOutlined />
+            </Button>
+          </Dropdown>,
+        ]}
+      />
     </>
   );
 };

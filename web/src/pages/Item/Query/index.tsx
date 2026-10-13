@@ -15,6 +15,8 @@ type Item = {
   enabled?: number;
   cover?: string;
   sort?: number;
+  /** 服务时长（分钟），卡项详情与预约下单展示用 */
+  durationMinutes?: number;
   createTime?: string;
   updateTime?: string;
 };
@@ -43,12 +45,17 @@ export default () => {
           {record.cover ? (
             <img className="cv img" src={record.cover} alt="" />
           ) : (
-            <div className={`cv ${COVER_GRADS[index! % 4]}`}>{(record.name || '卡').slice(0, 1)}</div>
+            <div className={`cv ${COVER_GRADS[index! % 4]}`}>
+              {(record.name || '卡').slice(0, 1)}
+            </div>
           )}
           <div>
             <div className="nm">{record.name || '-'}</div>
             <div className="ds">
-              {[record.description || '', record.durationMinutes ? `${record.durationMinutes} 分钟` : '']
+              {[
+                record.description || '',
+                record.durationMinutes ? `${record.durationMinutes} 分钟` : '',
+              ]
                 .filter(Boolean)
                 .join(' · ') || '—'}
             </div>
@@ -102,7 +109,10 @@ export default () => {
         >
           编辑
         </a>,
-        <Popconfirm key="delete" title="删除这张卡项？" onConfirm={async () => {
+        <Popconfirm
+          key="delete"
+          title="删除这张卡项？"
+          onConfirm={async () => {
             if (record.id) {
               deleteItem(record.id).then((res) => {
                 if (res.id) {
@@ -115,7 +125,8 @@ export default () => {
             } else {
               message.warning('记录id不存,无法删除,请刷新再试');
             }
-          }}>
+          }}
+        >
           <a className="del">删除</a>
         </Popconfirm>,
       ],

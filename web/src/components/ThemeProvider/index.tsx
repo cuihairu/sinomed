@@ -17,7 +17,10 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   useEffect(() => {
     const apply = () => setterRef.current({ theme: { token: antdTokenOverrides(readTheme()) } });
     apply();
-    return subscribeTheme(apply);
+    const stop = subscribeTheme(apply);
+    return () => {
+      stop();
+    };
   }, []);
   return <>{children}</>;
 };

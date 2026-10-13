@@ -4,9 +4,7 @@
 
 ## Healthicons(CC0 1.0)
 
-来源:<https://healthicons.org/> 仓库:`resolvetosavelives/healthicons`
-图标本体以 CC0 1.0 公共域发布,任何用途免费、无需署名、可自由修改。
-(仓库根 LICENSE 的 MIT 条款仅约束其网站源码。)
+来源:<https://healthicons.org/> 仓库:`resolvetosavelives/healthicons` 图标本体以 CC0 1.0 公共域发布,任何用途免费、无需署名、可自由修改。 (仓库根 LICENSE 的 MIT 条款仅约束其网站源码。)
 
 ## Tabler Icons(MIT)
 

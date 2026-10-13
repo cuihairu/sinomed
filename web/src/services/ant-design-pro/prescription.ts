@@ -159,10 +159,7 @@ export interface CompatibilityResult {
 }
 
 /** 配伍审方：经典十八反/十九畏静态规则；自由文本药名按别名包含匹配；提示不拦截 */
-export async function checkCompatibility(
-  herbs: string[],
-  options?: { [key: string]: any },
-) {
+export async function checkCompatibility(herbs: string[], options?: { [key: string]: any }) {
   return request<CompatibilityResult>('/api/v1/prescription/compatibility', {
     method: 'POST',
     data: { herbs },
@@ -219,10 +216,7 @@ export interface DoseResult {
 }
 
 /** 剂量审方：按药材字典单剂克数上限比对，weight 严格大于上限才命中；提示不拦截 */
-export async function checkDose(
-  herbs: PrescriptionHerb[],
-  options?: { [key: string]: any },
-) {
+export async function checkDose(herbs: PrescriptionHerb[], options?: { [key: string]: any }) {
   return request<DoseResult>('/api/v1/prescription/dose-check', {
     method: 'POST',
     data: { herbs },
@@ -253,11 +247,7 @@ export async function setDecoctionStatus(
 }
 
 /** 膏方领取流转：待制作(1)→可取(2)→已取(3) 顺序推进，非膏方与回退/跳跃 400 */
-export async function setPasteStatus(
-  id: number,
-  status: 2 | 3,
-  options?: { [key: string]: any },
-) {
+export async function setPasteStatus(id: number, status: 2 | 3, options?: { [key: string]: any }) {
   return request<Prescription>(`/api/v1/prescription/${id}/paste?status=${status}`, {
     method: 'PUT',
     ...(options || {}),
@@ -327,7 +317,12 @@ export async function dispensePrescription(
 
 /** 药房工作台分页：dispenseStatus 可空（0 待发药 / 1 已发药），customerKeyword 按顾客姓名/手机模糊 */
 export async function queryDispensePage(
-  params: { current?: number; pageSize?: number; dispenseStatus?: number; customerKeyword?: string },
+  params: {
+    current?: number;
+    pageSize?: number;
+    dispenseStatus?: number;
+    customerKeyword?: string;
+  },
   options?: { [key: string]: any },
 ) {
   return request<DispensePageResult>('/api/v1/prescription/dispense/page', {
@@ -363,10 +358,7 @@ export interface TemplatePageResult {
 }
 
 /** 建模板：name + herbs（至少 1 味）必填；doses 默认 7、enabled 默认 1；病症名唯一 */
-export async function createTemplate(
-  body: PrescriptionTemplate,
-  options?: { [key: string]: any },
-) {
+export async function createTemplate(body: PrescriptionTemplate, options?: { [key: string]: any }) {
   return request<PrescriptionTemplate>('/api/v1/prescription/template/', {
     method: 'POST',
     data: body,
@@ -375,10 +367,7 @@ export async function createTemplate(
 }
 
 /** 更新模板：按 id 全量更新，药味全量替换；换名撞其他模板报 400 */
-export async function updateTemplate(
-  body: PrescriptionTemplate,
-  options?: { [key: string]: any },
-) {
+export async function updateTemplate(body: PrescriptionTemplate, options?: { [key: string]: any }) {
   return request<PrescriptionTemplate>('/api/v1/prescription/template/', {
     method: 'PUT',
     data: body,
@@ -399,9 +388,7 @@ export async function queryTemplatePage(
 }
 
 /** 上架模板（enabled=1，id 升序，附药味）：开方页「套用模板」取数入口 */
-export async function queryEnabledTemplates(
-  options?: { [key: string]: any },
-) {
+export async function queryEnabledTemplates(options?: { [key: string]: any }) {
   return request<PrescriptionTemplate[]>('/api/v1/prescription/template/enabled', {
     method: 'GET',
     ...(options || {}),
@@ -409,10 +396,7 @@ export async function queryEnabledTemplates(
 }
 
 /** 删除模板（连同药味；演示环境口径，无留痕） */
-export async function deleteTemplate(
-  id: number,
-  options?: { [key: string]: any },
-) {
+export async function deleteTemplate(id: number, options?: { [key: string]: any }) {
   return request<{ message?: string }>(`/api/v1/prescription/template/${id}`, {
     method: 'DELETE',
     ...(options || {}),

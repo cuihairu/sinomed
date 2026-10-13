@@ -1,5 +1,5 @@
 import React from 'react';
-import { Space, Table, Tag } from 'antd';
+import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 interface StaffReview {
@@ -10,7 +10,7 @@ interface StaffReview {
 }
 
 interface StaffReviewTableProps {
-  data: StaffReview[]
+  data: StaffReview[];
 }
 
 const columns: ColumnsType<StaffReview> = [
@@ -37,7 +37,9 @@ const columns: ColumnsType<StaffReview> = [
   },
 ];
 
-const StaffReviewTable: React.FC<StaffReviewTableProps> = (props ) => <Table columns={columns} dataSource={props.data} />;
+const StaffReviewTable: React.FC<StaffReviewTableProps> = (props) => (
+  <Table columns={columns} dataSource={props.data} />
+);
 
-export {StaffReview};
+export { StaffReview };
 export default StaffReviewTable;

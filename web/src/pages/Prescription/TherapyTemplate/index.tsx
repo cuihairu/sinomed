@@ -215,7 +215,12 @@ export default () => {
               showCount
             />
           </Form.Item>
-          <Form.Item name="enabled" label="上架（停用后接诊页不再出现）" valuePropName="checked" initialValue={true}>
+          <Form.Item
+            name="enabled"
+            label="上架（停用后接诊页不再出现）"
+            valuePropName="checked"
+            initialValue={true}
+          >
             <Switch size="small" />
           </Form.Item>
         </Form>

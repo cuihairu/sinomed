@@ -22,7 +22,12 @@ export default () => {
   const openCreate = () => {
     setEditing(undefined);
     form.resetFields();
-    form.setFieldsValue({ doses: 7, decoction: 0, enabled: true, herbs: [{ herb: '', weight: undefined }] });
+    form.setFieldsValue({
+      doses: 7,
+      decoction: 0,
+      enabled: true,
+      herbs: [{ herb: '', weight: undefined }],
+    });
     setModalOpen(true);
   };
 
@@ -35,14 +40,20 @@ export default () => {
       usage: record.usage,
       remark: record.remark,
       enabled: record.enabled === 1,
-      herbs: (record.herbs || []).map((h) => ({ herb: h.herb, weight: h.weight, special: h.special })),
+      herbs: (record.herbs || []).map((h) => ({
+        herb: h.herb,
+        weight: h.weight,
+        special: h.special,
+      })),
     });
     setModalOpen(true);
   };
 
   const submit = async () => {
     const values = await form.validateFields();
-    const herbs = (values.herbs || []).filter((h: any) => (h.herb || '').trim() !== '' || h.weight != null);
+    const herbs = (values.herbs || []).filter(
+      (h: any) => (h.herb || '').trim() !== '' || h.weight != null,
+    );
     // Switch 的布尔值转服务端 0/1 口径
     const payload = { ...values, enabled: values.enabled ? 1 : 0, herbs };
     setSaving(true);
@@ -219,7 +230,11 @@ export default () => {
                       <MinusCircleOutlined onClick={() => remove(field.name)} className="tpl-del" />
                     </div>
                   ))}
-                  <Button type="dashed" onClick={() => add({ herb: '', weight: undefined })} icon={<PlusOutlined />}>
+                  <Button
+                    type="dashed"
+                    onClick={() => add({ herb: '', weight: undefined })}
+                    icon={<PlusOutlined />}
+                  >
                     添加一味
                   </Button>
                 </>

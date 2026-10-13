@@ -1,6 +1,6 @@
 import { request } from '@umijs/max';
 
-export async function createCustomer(body: API.Customer,options?: { [key: string]: any }) {
+export async function createCustomer(body: API.Customer, options?: { [key: string]: any }) {
   return request<API.Customer>('/api/v1/customer/', {
     method: 'POST',
     headers: {
@@ -11,7 +11,7 @@ export async function createCustomer(body: API.Customer,options?: { [key: string
   });
 }
 
-export async function updateCustomer(body: API.Customer,options?: { [key: string]: any }) {
+export async function updateCustomer(body: API.Customer, options?: { [key: string]: any }) {
   return request<API.Customer>('/api/v1/customer/', {
     method: 'PUT',
     headers: {
@@ -21,7 +21,7 @@ export async function updateCustomer(body: API.Customer,options?: { [key: string
     ...(options || {}),
   });
 }
-export async function deleteCustomer( cid: number ,options?: { [key: string]: any }) {
+export async function deleteCustomer(cid: number, options?: { [key: string]: any }) {
   return request<API.Customer>(`/api/v1/customer/${cid}`, {
     method: 'DELETE',
     headers: {
@@ -30,7 +30,10 @@ export async function deleteCustomer( cid: number ,options?: { [key: string]: an
     ...(options || {}),
   });
 }
-export async function queryCustomerByPage(params: API.QueryCustomerParams,options?: { [key: string]: any }) {
+export async function queryCustomerByPage(
+  params: API.QueryCustomerParams,
+  options?: { [key: string]: any },
+) {
   return request<API.QueryCustomerResult>('/api/v1/customer/page', {
     method: 'GET',
     params: params,
@@ -41,11 +44,10 @@ export async function queryCustomerByPage(params: API.QueryCustomerParams,option
   });
 }
 
-export async function fetchCustomerById(cid:number|string,options?: { [key: string]: any }) {
+export async function fetchCustomerById(cid: number | string, options?: { [key: string]: any }) {
   return request<API.Customer>(`/api/v1/customer/${cid}`, {
     method: 'GET',
-    params: {
-    },
+    params: {},
     headers: {
       'Content-Type': 'application/json',
     },
@@ -53,11 +55,10 @@ export async function fetchCustomerById(cid:number|string,options?: { [key: stri
   });
 }
 
-export async function fetchCustomerByPhone(phone:string,options?: { [key: string]: any }) {
+export async function fetchCustomerByPhone(phone: string, options?: { [key: string]: any }) {
   return request<API.Customer>(`/api/v1/customer/phone/${phone}`, {
     method: 'GET',
-    params: {
-    },
+    params: {},
     headers: {
       'Content-Type': 'application/json',
     },
@@ -75,7 +76,10 @@ export interface CustomerHistory {
   createTime?: string;
 }
 
-export async function listCustomerHistories(cid: number | string, options?: { [key: string]: any }) {
+export async function listCustomerHistories(
+  cid: number | string,
+  options?: { [key: string]: any },
+) {
   return request<CustomerHistory[]>(`/api/v1/customer/${cid}/history`, {
     method: 'GET',
     headers: {

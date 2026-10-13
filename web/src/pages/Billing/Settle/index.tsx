@@ -3,7 +3,13 @@ import { PageContainer } from '@ant-design/pro-components';
 import { Button, Input, InputNumber, Modal, Tag, message } from 'antd';
 import { CheckCircleFilled, PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { Order, ORDER_STATUS, orderBusinessNo, queryOrderPage, updateOrderRemark } from '@/services/ant-design-pro/order';
+import {
+  Order,
+  ORDER_STATUS,
+  orderBusinessNo,
+  queryOrderPage,
+  updateOrderRemark,
+} from '@/services/ant-design-pro/order';
 import {
   PAY_TYPE,
   PAY_TYPE_TEXT,
@@ -236,9 +242,17 @@ const Settle: React.FC = () => {
           <section className="bl-panel">
             <h3>
               待结算队列<span className="hint">{orders.length} 单待收</span>
-              <Button type="text" size="small" className="refresh" onClick={loadQueue} icon={<ReloadOutlined />} />
+              <Button
+                type="text"
+                size="small"
+                className="refresh"
+                onClick={loadQueue}
+                icon={<ReloadOutlined />}
+              />
             </h3>
-            {orders.length === 0 && <div className="bl-empty">队列已清空——自助机 / 前台新单会出现在这里</div>}
+            {orders.length === 0 && (
+              <div className="bl-empty">队列已清空——自助机 / 前台新单会出现在这里</div>
+            )}
             {orders.map((o) => (
               <div
                 key={o.id}
@@ -270,7 +284,9 @@ const Settle: React.FC = () => {
                 </span>
                 <span className="pay">{PAY_TYPE_TEXT[s.payType ?? 0]}</span>
                 <span className="amt">¥{s.money}</span>
-                <span className="tm">{s.createTime ? moment(s.createTime).format('MM-DD HH:mm') : ''}</span>
+                <span className="tm">
+                  {s.createTime ? moment(s.createTime).format('MM-DD HH:mm') : ''}
+                </span>
                 {s.refunded ? (
                   <Tag className="s-refunded">已退款</Tag>
                 ) : (
@@ -304,19 +320,20 @@ const Settle: React.FC = () => {
             {!selected && done && (
               <div className="done">
                 <CheckCircleFilled className="ok" />
-                <div className="tt">已收款 ¥{done.money}（{done.pay}）</div>
+                <div className="tt">
+                  已收款 ¥{done.money}（{done.pay}）
+                </div>
                 <div className="op">
-                  <Button
-                    icon={<PrinterOutlined />}
-                    onClick={() => openReceipt(done.id)}
-                  >
+                  <Button icon={<PrinterOutlined />} onClick={() => openReceipt(done.id)}>
                     打印小票
                   </Button>
                   <Button type="text" onClick={() => setDone(undefined)}>
                     继续收款
                   </Button>
                 </div>
-                <div className="hp">80mm 版式，浏览器新窗口打开即可打印；历史小票可在左侧「最近结算」补打。</div>
+                <div className="hp">
+                  80mm 版式，浏览器新窗口打开即可打印；历史小票可在左侧「最近结算」补打。
+                </div>
               </div>
             )}
             {!selected && !done && <div className="bl-empty tall">从左侧队列选一单开始收款</div>}
@@ -352,7 +369,14 @@ const Settle: React.FC = () => {
                   <tbody>
                     {(selected.items?.length
                       ? selected.items
-                      : [{ itemName: selected.itemName, price: selected.price, qty: 1, subtotal: selected.price }]
+                      : [
+                          {
+                            itemName: selected.itemName,
+                            price: selected.price,
+                            qty: 1,
+                            subtotal: selected.price,
+                          },
+                        ]
                     ).map((r, i) => (
                       <tr key={i}>
                         <td>{r.itemName || '-'}</td>
@@ -387,15 +411,23 @@ const Settle: React.FC = () => {
                   {payType === PAY_TYPE.CARD && (cardRest ?? 0) > 0
                     ? '卡项抵扣 ¥0 实收已含；支付后余次 -1'
                     : payType === PAY_TYPE.STORED_VALUE && balance !== undefined
-                      ? `本单拟用储值支付，支付后余额 ¥${Math.max(balance - price, 0)}`
-                      : '到店收银，支付方式仅作记录'}
+                    ? `本单拟用储值支付，支付后余额 ¥${Math.max(balance - price, 0)}`
+                    : '到店收银，支付方式仅作记录'}
                 </div>
 
                 <div className="pays">
-                  {[PAY_TYPE.STORED_VALUE, PAY_TYPE.WECHAT, PAY_TYPE.ALIPAY, PAY_TYPE.CASH, PAY_TYPE.CARD].map((t) => (
+                  {[
+                    PAY_TYPE.STORED_VALUE,
+                    PAY_TYPE.WECHAT,
+                    PAY_TYPE.ALIPAY,
+                    PAY_TYPE.CASH,
+                    PAY_TYPE.CARD,
+                  ].map((t) => (
                     <div
                       key={t}
-                      className={`pay ${payType === t ? 'on' : ''} ${t === PAY_TYPE.STORED_VALUE && storedShort ? 'short' : ''}`}
+                      className={`pay ${payType === t ? 'on' : ''} ${
+                        t === PAY_TYPE.STORED_VALUE && storedShort ? 'short' : ''
+                      }`}
                       onClick={() => setPayType(t)}
                     >
                       <span className="pi" style={{ background: PAY_ICON_BG[t] }}>
@@ -409,14 +441,14 @@ const Settle: React.FC = () => {
                               ? `余额 ¥${balance}`
                               : '查询中'
                             : t === PAY_TYPE.CASH
-                              ? '收银找零'
-                              : t === PAY_TYPE.CARD
-                                ? cardRest === undefined
-                                  ? '查询中'
-                                  : cardRest > 0
-                                    ? `扣 1 次 · 余 ${cardRest} 次`
-                                    : '无有效次卡'
-                                : '扫码收款'}
+                            ? '收银找零'
+                            : t === PAY_TYPE.CARD
+                            ? cardRest === undefined
+                              ? '查询中'
+                              : cardRest > 0
+                              ? `扣 1 次 · 余 ${cardRest} 次`
+                              : '无有效次卡'
+                            : '扫码收款'}
                         </div>
                       </div>
                       <span className="ck" />
@@ -452,7 +484,9 @@ const Settle: React.FC = () => {
                 {/* 到店扫码收款：选中微信/支付宝出示商户码，顾客扫后点收款记账；缺图如实提示（web.md 口径：不做在线支付） */}
                 {qrUrl && (
                   <div className="qr-face">
-                    <div className="qt">{PAY_TYPE_TEXT[payType]}收款码 · 顾客扫码支付后点「收款」记账</div>
+                    <div className="qt">
+                      {PAY_TYPE_TEXT[payType]}收款码 · 顾客扫码支付后点「收款」记账
+                    </div>
                     <img src={qrUrl} alt={`${PAY_TYPE_TEXT[payType]}收款码`} />
                     <div className="qs">到账以商户账单为准，系统只记录支付方式，不接支付网关</div>
                   </div>
@@ -463,17 +497,21 @@ const Settle: React.FC = () => {
                     <div className="qs">
                       把商户{PAY_TYPE_TEXT[payType]}收款码图片放服务器{' '}
                       <b>data/payqrcodes/{payType === PAY_TYPE.WECHAT ? 'wechat' : 'alipay'}.png</b>
-                      （或 .jpg）后刷新生效；期间可扫台卡纸质码，本单仍按「{PAY_TYPE_TEXT[payType]}」记录。
+                      （或 .jpg）后刷新生效；期间可扫台卡纸质码，本单仍按「{PAY_TYPE_TEXT[payType]}
+                      」记录。
                     </div>
                   </div>
                 )}
 
                 <Button type="primary" className="btn-pay" loading={busy} onClick={pay}>
-                  {storedShort ? `充值 ¥${rechargeAmount ?? need} 并收款 ¥${price}` : `收款 ¥${price}`}
+                  {storedShort
+                    ? `充值 ¥${rechargeAmount ?? need} 并收款 ¥${price}`
+                    : `收款 ¥${price}`}
                 </Button>
                 <div className="note">
                   微信/支付宝为到店扫码收款：出示商户收款码，顾客扫码支付后点「收款」记账（不接支付网关，到账以商户账单为准）；
-                  次卡抵扣扣 1 次、实收记 0（需顾客持本单卡项的有效余次卡）；收款后可打印 80mm 小票，历史小票可补打。
+                  次卡抵扣扣 1 次、实收记 0（需顾客持本单卡项的有效余次卡）；收款后可打印 80mm
+                  小票，历史小票可补打。
                 </div>
               </>
             )}
@@ -507,7 +545,9 @@ const Settle: React.FC = () => {
               showCount
               autoSize={{ minRows: 2, maxRows: 4 }}
             />
-            <div className="hp">原路退回：储值补回余额、次卡回补次数、现金当面退回；订单回退后可重新收款。单向操作，不可撤销。</div>
+            <div className="hp">
+              原路退回：储值补回余额、次卡回补次数、现金当面退回；订单回退后可重新收款。单向操作，不可撤销。
+            </div>
           </div>
         ) : null}
       </Modal>

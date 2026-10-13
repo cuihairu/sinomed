@@ -57,7 +57,9 @@ export default function AppointmentSchedule() {
       setList(rows);
       // 疗程标记：按顾客批量拉持卡一次拉齐；同项目第 N 张卡=第 N 疗程，无卡项不标。
       // 首诊/复诊：同批顾客拉就诊次数，有既往诊疗记录=复诊、无=首诊（treats 无项目维度，按顾客口径）
-      const ids = Array.from(new Set(rows.map((a) => a.customerId).filter((x): x is number => !!x)));
+      const ids = Array.from(
+        new Set(rows.map((a) => a.customerId).filter((x): x is number => !!x)),
+      );
       if (ids.length === 0) {
         setCourse({});
         setVisited(new Set());
@@ -199,7 +201,11 @@ export default function AppointmentSchedule() {
           <Button type="text" icon={<LeftOutlined />} onClick={() => move(-1)} title="前一天" />
           <span className="d">{day.format('YYYY-MM-DD dddd')}</span>
           <Button type="text" icon={<RightOutlined />} onClick={() => move(1)} title="后一天" />
-          <Button size="small" onClick={() => setDay(moment())} disabled={day.isSame(moment(), 'day')}>
+          <Button
+            size="small"
+            onClick={() => setDay(moment())}
+            disabled={day.isSame(moment(), 'day')}
+          >
             今天
           </Button>
           <Button
@@ -227,7 +233,9 @@ export default function AppointmentSchedule() {
                 const offduty = !!staff && !onDuty.has(staff.id);
                 return (
                   <span
-                    className={`hd${name === UNASSIGNED ? ' unassigned' : ''}${offduty ? ' offduty' : ''}`}
+                    className={`hd${name === UNASSIGNED ? ' unassigned' : ''}${
+                      offduty ? ' offduty' : ''
+                    }`}
                     key={name}
                     title={offduty ? '今日无班次（班表联动）' : undefined}
                   >
@@ -256,15 +264,22 @@ export default function AppointmentSchedule() {
                       <div className="bk">
                         <div className="n">
                           {a.customerName || `顾客${a.customerId}`}
-                          <span className={`st ${SLOT_CLASS[a.status ?? 0]}`}>{SLOT_TEXT[a.status ?? 0]}</span>
+                          <span className={`st ${SLOT_CLASS[a.status ?? 0]}`}>
+                            {SLOT_TEXT[a.status ?? 0]}
+                          </span>
                           {more > 0 ? <span className="more">+{more}</span> : null}
                         </div>
                         <div className="s">
                           {a.itemName || '到店再定'}
                           {a.customerId && a.itemName && course[`${a.customerId}|${a.itemName}`] ? (
-                            <span className="course"> · 第{course[`${a.customerId}|${a.itemName}`]}疗程</span>
+                            <span className="course">
+                              {' '}
+                              · 第{course[`${a.customerId}|${a.itemName}`]}疗程
+                            </span>
                           ) : a.customerId ? (
-                            <span className="course">{visited.has(a.customerId) ? ' · 复诊' : ' · 首诊'}</span>
+                            <span className="course">
+                              {visited.has(a.customerId) ? ' · 复诊' : ' · 首诊'}
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -321,14 +336,21 @@ export default function AppointmentSchedule() {
             ) : (
               pending.map((a) => (
                 <div className="rv" key={a.id}>
-                  <span className="tm">{a.startTime ? moment(a.startTime).format('HH:mm') : '--'}</span>
+                  <span className="tm">
+                    {a.startTime ? moment(a.startTime).format('HH:mm') : '--'}
+                  </span>
                   <span className="n">{a.customerName || `顾客${a.customerId}`}</span>
                   <span className="it">
                     {a.itemName || '到店再定'}
                     {a.customerId && a.itemName && course[`${a.customerId}|${a.itemName}`] ? (
-                      <span className="course"> · 第{course[`${a.customerId}|${a.itemName}`]}疗程</span>
+                      <span className="course">
+                        {' '}
+                        · 第{course[`${a.customerId}|${a.itemName}`]}疗程
+                      </span>
                     ) : a.customerId ? (
-                      <span className="course">{visited.has(a.customerId) ? ' · 复诊' : ' · 首诊'}</span>
+                      <span className="course">
+                        {visited.has(a.customerId) ? ' · 复诊' : ' · 首诊'}
+                      </span>
                     ) : null}
                   </span>
                   <span className="pill">{a.staffName || UNASSIGNED}</span>

@@ -1,7 +1,7 @@
 import { request } from '@umijs/max';
-import moment from "moment";
+import moment from 'moment';
 
-export async function createReview(body: API.Review,options?: { [key: string]: any }) {
+export async function createReview(body: API.Review, options?: { [key: string]: any }) {
   return request<API.ReviewStaff>('/api/v1/review/', {
     method: 'POST',
     headers: {
@@ -12,11 +12,11 @@ export async function createReview(body: API.Review,options?: { [key: string]: a
   });
 }
 
-export async function fetchReviewByDay(day:Date,options?: { [key: string]: any }) {
+export async function fetchReviewByDay(day: Date, options?: { [key: string]: any }) {
   return request<API.Review>('/api/v1/review/day', {
     method: 'GET',
-    params:{
-      day:moment(day).format("YYYY-MM-DD hh:mm:ss")
+    params: {
+      day: moment(day).format('YYYY-MM-DD hh:mm:ss'),
     },
     headers: {
       'Content-Type': 'application/json',
@@ -25,8 +25,7 @@ export async function fetchReviewByDay(day:Date,options?: { [key: string]: any }
   });
 }
 
-
-export async function createReviewStaff(body: API.ReviewStaff,options?: { [key: string]: any }) {
+export async function createReviewStaff(body: API.ReviewStaff, options?: { [key: string]: any }) {
   return request<API.ReviewStaff>('/api/v1/review/staff', {
     method: 'POST',
     headers: {
@@ -37,7 +36,10 @@ export async function createReviewStaff(body: API.ReviewStaff,options?: { [key: 
   });
 }
 
-export async function createReviewCustomer(body: API.ReviewCustomer,options?: { [key: string]: any }) {
+export async function createReviewCustomer(
+  body: API.ReviewCustomer,
+  options?: { [key: string]: any },
+) {
   return request<API.ReviewCustomer>('/api/v1/review/customer', {
     method: 'POST',
     headers: {
@@ -48,7 +50,10 @@ export async function createReviewCustomer(body: API.ReviewCustomer,options?: { 
   });
 }
 
-export async function createReviewStaffBulk(body: API.ReviewStaff[],options?: { [key: string]: any }) {
+export async function createReviewStaffBulk(
+  body: API.ReviewStaff[],
+  options?: { [key: string]: any },
+) {
   return request<API.MessageResp>('/api/v1/review/staff/bulk', {
     method: 'POST',
     headers: {
@@ -59,7 +64,10 @@ export async function createReviewStaffBulk(body: API.ReviewStaff[],options?: { 
   });
 }
 
-export async function createReviewCustomerBulk(body: API.ReviewCustomer[],options?: { [key: string]: any }) {
+export async function createReviewCustomerBulk(
+  body: API.ReviewCustomer[],
+  options?: { [key: string]: any },
+) {
   return request<API.MessageResp>('/api/v1/review/customer/bulk', {
     method: 'POST',
     headers: {
@@ -70,8 +78,7 @@ export async function createReviewCustomerBulk(body: API.ReviewCustomer[],option
   });
 }
 
-export async function deleteReviewStaff(id:number,options?: { [key: string]: any }) {
-
+export async function deleteReviewStaff(id: number, options?: { [key: string]: any }) {
   return request<API.MessageResp>(`/api/v1/review/staff/${id}`, {
     method: 'DELETE',
     headers: {
@@ -81,8 +88,7 @@ export async function deleteReviewStaff(id:number,options?: { [key: string]: any
   });
 }
 
-export async function deleteReviewCustomer(id:number,options?: { [key: string]: any }) {
-
+export async function deleteReviewCustomer(id: number, options?: { [key: string]: any }) {
   return request<API.MessageResp>(`/api/v1/review/customer/${id}`, {
     method: 'DELETE',
     headers: {
@@ -92,12 +98,11 @@ export async function deleteReviewCustomer(id:number,options?: { [key: string]: 
   });
 }
 
-export async function fetchReviewStaffBulk(day:Date ,options?: { [key: string]: any }) {
-
+export async function fetchReviewStaffBulk(day: Date, options?: { [key: string]: any }) {
   return request<API.ReviewStaff[]>('/api/v1/review/staff/list/day', {
     method: 'GET',
-    params:{
-      day:moment(day).format("YYYY-MM-DD hh:mm:ss")
+    params: {
+      day: moment(day).format('YYYY-MM-DD hh:mm:ss'),
     },
     headers: {
       'Content-Type': 'application/json',
@@ -106,12 +111,11 @@ export async function fetchReviewStaffBulk(day:Date ,options?: { [key: string]: 
   });
 }
 
-export async function fetchReviewCustomerBulk(day:Date ,options?: { [key: string]: any }) {
-
+export async function fetchReviewCustomerBulk(day: Date, options?: { [key: string]: any }) {
   return request<API.ReviewCustomer[]>('/api/v1/review/customer/list/day', {
     method: 'GET',
-    params:{
-      day:moment(day).format("YYYY-MM-DD hh:mm:ss")
+    params: {
+      day: moment(day).format('YYYY-MM-DD hh:mm:ss'),
     },
     headers: {
       'Content-Type': 'application/json',

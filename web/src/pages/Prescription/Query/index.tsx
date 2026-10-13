@@ -17,8 +17,6 @@ import {
 } from '@/services/ant-design-pro/prescription';
 import './index.less';
 
-const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '');
-
 export default function PrescriptionQuery() {
   const actionRef = useRef<ActionType>();
   /** 详情抽屉：打开时按 id 拉全量处方（含药味） */
@@ -148,7 +146,9 @@ export default function PrescriptionQuery() {
         entity.decoctionStatus == null || entity.decoctionStatus === 0 ? (
           <span className="faint">—</span>
         ) : (
-          <span className={`dc s${entity.decoctionStatus}`}>{DECOCTION_TEXT[entity.decoctionStatus]}</span>
+          <span className={`dc s${entity.decoctionStatus}`}>
+            {DECOCTION_TEXT[entity.decoctionStatus]}
+          </span>
         ),
     },
     {
@@ -175,7 +175,8 @@ export default function PrescriptionQuery() {
       dataIndex: 'createTime',
       width: 150,
       hideInSearch: true,
-      render: (_, entity) => (entity.createTime ? moment(entity.createTime).format('MM-DD HH:mm') : '-'),
+      render: (_, entity) =>
+        entity.createTime ? moment(entity.createTime).format('MM-DD HH:mm') : '-',
     },
     {
       title: '操作',
@@ -217,7 +218,10 @@ export default function PrescriptionQuery() {
         search={false}
         options={false}
         request={async (params) => {
-          const res = await queryPrescriptionPage({ current: params.current, pageSize: params.pageSize });
+          const res = await queryPrescriptionPage({
+            current: params.current,
+            pageSize: params.pageSize,
+          });
           return { data: res?.data || [], success: true, total: res?.total || 0 };
         }}
         pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条 · 每页 20 条` }}
@@ -261,7 +265,9 @@ export default function PrescriptionQuery() {
                     <td className="no">{i + 1}</td>
                     <td className="nm">{h.herb}</td>
                     <td className="wt">{h.weight}</td>
-                    <td className="sp">{[h.process, h.special].filter(Boolean).join(' / ') || '—'}</td>
+                    <td className="sp">
+                      {[h.process, h.special].filter(Boolean).join(' / ') || '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -301,9 +307,13 @@ export default function PrescriptionQuery() {
               <div className="field dc-line">
                 <span className="k">代煎</span>
                 <span className="v">
-                  <span className={`dc s${detail.decoctionStatus}`}>{DECOCTION_TEXT[detail.decoctionStatus ?? 0]}</span>
+                  <span className={`dc s${detail.decoctionStatus}`}>
+                    {DECOCTION_TEXT[detail.decoctionStatus ?? 0]}
+                  </span>
                   {detail.decoctionBags ? ` ${detail.decoctionBags} 袋` : ''}
-                  {detail.decoctionFeeFen ? ` · 服务费 ¥${(detail.decoctionFeeFen / 100).toFixed(2)}（提示口径）` : ''}
+                  {detail.decoctionFeeFen
+                    ? ` · 服务费 ¥${(detail.decoctionFeeFen / 100).toFixed(2)}（提示口径）`
+                    : ''}
                 </span>
                 {detail.decoctionStatus === 1 && (
                   <Button size="small" type="primary" loading={flowing} onClick={() => flow(2)}>
@@ -321,16 +331,28 @@ export default function PrescriptionQuery() {
               <div className="field dc-line">
                 <span className="k">膏方</span>
                 <span className="v">
-                  <span className={`pc s${detail.pasteStatus}`}>{PASTE_TEXT[detail.pasteStatus ?? 0]}</span>
+                  <span className={`pc s${detail.pasteStatus}`}>
+                    {PASTE_TEXT[detail.pasteStatus ?? 0]}
+                  </span>
                   {detail.craft ? ` · ${detail.craft}` : ''}
                 </span>
                 {detail.pasteStatus === 1 && (
-                  <Button size="small" type="primary" loading={flowing} onClick={() => flowPaste(2)}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    loading={flowing}
+                    onClick={() => flowPaste(2)}
+                  >
                     制成 · 转可取
                   </Button>
                 )}
                 {detail.pasteStatus === 2 && (
-                  <Button size="small" type="primary" loading={flowing} onClick={() => flowPaste(3)}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    loading={flowing}
+                    onClick={() => flowPaste(3)}
+                  >
                     顾客已领取
                   </Button>
                 )}
@@ -343,7 +365,9 @@ export default function PrescriptionQuery() {
                   {detail.dispenseStatus === 1 ? (
                     <span className="pc s3">
                       已发药
-                      {detail.dispenseTime ? ` · ${moment(detail.dispenseTime).format('MM-DD HH:mm')}` : ''}
+                      {detail.dispenseTime
+                        ? ` · ${moment(detail.dispenseTime).format('MM-DD HH:mm')}`
+                        : ''}
                     </span>
                   ) : (
                     <span className="dc s1">待发药</span>

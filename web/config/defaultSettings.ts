@@ -28,10 +28,9 @@ const Settings: ProLayoutProps & {
       heightLayoutHeader: 56,
     },
     sider: {
-      widthLayoutSider: 224,
       colorTextMenu: '#4b4f4d',
       colorBgMenuItemHover: '#f0f1ef',
-      colorTextMenuHover: '#262a28',
+      colorTextMenuItemHover: '#262a28',
       colorBgMenuItemSelected: '#eceeee',
       colorTextMenuSelected: '#262a28',
       colorTextMenuActive: '#262a28',

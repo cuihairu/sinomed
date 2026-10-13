@@ -1,8 +1,15 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import React from 'react';
-import { AMBER, applyTheme, siderTokenOverrides, THEMES, themeDef, readTheme } from '@/theme';
+import {
+  AMBER,
+  applyTheme,
+  SettingsWithToken,
+  siderTokenOverrides,
+  THEMES,
+  themeDef,
+  readTheme,
+} from '@/theme';
 // themeDef 用于 select() 时同步 settings.colorPrimary（ProLayout 内部 ConfigProvider 用它）
 import './index.less';
 
@@ -14,7 +21,7 @@ import './index.less';
  * 纯前端（localStorage 持久化，启动时 getInitialState 回放），无后端接口。
  */
 const AppearancePage: React.FC = () => {
-  const { initialState, setInitialState } = useModel('@@initialState');
+  const { setInitialState } = useModel('@@initialState');
   const current = readTheme();
 
   const select = (key: (typeof THEMES)[number]['key']) => {
@@ -24,10 +31,10 @@ const AppearancePage: React.FC = () => {
     setInitialState((pre) => ({
       ...pre,
       settings: {
-        ...(pre?.settings as Partial<LayoutSettings>),
+        ...(pre?.settings as SettingsWithToken),
         colorPrimary: themeDef(key).brand,
         token: {
-          ...(pre?.settings as Partial<LayoutSettings>)?.token,
+          ...(pre?.settings as SettingsWithToken)?.token,
           sider: siderTokenOverrides(key),
         },
       },
@@ -146,7 +153,9 @@ const AppearancePage: React.FC = () => {
               <span className="pv-btn primary">发起接诊</span>
               <span className="pv-btn">打印档案</span>
             </div>
-            <div className="pv-note">预览即真实渲染：按钮、选中态、徽标、数值强调全部走主题变量。</div>
+            <div className="pv-note">
+              预览即真实渲染：按钮、选中态、徽标、数值强调全部走主题变量。
+            </div>
           </div>
         </div>
       </section>

@@ -8,7 +8,7 @@ interface Review {
 }
 
 interface ReviewTableProps {
-  data: Review[]
+  data: Review[];
 }
 
 const columns: ColumnsType<Review> = [
@@ -25,7 +25,9 @@ const columns: ColumnsType<Review> = [
   },
 ];
 
-const ReviewTable: React.FC<ReviewTableProps> = (props ) => <Table columns={columns} dataSource={props.data} />;
+const ReviewTable: React.FC<ReviewTableProps> = (props) => (
+  <Table columns={columns} dataSource={props.data} />
+);
 
-export {Review};
+export { Review };
 export default ReviewTable;

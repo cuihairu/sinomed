@@ -20,7 +20,7 @@ interface ResponseStructure {
 
 const authHeaderInterceptor = (url: string, options: RequestConfig) => {
   const token = localStorage.getItem('jwt');
-  if (token){
+  if (token) {
     return {
       url: `${url}`,
       options: { ...options, interceptors: true, headers: { Authorization: `Bearer ${token}` } },
@@ -28,7 +28,7 @@ const authHeaderInterceptor = (url: string, options: RequestConfig) => {
   }
   return {
     url: `${url}`,
-    options: { ...options, interceptors: true},
+    options: { ...options, interceptors: true },
   };
 };
 
@@ -85,10 +85,10 @@ export const errorConfig: RequestConfig = {
       } else if (error.response) {
         // Axios 的错误
         // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
-        if (error.response?.data?.errorMessage){
-            message.error(error.response?.data?.errorMessage);
-        }else{
-            message.error(`Response status:${error.response.status}`);
+        if (error.response?.data?.errorMessage) {
+          message.error(error.response?.data?.errorMessage);
+        } else {
+          message.error(`Response status:${error.response.status}`);
         }
       } else if (error.request) {
         // 请求已经成功发起，但没有收到响应
@@ -103,9 +103,7 @@ export const errorConfig: RequestConfig = {
   },
 
   // 请求拦截器
-  requestInterceptors: [
-    authHeaderInterceptor
-  ],
+  requestInterceptors: [authHeaderInterceptor],
 
   // 响应拦截器
   responseInterceptors: [

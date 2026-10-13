@@ -19,7 +19,6 @@ export default {
       // 配置了这个可以从 http 代理到 https
       // 依赖 origin 的功能可能需要这个，比如 cookie
       changeOrigin: true,
-
     },
     // localhost:8000/media/** -> 广告素材静态托管，与 /api 同源同服务端（见 server WebMvcConfig）
     '/media/': {

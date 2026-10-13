@@ -8,7 +8,7 @@ import {
 import { fetchWeekTimesheet, queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryCustomerByPage } from '@/services/ant-design-pro/customer';
 import { fuzzyQueryTreatByPage } from '@/services/ant-design-pro/treat';
-import { Button, message } from 'antd';
+import { Button } from 'antd';
 import { history } from '@umijs/max';
 import moment from 'moment';
 import './index.less';
@@ -27,7 +27,8 @@ type CustomerReviewRow = {
   id?: number | string;
   name?: string;
   customerId?: number;
-  last?: string;
+  /** 与 API.ReviewCustomer.last 同型（Date），渲染时 moment() 格式化 */
+  last?: Date;
   advice?: string;
 };
 type DayRow = { day: string; count: number };
@@ -186,7 +187,9 @@ const DayDashboard: React.FC = () => {
         <section className="dd-panel">
           <h3>
             员工总结
-            <span className="hint">各员工当天工作日复盘，未填可提醒（提醒推送属规划域，暂无通知接口）</span>
+            <span className="hint">
+              各员工当天工作日复盘，未填可提醒（提醒推送属规划域，暂无通知接口）
+            </span>
           </h3>
           <table className="dd-table">
             <thead>
@@ -203,7 +206,9 @@ const DayDashboard: React.FC = () => {
                 <tr key={String(r.id ?? r.name)}>
                   <td>
                     <div className="who">{r.name || '—'}</div>
-                    <div className="role">{ROLE_TEXT[staffRoles[r.name || ''] ?? 99] ?? '员工'}</div>
+                    <div className="role">
+                      {ROLE_TEXT[staffRoles[r.name || ''] ?? 99] ?? '员工'}
+                    </div>
                   </td>
                   <td>{r.cost ?? '—'}</td>
                   <td>{r.done || '—'}</td>

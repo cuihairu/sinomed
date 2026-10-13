@@ -37,7 +37,9 @@ export default () => {
       key: 'name',
       fixed: 'left' as const,
       width: 110,
-      render: (_: unknown, row: API.WeekTimesheetStaff) => <span className="wt-nm">{row.name}</span>,
+      render: (_: unknown, row: API.WeekTimesheetStaff) => (
+        <span className="wt-nm">{row.name}</span>
+      ),
     },
     ...WEEKDAYS.map((text, idx) => ({
       title: text,
@@ -48,19 +50,23 @@ export default () => {
         return (
           <div className="wt-cell">
             <div className="wt-plan">
-              {day?.planStart
-                ? <span className="wt-time">应 {day.planStart}–{day.planEnd}</span>
-                : <span className="wt-none">—</span>}
+              {day?.planStart ? (
+                <span className="wt-time">
+                  应 {day.planStart}–{day.planEnd}
+                </span>
+              ) : (
+                <span className="wt-none">—</span>
+              )}
             </div>
             <div className="wt-sign">
-              {day?.signStart
-                ? (
-                  <span className="wt-time">
-                    实 {day.signStart}–{day.signEnd || '…'}
-                    {day.hours != null ? `（${day.hours}h）` : ''}
-                  </span>
-                )
-                : <span className="wt-none">—</span>}
+              {day?.signStart ? (
+                <span className="wt-time">
+                  实 {day.signStart}–{day.signEnd || '…'}
+                  {day.hours != null ? `（${day.hours}h）` : ''}
+                </span>
+              ) : (
+                <span className="wt-none">—</span>
+              )}
             </div>
           </div>
         );

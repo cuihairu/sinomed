@@ -39,7 +39,8 @@ const TABS = [
   { key: ORDER_STATUS.CANCELLED, label: '已取消' },
 ];
 
-const maskPhone = (p?: string) => (p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '');
+const maskPhone = (p?: string) =>
+  p && p.length === 11 ? `${p.slice(0, 3)}****${p.slice(7)}` : p || '';
 
 const statusPill = (status?: number) => {
   if (status == null || STATUS_TEXT[status] === undefined) return '-';
@@ -74,8 +75,8 @@ export default function OrderQuery() {
   // 原型 tab 带计数：按状态各查一次 total（pageSize=1 只取 total，数据全真实）
   const loadCounts = useCallback(async () => {
     const [a, b, c, d] = await Promise.all(
-      [ORDER_STATUS.CREATED, ORDER_STATUS.CONFIRMED, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED].map((s) =>
-        queryOrderPage({ current: 1, pageSize: 1, status: s }),
+      [ORDER_STATUS.CREATED, ORDER_STATUS.CONFIRMED, ORDER_STATUS.DONE, ORDER_STATUS.CANCELLED].map(
+        (s) => queryOrderPage({ current: 1, pageSize: 1, status: s }),
       ),
     );
     setCounts({
@@ -148,7 +149,8 @@ export default function OrderQuery() {
       dataIndex: 'price',
       width: 100,
       hideInSearch: true,
-      render: (_, entity) => (entity.price == null ? '-' : <span className="money">¥{entity.price}</span>),
+      render: (_, entity) =>
+        entity.price == null ? '-' : <span className="money">¥{entity.price}</span>,
     },
     {
       title: '状态',
@@ -167,14 +169,22 @@ export default function OrderQuery() {
         const actions: ReactNode[] = [];
         if (entity.status === ORDER_STATUS.CREATED) {
           actions.push(
-            <a key="confirm" className="op-go" onClick={() => flow(entity.id!, ORDER_STATUS.CONFIRMED, '已接单')}>
+            <a
+              key="confirm"
+              className="op-go"
+              onClick={() => flow(entity.id!, ORDER_STATUS.CONFIRMED, '已接单')}
+            >
               接单
             </a>,
           );
         }
         if (entity.status === ORDER_STATUS.CONFIRMED) {
           actions.push(
-            <a key="done" className="op-go amber" onClick={() => flow(entity.id!, ORDER_STATUS.DONE, '已完成')}>
+            <a
+              key="done"
+              className="op-go amber"
+              onClick={() => flow(entity.id!, ORDER_STATUS.DONE, '已完成')}
+            >
               完成
             </a>,
           );
@@ -281,11 +291,7 @@ export default function OrderQuery() {
                   key: 'pay',
                   label: '支付方式',
                   children:
-                    detail.payType != null ? (
-                      <Tag>{PAY_TYPE_TEXT[detail.payType]}</Tag>
-                    ) : (
-                      '未结算'
-                    ),
+                    detail.payType != null ? <Tag>{PAY_TYPE_TEXT[detail.payType]}</Tag> : '未结算',
                 },
                 {
                   key: 'time',
@@ -305,7 +311,12 @@ export default function OrderQuery() {
               dataSource={detail.items || []}
               columns={[
                 { title: '项目', dataIndex: 'itemName', render: (v) => v || '-' },
-                { title: '单价', dataIndex: 'price', width: 90, render: (v) => (v == null ? '-' : `¥${v}`) },
+                {
+                  title: '单价',
+                  dataIndex: 'price',
+                  width: 90,
+                  render: (v) => (v == null ? '-' : `¥${v}`),
+                },
                 { title: '数量', dataIndex: 'qty', width: 70, align: 'center' },
                 {
                   title: '小计',
@@ -321,7 +332,9 @@ export default function OrderQuery() {
                     合计
                   </Table.Summary.Cell>
                   <Table.Summary.Cell index={1} align="right">
-                    <b className="money">¥{detail.price ?? rows.reduce((s, r) => s + (r.subtotal ?? 0), 0)}</b>
+                    <b className="money">
+                      ¥{detail.price ?? rows.reduce((s, r) => s + (r.subtotal ?? 0), 0)}
+                    </b>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
               )}

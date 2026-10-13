@@ -1,7 +1,20 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { Button, DatePicker, Form, Input, InputNumber, message, Modal, Popconfirm, Radio, Select, Table, Tag } from 'antd';
-import moment from 'moment';
+import {
+  Button,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Popconfirm,
+  Radio,
+  Select,
+  Table,
+  Tag,
+} from 'antd';
+import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import {
   createStockLog,
@@ -132,7 +145,8 @@ export default () => {
   return (
     <PageContainer>
       <div className="hs-tip">
-        当前库存 = 入库合计 - 出库合计（克）；出库按效期先进先出（FEFO）消耗批次。库存为台账口径，不涉采购单据与结算。
+        当前库存 = 入库合计 -
+        出库合计（克）；出库按效期先进先出（FEFO）消耗批次。库存为台账口径，不涉采购单据与结算。
       </div>
       <div className="hs-toolbar">
         <span className="hs-count">效期预警阈值</span>
@@ -185,7 +199,8 @@ export default () => {
             dataIndex: 'warnExpiry',
             key: 'warnExpiry',
             width: '8%',
-            render: (v: boolean) => (v ? <Tag color="red">到期预警</Tag> : <span className="hs-none">—</span>),
+            render: (v: boolean) =>
+              v ? <Tag color="red">到期预警</Tag> : <span className="hs-none">—</span>,
           },
           {
             title: '库存线',
@@ -234,13 +249,18 @@ export default () => {
             width: 90,
             fixed: 'right' as const,
             render: (_, record) => (
-              <Popconfirm title="删除该流水？" onConfirm={async () => {
-                await deleteStockLog(record.id!);
-                message.success('已删除');
-                actionRef.current?.reload();
-                loadBalance();
-              }}>
-                <Button type="link" size="small" danger>删除</Button>
+              <Popconfirm
+                title="删除该流水？"
+                onConfirm={async () => {
+                  await deleteStockLog(record.id!);
+                  message.success('已删除');
+                  actionRef.current?.reload();
+                  loadBalance();
+                }}
+              >
+                <Button type="link" size="small" danger>
+                  删除
+                </Button>
               </Popconfirm>
             ),
           },
@@ -270,15 +290,28 @@ export default () => {
               <Radio value={0}>出库</Radio>
             </Radio.Group>
           </Form.Item>
-          <Form.Item name="quantity" label="数量（克）" rules={[{ required: true, message: '请输入数量' }]}>
+          <Form.Item
+            name="quantity"
+            label="数量（克）"
+            rules={[{ required: true, message: '请输入数量' }]}
+          >
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item noStyle shouldUpdate={(prev, curr) => prev.type !== curr.type}>
-            {({ getFieldValue }) => (getFieldValue('type') === 1 ? (
-              <Form.Item name="expiry" label="批次效期" rules={[{ required: true, message: '请选择效期' }]}>
-                <DatePicker style={{ width: '100%' }} disabledDate={(d) => d.isBefore(moment(), 'day')} />
-              </Form.Item>
-            ) : null)}
+            {({ getFieldValue }) =>
+              getFieldValue('type') === 1 ? (
+                <Form.Item
+                  name="expiry"
+                  label="批次效期"
+                  rules={[{ required: true, message: '请选择效期' }]}
+                >
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    disabledDate={(d) => d.isBefore(dayjs(), 'day')}
+                  />
+                </Form.Item>
+              ) : null
+            }
           </Form.Item>
           <Form.Item name="supplier" label="供货方">
             <Input placeholder="如 亳州药市" maxLength={50} />

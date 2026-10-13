@@ -1,16 +1,6 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { history, useLocation } from '@umijs/max';
-import {
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  message,
-  Modal,
-  Popconfirm,
-  Select,
-  Table,
-} from 'antd';
+import { Button, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Table } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   createCall,
@@ -83,13 +73,17 @@ const AdsPage: React.FC = () => {
   const [calls, setCalls] = useState<QueueCall[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [matModal, setMatModal] = useState<{ open: boolean; editing?: AdMaterial }>({ open: false });
+  const [matModal, setMatModal] = useState<{ open: boolean; editing?: AdMaterial }>({
+    open: false,
+  });
   const [mediaUrl, setMediaUrl] = useState('');
   const [mediaType, setMediaType] = useState<1 | 2>(TYPE_IMAGE);
   const [uploading, setUploading] = useState(false);
   const [matForm] = Form.useForm();
 
-  const [schModal, setSchModal] = useState<{ open: boolean; editing?: AdSchedule }>({ open: false });
+  const [schModal, setSchModal] = useState<{ open: boolean; editing?: AdSchedule }>({
+    open: false,
+  });
   const [schForm] = Form.useForm();
 
   const [scrModal, setScrModal] = useState<{ open: boolean; editing?: AdScreen }>({ open: false });
@@ -140,7 +134,11 @@ const AdsPage: React.FC = () => {
       (s) =>
         s.screenId === screenId &&
         s.enabled === 1 &&
-        (!s.weekdays?.trim() || s.weekdays.split(',').map((t) => t.trim()).includes(weekday)) &&
+        (!s.weekdays?.trim() ||
+          s.weekdays
+            .split(',')
+            .map((t) => t.trim())
+            .includes(weekday)) &&
         (!s.startTime || hhmm >= s.startTime) &&
         (!s.endTime || hhmm <= s.endTime),
     );
@@ -400,8 +398,8 @@ const AdsPage: React.FC = () => {
           {isOnline(entity.lastSeenAt)
             ? '在线'
             : entity.lastSeenAt
-              ? `离线 · ${moment(entity.lastSeenAt).format('M-DD HH:mm')}`
-              : '从未上线'}
+            ? `离线 · ${moment(entity.lastSeenAt).format('M-DD HH:mm')}`
+            : '从未上线'}
         </span>
       ),
     },
@@ -462,7 +460,11 @@ const AdsPage: React.FC = () => {
       dataIndex: 'screenId',
       width: 160,
       render: (_: any, entity: QueueCall) =>
-        entity.screenId == null ? <span className="st on">全部屏</span> : screenName(entity.screenId),
+        entity.screenId == null ? (
+          <span className="st on">全部屏</span>
+        ) : (
+          screenName(entity.screenId)
+        ),
     },
     {
       title: '叫号时间',
@@ -516,8 +518,8 @@ const AdsPage: React.FC = () => {
       className="ad-page"
       content={
         <span className="ad-tip">
-          素材按 <b>排序</b> 在各屏轮播；屏以 <b>?screen=屏标识</b> 打开展示页，心跳 2 分钟内为在线；
-          叫号脱敏上屏，约 1 秒全屏提示、15 秒后自动回轮播。
+          素材按 <b>排序</b> 在各屏轮播；屏以 <b>?screen=屏标识</b> 打开展示页，心跳 2
+          分钟内为在线； 叫号脱敏上屏，约 1 秒全屏提示、15 秒后自动回轮播。
         </span>
       }
       extra={[primaryAction]}
@@ -572,7 +574,8 @@ const AdsPage: React.FC = () => {
           {tab === 'calls' ? (
             <>
               <div className="ad-note">
-                在右侧「快捷叫号」发起叫号，定向屏（或全部屏）约 1 秒内全屏提示号码与诊室，15 秒后自动回轮播。
+                在右侧「快捷叫号」发起叫号，定向屏（或全部屏）约 1 秒内全屏提示号码与诊室，15
+                秒后自动回轮播。
               </div>
               <Table
                 rowKey="id"
@@ -604,11 +607,13 @@ const AdsPage: React.FC = () => {
                   <div className="sm">
                     {isOnline(s.lastSeenAt) ? (
                       <>
-                        在线 · 正在播{' '}
-                        <b>{playingInfo(s.id).name || '默认轮播'}</b>（{playingInfo(s.id).count} 条素材轮播）
+                        在线 · 正在播 <b>{playingInfo(s.id).name || '默认轮播'}</b>（
+                        {playingInfo(s.id).count} 条素材轮播）
                       </>
                     ) : s.lastSeenAt ? (
-                      <>离线 · 上次在线 {moment(s.lastSeenAt).format('M-DD HH:mm')}，本地缓存续播中</>
+                      <>
+                        离线 · 上次在线 {moment(s.lastSeenAt).format('M-DD HH:mm')}，本地缓存续播中
+                      </>
                     ) : (
                       <>离线 · 从未上线，等待平板以 {s.code} 接入</>
                     )}
@@ -637,7 +642,8 @@ const AdsPage: React.FC = () => {
                 <>就诊科室：{draftRoom?.trim() || '—'}</>
               ) : lastCall ? (
                 <>
-                  就诊科室：{lastCall.room} · {lastCall.screenId == null ? '全部屏' : screenName(lastCall.screenId)}
+                  就诊科室：{lastCall.room} ·{' '}
+                  {lastCall.screenId == null ? '全部屏' : screenName(lastCall.screenId)}
                 </>
               ) : (
                 '今日尚无叫号，填下方信息发起'
@@ -678,7 +684,12 @@ const AdsPage: React.FC = () => {
                     .map((s) => ({ label: `${s.name}（${s.code}）`, value: s.id }))}
                 />
               </Form.Item>
-              <Button className="call-btn" type="primary" loading={calling} onClick={() => callForm.submit()}>
+              <Button
+                className="call-btn"
+                type="primary"
+                loading={calling}
+                onClick={() => callForm.submit()}
+              >
                 叫号上屏
               </Button>
             </Form>
@@ -700,7 +711,11 @@ const AdsPage: React.FC = () => {
         destroyOnHidden
       >
         <Form form={matForm} layout="vertical">
-          <Form.Item name="name" label="素材名" rules={[{ required: true, message: '请填写素材名' }]}>
+          <Form.Item
+            name="name"
+            label="素材名"
+            rules={[{ required: true, message: '请填写素材名' }]}
+          >
             <Input placeholder="如 三伏灸疗程卡" />
           </Form.Item>
           <Form.Item name="category" label="分类" tooltip="素材子标题用，如「门店活动」，选填">
@@ -744,7 +759,9 @@ const AdsPage: React.FC = () => {
               }}
             >
               <Button loading={uploading}>
-                {mediaType === TYPE_VIDEO ? '上传视频 (mp4/webm/mov)' : '上传图片 (png/jpg/webp/gif)'}
+                {mediaType === TYPE_VIDEO
+                  ? '上传视频 (mp4/webm/mov)'
+                  : '上传图片 (png/jpg/webp/gif)'}
               </Button>
             </Upload>
             <div className={`media-hint${mediaUrl ? ' ok' : ''}`}>
@@ -789,7 +806,11 @@ const AdsPage: React.FC = () => {
             <Input placeholder="如 三伏艾灸，借阳祛寒正当时" maxLength={30} />
           </Form.Item>
           <Form.Item name="copy" label="文案" tooltip="叠加层说明行">
-            <Input.TextArea rows={2} placeholder="如 督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。" maxLength={60} />
+            <Input.TextArea
+              rows={2}
+              placeholder="如 督脉灸配伍中脘、足三里，适合手脚怕冷的顾客。"
+              maxLength={60}
+            />
           </Form.Item>
           <Form.Item name="price" label="价格行" tooltip="自由文本，如「¥880 / 10 次」">
             <Input placeholder="如 ¥880 / 10 次" maxLength={20} />
@@ -815,7 +836,11 @@ const AdsPage: React.FC = () => {
               options={screens.map((s) => ({ label: `${s.name}（${s.code}）`, value: s.id }))}
             />
           </Form.Item>
-          <Form.Item name="materialId" label="素材" rules={[{ required: true, message: '请选择素材' }]}>
+          <Form.Item
+            name="materialId"
+            label="素材"
+            rules={[{ required: true, message: '请选择素材' }]}
+          >
             <Select
               showSearch
               optionFilterProp="label"
@@ -825,7 +850,11 @@ const AdsPage: React.FC = () => {
               }))}
             />
           </Form.Item>
-          <Form.Item name="name" label="排期名" tooltip="屏幕状态「正在播」展示用，如「10 月常规排期」，选填">
+          <Form.Item
+            name="name"
+            label="排期名"
+            tooltip="屏幕状态「正在播」展示用，如「10 月常规排期」，选填"
+          >
             <Input placeholder="10 月常规排期" maxLength={20} />
           </Form.Item>
           <Form.Item
