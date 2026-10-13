@@ -9,7 +9,6 @@
 - [ ] 多门店/连锁——单店模型裁定不做，待连锁化再定（features.md 行 21）
 - [ ] 采购单据/盘点/报损/多库房——出入库台账口径裁定不做（dispensing.md 非目标）
 - [ ] 名医排班——无名医概念裁定不单做，待引入名医等级/加价口径（features.md 行 34）
-- [ ] 药典剂量权威数据源——机制已实装（herbs.dose_max 诊所自录），数据录入属运营动作，无工程面
 - [ ] 小程序「我的卡项」手机号查卡——隐私裁定不做，重开条件=接入身份绑定（openid 或短信验证码）
 
 ## 已完成（证据）
@@ -20,4 +19,5 @@
 - [x] 疗程卡营销赠次/转卡——card_adjusts 流水 + 3 接口 + 顾客档案操作｜证据：commit ec1c671，后端 207 测试
 - [x] 经营趋势图表——GET /settlement/report/trend + 月度报表双柱图｜证据：commit 68f2617，后端 209 测试
 - [x] 路线图口径收口——采购/盘点、名医排班、西药处方、多门店四项裁定记录｜证据：commit 9c912b6
-- [x] 文档-代码一致性审计——docs/审计-文档一致性.md 落表｜证据：commit（本次）
+- [x] 文档-代码一致性审计——docs/审计-文档一致性.md 落表｜证据：commit 5ebb8db
+- [x] 药典剂量审方机制——herbs.dose_max 列 + 药材字典可录入（Herb/Query 页「单剂上限（克）」字段）+ `/api/v1/prescription/dose-check` 审方（提示不拦截）+ 开方页随写随查；诊所自录剂量上限属运营动作，无工程面｜证据：commit 8f893c7，PrescriptionDoseTest 3 + PrescriptionDoseHttpTest 2 全绿
