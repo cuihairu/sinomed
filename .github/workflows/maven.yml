@@ -11,8 +11,17 @@ name: Java CI with Maven
 on:
   push:
     branches: [ "main" ]
+    # 文档改动不触发后端构建（见 README「本地测试口径」）；与 docker.yml / docs.yml / desktop.yml 一致。
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - "**/*.md"
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - "**/*.md"
 
 jobs:
   build:
