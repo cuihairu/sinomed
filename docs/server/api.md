@@ -139,6 +139,7 @@
 | POST | `/api/v1/kiosk/sms-code` | 短信验证码（仅 `sms_verified` 模式可用，其余模式 400）：body `{ phone }`，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩——码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
 | POST | `/api/v1/kiosk/openid-session` | 小程序登录换 openid（仅 `openid_only` 模式可用，其余模式 400）：body `{ code }`（`wx.login` 临时凭证），服务端经微信 jscode2session 换 openid 返回 `{ openid }`；需配置 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置时 400 明确拒绝（不静默）；微信返回错误映射 400；每次尝试（含拒绝）落 `card_lookup_logs` 审计；`session_key` 不出服务端 |
 | POST | `/api/v1/kiosk/card-lookup` | 手机查卡：body `{ phone?, openid?, smsCode? }`；按 `sinomed.phone-lookup.mode` 走 openid 或短信双因子，命中返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`；未命中/被拒不返回任何卡项，每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
+| POST | `/api/v1/kiosk/my-appointments` | 手机自助查预约（跨设备）：body `{ phone, smsCode }`（仅 `sms_verified` 模式可用，与查卡同一套一次性验证码），返回 `{ appointments: [{ appointmentId, startTime, itemName, status }] }`——该手机号**未过期**（今天 0 点起）的待到店预约（status=0），新约在前，无预约返回空数组；每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)（同一身份查询通道） |
 
 ## 打印模板 `/api/v1/print`（desktop.md D7）
 

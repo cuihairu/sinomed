@@ -7,11 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 public interface AppointmentRepository extends JpaRepository<AppointmentEntity,Long> {
 
     /** 管理端分页（status 可选过滤由控制器分流到 findAll / 本方法） */
     Page<AppointmentEntity> findByStatus(Integer status, Pageable pageable);
+
+    /** 手机自助查预约：按顾客拉全量预约（待到店/未过期过滤在控制器做） */
+    List<AppointmentEntity> findByCustomerIdOrderByIdDesc(Long customerId);
 
     /** Kiosk 自助约期频控：同顾客同日在给定状态集合内的预约数（status IN (0,1) 限 1 条） */
     long countByCustomerIdAndStartTimeBetweenAndStatusIn(Long customerId, Date start, Date end, Collection<Integer> statusList);

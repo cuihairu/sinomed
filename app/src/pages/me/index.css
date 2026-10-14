@@ -97,3 +97,104 @@
   color: var(--brand-deep);
   font-weight: 600;
 }
+
+/* 查我的预约（跨设备）：手机号+验证码表单，视觉口径同「卡项」页查卡表单 */
+.mq-card {
+  margin: 0 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 14px 16px;
+}
+
+.mq-input {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.mq-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mq-code {
+  flex: 1;
+}
+
+.mq-get {
+  background: var(--amber-tint);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--amber-deep);
+  white-space: nowrap;
+}
+
+.mq-get.off {
+  opacity: 0.5;
+}
+
+.mq-submit {
+  margin-top: 12px;
+  background: var(--brand);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.mq-submit.off {
+  opacity: 0.6;
+}
+
+.mq-err {
+  margin-top: 12px;
+  background: var(--amber-tint);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--amber-deep);
+}
+
+.mq-empty {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.mq-appt {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.mq-time {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.mq-item {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.mq-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--faint);
+  line-height: 1.6;
+}

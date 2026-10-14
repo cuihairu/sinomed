@@ -304,7 +304,9 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | status | Integer | 0 待叫、1 已叫（当前写入即 1） |
 | called_at | Date | 叫号时间 |
 
-## card_lookup_logs — 手机查卡审计
+## card_lookup_logs — 手机自助查询审计（查卡 + 查预约）
+
+表名沿用查卡审计；`/api/v1/kiosk/my-appointments`（跨设备查自己的待到店预约）与查卡共用同一表，同一留存口径——身份验证后的顾客自助查询不留空。
 
 | 字段 | 类型 | 含义 |
 | ---- | ---- | ---- |

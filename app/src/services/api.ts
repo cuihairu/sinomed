@@ -147,3 +147,32 @@ export async function fetchOpenidSession(code: string): Promise<{ openid: string
   }
   return res.data as { openid: string }
 }
+
+/** 手机自助查预约：一条待到店预约（与服务端 KioskMyAppointmentsResult.AppointmentLine 同构） */
+export interface MyAppointmentLine {
+  appointmentId: number
+  startTime: string
+  itemName: string | null
+  status: number
+}
+
+export interface MyAppointmentsResult {
+  appointments: MyAppointmentLine[]
+}
+
+/**
+ * 手机自助查预约（POST /api/v1/kiosk/my-appointments）：跨设备查自己的待到店预约，
+ * 手机号+验证码双因子（同查卡 sms_verified 通道，验证码一次性）；off/其他模式服务端 400 拒绝。
+ */
+export async function fetchMyAppointments(phone: string, smsCode: string): Promise<MyAppointmentsResult> {
+  const res = await Taro.request({
+    url: kioskUrl('my-appointments'),
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    data: { phone, smsCode }
+  })
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw kioskError(res.data, res.statusCode, '查询失败')
+  }
+  return res.data as MyAppointmentsResult
+}

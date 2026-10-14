@@ -18,7 +18,6 @@
 ### 手机端补完（第一优先）
 
 - [ ] 顾客 openid 绑定登记接口——openid 查卡路径已接（小程序 `wx.login` → 服务端换取，见已完成），但 `customers.openid` 只能落库直写、无登记入口；`openid_only` 模式要可用需先补前台/管理端绑定（顾客编辑带 openid 字段或专门登记动作，留审计）
-- [ ] 我的页跨设备身份：预约摘要仅本机存储（`app/src/services/session.ts:21`），换机即丢；需顾客身份方案拍板（免登录手机号直查横向暴露不做为既定裁定，验证码路径已用于查卡）
 
 ### 卡点
 
@@ -32,6 +31,7 @@
 
 ## 已完成
 
+- [x] 我的页跨设备身份——已代决（2026-10-15 巡检，用户可推翻）：跨设备查预约走「手机号+验证码一次性双因子」（与查卡 `sms_verified` 同一通道同一审计口径，不新开开关）；openid 绑定留作后续升级（绑定接口在待办）；登录态仍不做。落地：服务端新增 `POST /api/v1/kiosk/my-appointments`（回未过期待到店预约，验证码一次性、每次尝试落 `card_lookup_logs` 审计，off/其他模式拒绝），小程序「我的」页加「查我的预约」表单（无预约如实显示空，不造数据）｜证据：本轮 commit，6 个服务端测试类 29 测试全绿（含 my-appointments 4 新测试 + 三态拒绝 2 新测试），`npx tsc --noEmit` 源码零报错，weapp/h5 双端构建通过
 - [x] 卡项页 openid 路径接入——服务端新增 `POST /api/v1/kiosk/openid-session`（`wx.login` code 经微信 jscode2session 换 openid，`WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置时 400 明确拒绝不静默，`session_key` 不出服务端，每次尝试含拒绝都落 `card_lookup_logs` 审计）；小程序端 weapp 登录换取（openid 仅存内存，失败静默回退短信路径；H5 无 `wx.login` 只走短信），卡项页身份带齐即带上、服务端按 mode 取用｜证据：本轮 commit，5 个服务端测试类 23 测试全绿（查卡三态 + openid-session 新增 3 + 凭据缺失 1），`npx tsc --noEmit` 源码零报错，weapp/h5 双端构建通过；**激活仍缺微信侧凭据**（正式 appid 替换 `app/project.config.json:5` 的 `touristappid` 占位 + AppSecret，用户侧）
 - [x] 首页「我的卡项」区块去占位——入口联动「卡项」页（`pages/card`）+ 查过卡的本机摘要回显（称呼/持卡数/查询日期，7 天有效）；明细与余次不落本机（隐私口径同「裸手机号查卡不做」，见 `app/src/services/cards.ts` 注释与 docs/design/app-booking.md 候选取舍表新增行）｜证据：本轮 commit，`npx tsc --noEmit` 源码零报错（余 97 条全为 node_modules 库类型），weapp 与 h5 双端构建通过，docs check 通过
 - [x] 手机端类型门禁收口——移除 3 处未使用的 React 导入（`app/src/app.ts`、`pages/index/index.tsx`、`pages/me/index.tsx`，`jsx: react-jsx` 下默认导入无用途）｜证据：本轮 commit，`npx tsc --noEmit` 源码零报错（余 97 条全为 node_modules 内 Taro/@types 库类型），weapp 与 h5 双端构建通过

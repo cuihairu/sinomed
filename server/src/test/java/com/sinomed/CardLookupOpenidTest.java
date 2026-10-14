@@ -139,6 +139,22 @@ class CardLookupOpenidTest {
     }
 
     @Test
+    void myAppointmentsRejectedInOpenidMode() {
+        var req = RequestEntity.post(URI.create("http://localhost:" + port + "/api/v1/kiosk/my-appointments"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"phone\":\"13900004001\",\"smsCode\":\"123456\"}");
+        ResponseEntity<String> resp;
+        try {
+            resp = rest.exchange(req, String.class);
+        } catch (HttpClientErrorException e) {
+            resp = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        }
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("当前查卡方式不支持预约查询，请走手机号验证码",
+                JsonPath.read(resp.getBody(), "$.errorMessage"));
+    }
+
+    @Test
     void successAndRejectBothLeaveAuditLog() {
         lookup("{\"openid\":\"" + OPENID + "\"}");
         lookup("{\"openid\":\"oUNKNOWN\"}");

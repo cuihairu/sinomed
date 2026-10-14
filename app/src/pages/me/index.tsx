@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { View, Image, Text } from '@tarojs/components'
+import { View, Image, Text, Input } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { BRAND } from '../../services/brand'
+import { fetchMyAppointments, requestSmsCode, type MyAppointmentsResult } from '../../services/api'
 import { loadBookingSession } from '../../services/session'
 import { THEMES, applyTheme, readTheme, type ThemeKey } from '../../services/theme'
 import './index.css'
@@ -14,9 +15,46 @@ import './index.css'
 export default function Me() {
   const [session, setSession] = useState(loadBookingSession)
   const [theme, setTheme] = useState<ThemeKey>(readTheme)
+  // 跨设备查预约（手机号+验证码，同卡项页的双因子口径）
+  const [qPhone, setQPhone] = useState('')
+  const [qCode, setQCode] = useState('')
+  const [sending, setSending] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [qError, setQError] = useState('')
+  const [qResult, setQResult] = useState<MyAppointmentsResult | null>(null)
 
   // 切回本页时重读本机预约（首页/预约页都可能更新它）
   useDidShow(() => setSession(loadBookingSession()))
+
+  const getCode = () => {
+    setQError('')
+    if (!/^1\d{10}$/.test(qPhone)) {
+      setQError('手机号格式不对：应为 1 开头的 11 位数字')
+      return
+    }
+    setSending(true)
+    requestSmsCode(qPhone)
+      .then(() => setQError(''))
+      .catch((e) => setQError(e.message))
+      .finally(() => setSending(false))
+  }
+
+  const query = () => {
+    setQError('')
+    if (!/^1\d{10}$/.test(qPhone)) {
+      setQError('手机号格式不对：应为 1 开头的 11 位数字')
+      return
+    }
+    if (!qCode.trim()) {
+      setQError('请先获取并填写短信验证码')
+      return
+    }
+    setSubmitting(true)
+    fetchMyAppointments(qPhone, qCode.trim())
+      .then((r) => setQResult(r))
+      .catch((e) => setQError(e.message))
+      .finally(() => setSubmitting(false))
+  }
 
   const pickTheme = (key: ThemeKey) => {
     applyTheme(key)
@@ -55,9 +93,54 @@ export default function Me() {
         <View className="me-row">
           <Text className="me-k">说明</Text>
           <Text className="me-v">
-            仅记住本机提交的预约；卡项余次请到店或致电门店查询，见「卡项」页。
+            仅记住本机提交的预约；换设备可用手机号+验证码查待到店预约（下方「查我的预约」），卡项余次见「卡项」页。
           </Text>
         </View>
+      </View>
+
+      {/* 跨设备查预约：手机号+验证码双因子（与卡项页同一套一次性验证码通道），off 模式服务端拒绝 */}
+      <View className="sec">
+        <Text className="sec-h3">查我的预约</Text>
+      </View>
+      <View className="mq-card">
+        <Input
+          className="mq-input"
+          type="number"
+          maxlength={11}
+          placeholder="手机号"
+          value={qPhone}
+          onInput={(e) => setQPhone(e.detail.value)}
+        />
+        <View className="mq-row">
+          <Input
+            className="mq-input mq-code"
+            type="number"
+            maxlength={6}
+            placeholder="验证码"
+            value={qCode}
+            onInput={(e) => setQCode(e.detail.value)}
+          />
+          <View className={`mq-get ${sending ? 'off' : ''}`} onClick={() => { if (!sending) getCode() }}>
+            {sending ? '发送中…' : '获取验证码'}
+          </View>
+        </View>
+        <View className={`mq-submit ${submitting ? 'off' : ''}`} onClick={() => { if (!submitting) query() }}>
+          {submitting ? '查询中…' : '查询预约'}
+        </View>
+        {qError ? <View className="mq-err">{qError}</View> : null}
+        {qResult ? (
+          qResult.appointments.length === 0 ? (
+            <View className="mq-empty">该手机号当前没有待到店预约</View>
+          ) : (
+            qResult.appointments.map((a) => (
+              <View className="mq-appt" key={a.appointmentId}>
+                <View className="mq-time">{a.startTime.slice(0, 16)}</View>
+                <View className="mq-item">{a.itemName || '项目到店再定'}</View>
+              </View>
+            ))
+          )
+        ) : null}
+        <View className="mq-note">手机号+验证码验证后展示待到店预约；无预约如实显示，不造数据；每次查询留痕</View>
       </View>
 
       <View className="sec">

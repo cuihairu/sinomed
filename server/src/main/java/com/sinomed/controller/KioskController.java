@@ -21,6 +21,7 @@ import com.sinomed.vo.KioskAppointmentRequest;
 import com.sinomed.vo.KioskAppointmentResult;
 import com.sinomed.vo.KioskCardLookupRequest;
 import com.sinomed.vo.KioskCardLookupResult;
+import com.sinomed.vo.KioskMyAppointmentsResult;
 import com.sinomed.vo.KioskOpenidSessionRequest;
 import com.sinomed.vo.KioskOpenidSessionResult;
 import com.sinomed.vo.KioskItemView;
@@ -359,6 +360,72 @@ public class KioskController {
         throw new IllegalArgumentException("在线查卡已关闭，请到店前台或致电门店查询");
     }
 
+    @Operation(summary = "手机自助查预约", description = "跨设备查自己的待到店预约：手机号+验证码双因子（与 card-lookup 的 sms_verified 通道同一套一次性验证码），"
+                    + "按手机号回未过期的待到店预约（status=0）；无预约返回空数组，不造数据。"
+                    + "off/其他模式拒绝；每次尝试（含拒绝）落 card_lookup_logs 审计",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = KioskCardLookupRequest.class)
+            ), required = true),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "待到店预约", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = KioskMyAppointmentsResult.class)
+                    )),
+                    @ApiResponse(responseCode = "400", description = "模式不允许 / 缺身份 / 验证码错误 / 无顾客档案", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @PostMapping("/my-appointments")
+    public KioskMyAppointmentsResult myAppointments(@RequestBody KioskCardLookupRequest request) {
+        String mode = phoneLookupMode;
+        if ("off".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("在线自助查询已关闭，请到店前台或致电门店");
+        }
+        if (!"sms_verified".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("当前查卡方式不支持预约查询，请走手机号验证码");
+        }
+        String phone = request.getPhone();
+        String submitted = request.getSmsCode();
+        if (phone == null || phone.isBlank() || submitted == null || submitted.isBlank()) {
+            audit(phone, phone, mode, null, "missing_code");
+            throw new IllegalArgumentException("需要手机号与短信验证码才能查询预约");
+        }
+        if (!phone.matches("^1\\d{10}$")) {
+            throw new IllegalArgumentException("手机号格式不对：应为 1 开头的 11 位数字");
+        }
+        consumeSmsCode(phone, submitted, mode);
+
+        CustomerEntity customer = customerRepository.findByPhone(phone).orElse(null);
+        if (customer == null) {
+            audit(phone, phone, mode, null, "no_customer");
+            throw new IllegalArgumentException("该手机号无顾客档案，请到前台建档");
+        }
+        List<KioskMyAppointmentsResult.AppointmentLine> lines = new ArrayList<>();
+        Date dayStart = Date.from(LocalDateTime.now().toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        for (AppointmentEntity appt : appointmentRepository.findByCustomerIdOrderByIdDesc(customer.getId())) {
+            if (appt.getStatus() == null || appt.getStatus() != 0 || appt.getStartTime() == null
+                    || appt.getStartTime().before(dayStart)) {
+                continue;
+            }
+            ItemEntity item = appt.getItemId() == null
+                    ? null
+                    : itemRepository.findById(appt.getItemId()).orElse(null);
+            lines.add(KioskMyAppointmentsResult.AppointmentLine.builder()
+                    .appointmentId(appt.getId())
+                    .startTime(LocalDateTime.ofInstant(appt.getStartTime().toInstant(), ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                    .itemName(item == null ? null : item.getName())
+                    .status(appt.getStatus())
+                    .build());
+        }
+        audit(phone, phone, mode, customer.getId(), "ok");
+        return KioskMyAppointmentsResult.builder().appointments(lines).build();
+    }
+
     /** openid 路径：登录态天然带 openid，按 openid 查绑定顾客，查无即拒绝（不回退手机号） */
     private KioskCardLookupResult lookupByOpenid(KioskCardLookupRequest request, String mode) {
         String openid = request.getOpenid();
@@ -378,11 +445,23 @@ public class KioskController {
     /** 短信路径：手机号+验证码双因子，验证码一次性，通过后按手机号查顾客（查无即拒绝） */
     private KioskCardLookupResult lookupBySms(KioskCardLookupRequest request, String mode) {
         String phone = request.getPhone();
-        String submitted = request.getSmsCode();
-        if (phone == null || phone.isBlank() || submitted == null || submitted.isBlank()) {
+        if (phone == null || phone.isBlank() || request.getSmsCode() == null || request.getSmsCode().isBlank()) {
             audit(phone, phone, mode, null, "missing_code");
             throw new IllegalArgumentException("需要手机号与短信验证码才能查卡");
         }
+        consumeSmsCode(phone, request.getSmsCode(), mode);
+
+        CustomerEntity customer = customerRepository.findByPhone(phone).orElse(null);
+        if (customer == null) {
+            audit(phone, phone, mode, null, "no_customer");
+            throw new IllegalArgumentException("该手机号无顾客档案，请到前台建档");
+        }
+        audit(phone, phone, mode, customer.getId(), "ok");
+        return buildResult(customer);
+    }
+
+    /** 消耗一次性验证码（不存在/已用/过期/不匹配均拒绝并落审计）——查卡与查预约共用同一口径 */
+    private void consumeSmsCode(String phone, String submitted, String mode) {
         SmsCodeEntity issued = smsCodeRepository.findFirstByPhoneOrderByIdDesc(phone).orElse(null);
         if (issued == null) {
             audit(phone, phone, mode, null, "bad_code");
@@ -402,14 +481,6 @@ public class KioskController {
         }
         issued.setUsed(1);
         smsCodeRepository.save(issued);
-
-        CustomerEntity customer = customerRepository.findByPhone(phone).orElse(null);
-        if (customer == null) {
-            audit(phone, phone, mode, null, "no_customer");
-            throw new IllegalArgumentException("该手机号无顾客档案，请到前台建档");
-        }
-        audit(phone, phone, mode, customer.getId(), "ok");
-        return buildResult(customer);
     }
 
     /** 校验手机号格式并确认模式为 sms_verified（取码与查卡同一口径） */
