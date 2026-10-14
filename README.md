@@ -50,7 +50,7 @@ A single design language runs across five device targets: a graphite × antique 
 
 <p align="center"><img src="docs/public/screenshots/desktop-workstation.png" width="880" alt="Desktop workstation · consultation charting (implemented)" /></p>
 
-**Mini program** (app · bottom tabs: home / self-service booking / card / profile; card lookup and self-service queries pending an identity-verification scheme)
+**Mini program** (app · bottom tabs: home / self-service booking / card / profile; card lookup implemented — openid and SMS two-factor, gated by `sinomed.phone-lookup.mode` (default `off`) with audit logging, see the [phone-card-lookup ruling](docs/design/kiosk.md); customer login and card purchase remain planned)
 
 <p align="center"><img src="docs/public/screenshots/mobile-home.png" width="300" alt="Mini program · home (implemented)" /></p>
 
@@ -66,9 +66,9 @@ The admin frontend also has designs for the daily report, service packages, orde
 
 ## Planned Features
 
-Implemented today: appointment scheduling (admin list / booking / arrival handoff / per-day schedule grid, plus mini-program self-service booking), billing (settlement desk with stored-value / WeChat / Alipay / cash / per-visit card deduction, receipt printing, refund and daily reconciliation), herbal prescription (create / query with compatibility review, allergy check, pricing, decoction and paste fulfillment, dispensary workbench), desktop workstation, in-store kiosk, waiting-area display.
+Implemented today: appointment scheduling (admin list / booking / arrival handoff / per-day schedule grid, plus mini-program self-service booking), billing (settlement desk with stored-value / WeChat / Alipay / cash / per-visit card deduction, receipt printing, refund and daily reconciliation), herbal prescription (create / query with compatibility review, allergy check, pricing, decoction and paste fulfillment, dispensary workbench), mini-program card lookup (openid + SMS two-factor, mode-gated by `sinomed.phone-lookup.mode`, audited), famous-doctor tiering (level 0-3 with roster sort and surge cap), desktop workstation, in-store kiosk, waiting-area display.
 
-Still open, by recorded decision: mini-program card lookup and self-service queries (pending a customer identity-verification scheme), Western / patent medicine prescriptions (pending prototype design), online payment gateway (out of scope by policy), multi-store chains, purchase orders and stocktaking, and famous-doctor tiered scheduling. Scope rulings live in `docs/research/features.md`; the audit trail is `docs/审计-文档一致性.md`.
+Still open, by recorded decision: Western / patent medicine prescriptions (pending prototype design), online payment gateway (out of scope by policy), multi-store chains, purchase orders and stocktaking. Scope rulings live in `docs/research/features.md`; the audit trail is `docs/审计-文档一致性.md`.
 
 ## Repository Layout
 

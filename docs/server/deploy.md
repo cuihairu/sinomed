@@ -33,6 +33,8 @@
 | `sinomed.print.templates-dir` | `data/printtemplates`（`PRINT_TEMPLATES_DIR` 可覆盖） | 打印模板覆盖目录 |
 | `sinomed.pay.qrcodes-dir` | 仅 `PayQrCodeController` 的 `@Value` 默认值（yml 未落键） | 收款码图片目录 |
 | `demo.seed` | `false`（`DEMO_SEED` 可覆盖） | 演示数据幂等播种开关 |
+| `sinomed.famous-doctor-surge-cap-percent` | `20`（`FAMOUS_DOCTOR_SURGE_CAP_PERCENT` 可覆盖） | 名医挂号费溢价上限百分比；溢价值单列展示，不做阶梯/时段差异，不做定价引擎 |
+| `sinomed.phone-lookup.mode` | `off`（`PHONE_LOOKUP_MODE` 可覆盖） | 手机查卡模式：`off`（默认，关闭）/ `openid_only`（openid 绑定查卡）/ `sms_verified`（手机号 + 验证码双因子）；口径见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
 | `server.port` | `${SERVER_PORT:2347}` | 部署可用 `SERVER_PORT` 覆盖；本地裸跑默认 2347 |
 
 ### 端口约定

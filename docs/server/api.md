@@ -91,9 +91,9 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/staff/` | 创建员工（账号唯一、密码 2-20 位、手机号查重；`title` 职务可空，排班页医师名册=在职且职务含「医师」） |
-| PUT | `/api/v1/staff/` | 更新员工（携带 `password` 则同步改密；`title` 职务同步更新） |
-| GET | `/api/v1/staff/page` | 分页查询员工 |
+| POST | `/api/v1/staff/` | 创建员工（账号唯一、密码 2-20 位、手机号查重；`title` 职务可空，排班页医师名册=在职且职务含「医师」；`famousLevel` 名医等级 0-3，0 普通、1-3 名医，非法值 400） |
+| PUT | `/api/v1/staff/` | 更新员工（携带 `password` 则同步改密；`title` 职务同步更新；`famousLevel` 同创建口径，传 null 不改） |
+| GET | `/api/v1/staff/page` | 分页查询员工（按 `famousLevel` 降序、同等级按创建时间升序） |
 | GET | `/api/v1/staff/{id}` | 按 id 查询 |
 | GET | `/api/v1/staff/name/{name}` | 按姓名查询（`{name}` 为路径变量；PathLookupHttpTest 锁死） |
 | GET | `/api/v1/staff/phone/{phone}` | 按手机号查询（`{phone}` 为路径变量，与按姓名查询互不串；StaffLookupTest + PathLookupHttpTest 锁死） |
@@ -136,6 +136,8 @@
 | GET | `/api/v1/kiosk/items` | 上架卡项列表（enabled=1，sort+name 升序），只透 id/name/price/cover/description |
 | POST | `/api/v1/kiosk/orders` | 下单：body `{ phone, name?, itemIds[] }`。手机号须 `1\d{10}`；卡项须存在且上架（先全量校验再建档）；按手机号幂等建档（缺称呼默认「到店客人」），逐项落 `status=0` 订单并取卡项现价快照。返回 `{ customerId, customerName, orders[{id,itemId,itemName,price}], totalFee }` |
 | POST | `/api/v1/kiosk/appointments` | 自助约期：body `{ phone, name?, itemId?, startTime }`。时段 `yyyy-MM-dd HH:mm` **整点**、`09:00–17:00` 且晚于当前时刻；卡项可空（到店再定），须存在且上架；频控同手机号当日 `status IN (0,1)` 限 1 条（超出 400「当日已有预约，请到店或致电改约」）；按手机号幂等建档，落 `duration=60`、`status=0`、`staffId=null`、remark「小程序自助」的预约。返回 `{ customerId, customerName, appointmentId, startTime, itemName?, status: 0 }`。口径见[小程序自助约期设计](/design/app-booking) |
+| POST | `/api/v1/kiosk/sms-code` | 短信验证码（仅 `sms_verified` 模式可用，其余模式 400）：body `{ phone }`，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩——码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
+| POST | `/api/v1/kiosk/card-lookup` | 手机查卡：body `{ phone?, openid?, smsCode? }`；按 `sinomed.phone-lookup.mode` 走 openid 或短信双因子，命中返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`；未命中/被拒不返回任何卡项，每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
 
 ## 打印模板 `/api/v1/print`（desktop.md D7）
 

@@ -91,7 +91,7 @@ features:
 
 ![桌面工作站 · 接诊开单（已实装）](/screenshots/desktop-workstation.png)
 
-**小程序端**（app · 底部四标签：首页 / 预约 / 卡项 / 我的；卡项余次与顾客自助查询仍属规划功能，界面如实占位）
+**小程序端**（app · 底部四标签：首页 / 预约 / 卡项 / 我的；卡项页**手机查卡已实装**——openid 与短信验证码双因子，按后台 `sinomed.phone-lookup.mode` 三态开关（默认 `off` 关闭）并落审计，口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)；顾客登录态与购卡仍属规划功能）
 
 ![小程序端 · 首页（已实装）](/screenshots/mobile-home.png)
 

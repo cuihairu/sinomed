@@ -239,8 +239,9 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | gender | Integer | 性别（0 女、1 男） |
 | address | String | 地址 |
 | birthday | Date | 生日 |
-| role | Integer | 角色：`< 10` 管理层（`admin`），`>= 10` 普通员工（默认 99） |
+| role | Integer | 角色：`role == 0` 返回 `admin` 权限集，`1-9` 为管理层（`MANAGER` 权限集），`>= 10` 为普通员工（`USER`，默认 99）；方法级 `@PreAuthorize` 据此判定 |
 | title | String | 职务（自由文本，可空）：权限档 role 之外的职务语义与名册数据源，如 医师/针灸医师/前台；排班页「医师名册」= 在职（status=1）且职务含「医师」 |
+| famous_level | Integer | 名医等级：0 普通（默认）、1-3 名医；仅影响列表排序（降序，名医在前）与标识徽章，不做阶梯/时段差异定价 |
 | status | Integer | 状态：0 离职、1 在职、2 休假（`<= 0` 无法登录） |
 
 索引：姓名、账号、手机号。
