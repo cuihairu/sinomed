@@ -13,11 +13,12 @@
 | age | Integer | 年龄 |
 | level | Integer | 会员等级 |
 | phone | String | 手机号（唯一，大陆号段） |
+| openid | String | 小程序 openid（唯一，可空）；手机查卡 openid 路径按它绑定查卡，裸手机号查卡不做（2026-10-14 裁定） |
 | gender | Integer | 性别（0 女、1 男） |
 | address | String | 地址 |
 | birthday | Date | 生日 |
 
-索引：姓名、手机号、等级、生日。
+索引：姓名、手机号、等级、生日、openid。
 
 ## customer_histories — 顾客病史（过敏史/既往史）
 
@@ -301,3 +302,30 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | patient_masked | String | 脱敏姓名（如 `张*`，隐私默认） |
 | status | Integer | 0 待叫、1 已叫（当前写入即 1） |
 | called_at | Date | 叫号时间 |
+
+## card_lookup_logs — 手机查卡审计
+
+| 字段 | 类型 | 含义 |
+| ---- | ---- | ---- |
+| id | Long | 主键 |
+| phone | String | 被查卡项所属顾客手机号（openid 路径命中后回填；未命中为空） |
+| operator | String | 查询者身份（谁查的）：openid 路径=openid，短信路径=手机号 |
+| mode | String | 生效模式（off / openid_only / sms_verified） |
+| customer_id | Long | 命中的顾客 id（未命中为空） |
+| result | String | 结果：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer` |
+| create_time | Date | 时间 |
+
+索引：phone、operator。口径：每次尝试（含拒绝）都落一条，openid 与短信两条路径同口径；见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)。
+
+## sms_codes — 短信验证码（手机查卡短信路径）
+
+| 字段 | 类型 | 含义 |
+| ---- | ---- | ---- |
+| id | Long | 主键 |
+| phone | String | 手机号（非空） |
+| code | String | 6 位数字码 |
+| expires_at | Date | 过期时间（发码后 5 分钟） |
+| used | Integer | 0 未用 / 1 已用（一次性，`integer default 0`） |
+| create_time | Date | 发码时间 |
+
+无真实短信网关：发码为服务端桩，码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），测试从 `SmsCodeRepository` 直接取码。

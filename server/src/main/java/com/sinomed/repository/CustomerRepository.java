@@ -10,4 +10,7 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity,Long>, 
 
     /** Kiosk 下单按手机号找顾客（唯一键），查无即建档 */
     Optional<CustomerEntity> findByPhone(String phone);
+
+    /** 手机查卡 openid 路径按 openid 找顾客（唯一键，可空列） */
+    Optional<CustomerEntity> findByOpenid(String openid);
 }

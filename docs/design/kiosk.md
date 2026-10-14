@@ -74,6 +74,25 @@
 
 现有 `POST/PUT /api/v1/order/`、`GET /api/v1/order/{id}` 等空壳接口一并替换为真实实现（OrderView 字段与实体对齐：customerId/itemId/staffId/status/price，去掉实体里不存在的 extOrderId/payType/payment）。
 
+### 手机查卡（小程序「我的卡项」，2026-10-14 裁定）
+
+隐私红线：**不做裸手机号查卡**——无身份绑定即拒绝。身份绑定两条路径，按后台配置 `sinomed.phone-lookup.mode` 三态开关（env `PHONE_LOOKUP_MODE`）选择，**默认 `off`（关闭）**：
+
+| mode | 行为 |
+| ---- | ---- |
+| `off` | 默认。`card-lookup` 与 `sms-code` 一律 400 拒绝，小程序页面透出「在线查卡已关闭，请到店前台或致电门店查询」 |
+| `openid_only` | 登录态天然带 openid，按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号** |
+| `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡；验证码 5 分钟有效、一次性，错/过期/已用均拒绝 |
+
+| 方法 | 路径 | 说明 |
+| ---- | ---- | ---- |
+| POST | `/api/v1/kiosk/sms-code` | `{ phone }`；仅 `sms_verified` 模式可用，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩：码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
+| POST | `/api/v1/kiosk/card-lookup` | `{ phone?, openid?, smsCode? }`；按 mode 走 openid 或双因子，命中顾客返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`（新卡在前，含停用与过期卡由前端标态）；未命中/被拒不返回任何卡项 |
+
+**审计**：每次尝试（成功与拒绝）都落 `card_lookup_logs` 一条——查了谁的卡（`phone` / `customer_id`）、谁查的（`operator`：openid 路径=openid，短信路径=手机号）、什么模式（`mode`）、结果（`result`：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer`）、时间（`create_time`）。两条路径同口径，off 模式的拒绝也留痕。
+
+小程序侧（`app/src/pages/card`）：手机号 + 验证码表单，服务端 400 的 `errorMessage` 原样透出；命中后列持卡与余次。openid 路径服务端已就绪，小程序当前无登录态故只走短信路径；接入登录态后由页面带上 openid 即可。
+
 ## 交互链路
 
 ```text

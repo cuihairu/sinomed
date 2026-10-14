@@ -14,7 +14,8 @@ import java.util.Date;
         @Index(name = "idx_customer_name",columnList = "name"),
         @Index(name = "idx_customer_phone",columnList = "phone"),
         @Index(name = "idx_customer_level",columnList = "level"),
-        @Index(name = "idx_customer_birthday",columnList = "birthday")
+        @Index(name = "idx_customer_birthday",columnList = "birthday"),
+        @Index(name = "idx_customer_openid",columnList = "openid")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class CustomerEntity {
@@ -30,6 +31,9 @@ public class CustomerEntity {
     private Integer level;
     @Column(name = "phone",unique = true)
     private String phone;
+    /** 小程序 openid（登录态身份绑定，可空）；phone-lookup 的 openid 路径按它查卡，裸手机号查卡不做（2026-10-14 裁定） */
+    @Column(name = "openid",unique = true)
+    private String openid;
     @Column(name = "gender")
     private Integer gender;//0 女 1 男
     @Column(name = "address")

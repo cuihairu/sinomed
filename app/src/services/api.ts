@@ -60,11 +60,73 @@ export async function bookAppointment(body: BookingBody): Promise<BookingResult>
     data: body
   })
   if (res.statusCode < 200 || res.statusCode >= 300) {
-    const msg =
-      res.data && typeof res.data === 'object' && res.data.errorMessage
-        ? res.data.errorMessage
-        : `提交失败（${res.statusCode}）`
-    throw new Error(msg)
+    throw kioskError(res.data, res.statusCode, '提交失败')
   }
   return res.data as BookingResult
+}
+
+/** 手机查卡：一条持卡行（与 KioskCardLookupResult.CardLine 同构） */
+export interface CardLine {
+  cardId: number
+  itemId: number
+  itemName: string | null
+  totalTimes: number
+  remainingTimes: number
+  status: number
+  validUntil: string | null
+}
+
+/** 手机查卡回执：命中顾客才带持卡列表 */
+export interface CardLookupResult {
+  customerId: number
+  customerName: string
+  cards: CardLine[]
+}
+
+/** 手机查卡请求：sms_verified 模式 phone+smsCode，openid_only 模式 openid（登录态） */
+export interface CardLookupBody {
+  phone?: string
+  openid?: string
+  smsCode?: string
+}
+
+/** 服务端 4xx 的 errorMessage 原样透出（如「在线查卡已关闭」「验证码不对」） */
+function kioskError(data: unknown, statusCode: number, fallback: string): Error {
+  const msg =
+    data && typeof data === 'object' && 'errorMessage' in data && typeof (data as any).errorMessage === 'string'
+      ? (data as any).errorMessage
+      : `${fallback}（${statusCode}）`
+  return new Error(msg)
+}
+
+/**
+ * 获取短信验证码（POST /api/v1/kiosk/sms-code）；仅 sms_verified 模式可用。
+ */
+export async function requestSmsCode(phone: string): Promise<void> {
+  const res = await Taro.request({
+    url: kioskUrl('sms-code'),
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    data: { phone }
+  })
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw kioskError(res.data, res.statusCode, '获取验证码失败')
+  }
+}
+
+/**
+ * 手机查卡（POST /api/v1/kiosk/card-lookup）：身份绑定后才返回持卡——
+ * off 模式全拒（裸手机号查卡不做，隐私红线），openid_only 需 openid，sms_verified 需手机号+验证码。
+ */
+export async function lookupCards(body: CardLookupBody): Promise<CardLookupResult> {
+  const res = await Taro.request({
+    url: kioskUrl('card-lookup'),
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    data: body
+  })
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw kioskError(res.data, res.statusCode, '查询失败')
+  }
+  return res.data as CardLookupResult
 }

@@ -67,3 +67,114 @@
   color: var(--ink);
   line-height: 1.7;
 }
+
+/* ===== 手机查卡表单（sms_verified 模式：手机号+验证码双因子） ===== */
+.lk-form {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lk-input {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.lk-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.lk-code {
+  flex: 1;
+}
+
+.lk-get {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--amber-deep);
+  white-space: nowrap;
+}
+
+.lk-get.off {
+  opacity: 0.6;
+}
+
+.lk-err {
+  margin: 14px 16px 0;
+  background: #f7e9e6;
+  border: 1px solid #e3c3bc;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  color: #a4543f;
+  line-height: 1.6;
+}
+
+.lk-submit {
+  margin: 18px 16px 0;
+  background: var(--brand);
+  border-radius: 999px;
+  padding: 13px 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.lk-submit.off {
+  opacity: 0.6;
+}
+
+/* ===== 查卡结果 ===== */
+.lk-result {
+  margin: 18px 16px 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 4px 16px 14px;
+}
+
+.lk-who {
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 12px 0 4px;
+}
+
+.lk-empty {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 10px 0;
+  text-align: center;
+}
+
+.lk-card {
+  border-top: 1px solid var(--line);
+  padding: 11px 0;
+}
+
+.lk-card-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.lk-card-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.6;
+}
