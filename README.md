@@ -84,7 +84,7 @@ sinomed/
 ```
 
 - Source code for `server/`, `app/`, and `web/` is maintained directly in this repository.
-- Backend build (requires Java 21): `mvn -B package --file server/pom.xml`.
+- Backend build (requires Java 21; Maven version pinned at 3.10.0 by the wrapper in `server/.mvn/wrapper`): `cd server && ./mvnw -B package`.
 - Frontend build (requires Node.js 24): in `web/`, run `pnpm install && pnpm build`; the mini program under `app/` works the same way.
 
 For details on each component, see the README in each directory and the [documentation site](https://cuihairu.github.io/sinomed/).
@@ -98,8 +98,8 @@ CI 与本地开发按改动面三路分流——改一行文档不该全量编�
 2. **代码改动**：按语言各跑一侧，不交叉全量。本仓后端单模块（`server/pom.xml`，
    无聚合父 pom，reactor 为空），`-pl` 不可用（报 "Could not find the selected
    project in the reactor"）：
-   - 后端：`mvn -B test --file server/pom.xml`
+   - 后端：`cd server && ./mvnw -B test`
    - 前端：`pnpm -C web lint && pnpm -C web test`（web 测试不接 CI，仅本地门禁）
-3. **全量**（`mvn -B package --file server/pom.xml`）：仅以下情形触发——pom.xml、
+3. **全量**（`cd server && ./mvnw -B package`）：仅以下情形触发——pom.xml、
    `.github/**`、Docker/Compose 配置、发布前。
 
