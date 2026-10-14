@@ -15,11 +15,14 @@ import com.sinomed.repository.ItemRepository;
 import com.sinomed.repository.SmsCodeRepository;
 import com.sinomed.service.AppointmentService;
 import com.sinomed.service.OrderService;
+import com.sinomed.service.WechatClient;
 import com.sinomed.vo.ExceptionView;
 import com.sinomed.vo.KioskAppointmentRequest;
 import com.sinomed.vo.KioskAppointmentResult;
 import com.sinomed.vo.KioskCardLookupRequest;
 import com.sinomed.vo.KioskCardLookupResult;
+import com.sinomed.vo.KioskOpenidSessionRequest;
+import com.sinomed.vo.KioskOpenidSessionResult;
 import com.sinomed.vo.KioskItemView;
 import com.sinomed.vo.KioskOrderRequest;
 import com.sinomed.vo.KioskOrderResult;
@@ -71,6 +74,7 @@ public class KioskController {
     private final CustomerCardRepository customerCardRepository;
     private final CardLookupLogRepository cardLookupLogRepository;
     private final SmsCodeRepository smsCodeRepository;
+    private final WechatClient wechatClient;
 
     /** 手机查卡模式：off（默认，关闭）/ openid_only / sms_verified，后台可改 */
     @Value("${sinomed.phone-lookup.mode:off}")
@@ -83,7 +87,8 @@ public class KioskController {
                            AppointmentService appointmentService,
                            CustomerCardRepository customerCardRepository,
                            CardLookupLogRepository cardLookupLogRepository,
-                           SmsCodeRepository smsCodeRepository) {
+                           SmsCodeRepository smsCodeRepository,
+                           WechatClient wechatClient) {
         this.itemRepository = itemRepository;
         this.customerRepository = customerRepository;
         this.orderService = orderService;
@@ -92,6 +97,7 @@ public class KioskController {
         this.customerCardRepository = customerCardRepository;
         this.cardLookupLogRepository = cardLookupLogRepository;
         this.smsCodeRepository = smsCodeRepository;
+        this.wechatClient = wechatClient;
     }
 
     @Operation(summary = "浏览上架卡项", description = "Kiosk 首页网格：enabled=1 的卡项按 sort、name 升序，只含展示字段",
@@ -275,6 +281,48 @@ public class KioskController {
         org.slf4j.LoggerFactory.getLogger(KioskController.class)
                 .info("SMS_CODE_DEMO phone={} code={}", request.getPhone(), code.getCode());
         return new MessageView("验证码已发送（5 分钟内有效，演示环境请向店员索取）");
+    }
+
+    @Operation(summary = "小程序登录换 openid", description = "openid_only 模式专用：wx.login 的 code 经微信 jscode2session 换 openid，"
+                    + "供查卡绑定路径使用（凭据未配置时明确拒绝，不静默）。off/sms_verified 模式拒绝；"
+                    + "session_key 属敏感凭据不出服务端。每次尝试（含拒绝）落 card_lookup_logs 审计",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = KioskOpenidSessionRequest.class)
+            ), required = true),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "openid 回执", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = KioskOpenidSessionResult.class)
+                    )),
+                    @ApiResponse(responseCode = "400", description = "模式不允许 / 缺 code / 凭据未配置 / 微信返回错误", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @PostMapping("/openid-session")
+    public KioskOpenidSessionResult openidSession(@RequestBody KioskOpenidSessionRequest request) {
+        String mode = phoneLookupMode;
+        if ("off".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("在线查卡已关闭，请到店前台或致电门店查询");
+        }
+        if (!"openid_only".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("当前查卡方式不支持微信登录，请走手机号验证码查询");
+        }
+        String code = request.getCode();
+        if (code == null || code.isBlank()) {
+            audit(null, null, mode, null, "missing_code");
+            throw new IllegalArgumentException("需要小程序登录 code");
+        }
+        try {
+            String openid = wechatClient.codeToOpenid(code.trim());
+            return KioskOpenidSessionResult.builder().openid(openid).build();
+        } catch (IllegalArgumentException e) {
+            audit(null, null, mode, null, "code_exchange_failed");
+            throw e;
+        }
     }
 
     @Operation(summary = "手机查卡", description = "按 sinomed.phone-lookup.mode 走身份绑定后返回持卡：off 全拒；"

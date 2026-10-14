@@ -79,6 +79,14 @@ class CardLookupOffTest {
     }
 
     @Test
+    void openidSessionRejected() {
+        var resp = post("/api/v1/kiosk/openid-session", "{\"code\":\"anyCode\"}");
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("在线查卡已关闭，请到店前台或致电门店查询",
+                JsonPath.read(resp.getBody(), "$.errorMessage"));
+    }
+
+    @Test
     void everyRejectLeavesAuditLog() {
         post("/api/v1/kiosk/card-lookup", "{\"phone\":\"13900003001\"}");
         post("/api/v1/kiosk/card-lookup", "{\"openid\":\"oOFF123\"}");

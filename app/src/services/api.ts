@@ -130,3 +130,20 @@ export async function lookupCards(body: CardLookupBody): Promise<CardLookupResul
   }
   return res.data as CardLookupResult
 }
+
+/**
+ * 小程序登录换 openid（POST /api/v1/kiosk/openid-session）：openid_only 模式专用。
+ * 凭据未配置、模式不允许或换取失败时服务端 400 透出，调用方静默降级短信路径。
+ */
+export async function fetchOpenidSession(code: string): Promise<{ openid: string }> {
+  const res = await Taro.request({
+    url: kioskUrl('openid-session'),
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    data: { code }
+  })
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw kioskError(res.data, res.statusCode, '微信登录失败')
+  }
+  return res.data as { openid: string }
+}

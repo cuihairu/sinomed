@@ -111,6 +111,18 @@
   opacity: 0.6;
 }
 
+/* openid 路径就绪提示（weapp 登录换取成功才显示） */
+.lk-openid {
+  margin: 14px 16px 0;
+  background: var(--amber-tint);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  color: var(--amber-deep);
+  line-height: 1.6;
+}
+
 .lk-err {
   margin: 14px 16px 0;
   background: #f7e9e6;

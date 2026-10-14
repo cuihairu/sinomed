@@ -81,7 +81,7 @@
 | mode | 行为 |
 | ---- | ---- |
 | `off` | 默认。`card-lookup` 与 `sms-code` 一律 400 拒绝，小程序页面透出「在线查卡已关闭，请到店前台或致电门店查询」 |
-| `openid_only` | 登录态天然带 openid，按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号** |
+| `openid_only` | 登录态换 openid：小程序 `wx.login` → 服务端 `POST /api/v1/kiosk/openid-session` 经微信 jscode2session 换 openid（需 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置 400 明确拒绝），按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号** |
 | `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡；验证码 5 分钟有效、一次性，错/过期/已用均拒绝 |
 
 | 方法 | 路径 | 说明 |

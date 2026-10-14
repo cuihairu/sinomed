@@ -1,4 +1,5 @@
 import Taro from '@tarojs/taro'
+import { fetchOpenidSession } from './api'
 
 /**
  * 本机最近一次手机查卡摘要：首页「我的卡项」入口回显用。
@@ -33,5 +34,25 @@ export function saveCardSession(session: CardSession) {
     Taro.setStorageSync(KEY, session)
   } catch {
     // 存储不可用（隐私模式等）不影响主流程
+  }
+}
+
+/** openid 查卡路径的身份：仅存内存（不落存储——白标换 appid 后旧 openid 即失效，避免脏缓存） */
+let cachedOpenid: string | null = null
+
+/**
+ * openid 查卡路径的身份：wx.login → 服务端 jscode2session 换 openid。
+ * H5 无 wx.login、后台凭据未配置、模式不允许或换取失败时返回 null，调用方回退短信路径。
+ */
+export async function currentOpenid(): Promise<string | null> {
+  if (cachedOpenid) return cachedOpenid
+  if (process.env.TARO_ENV !== 'weapp') return null
+  try {
+    const { code } = await Taro.login()
+    const { openid } = await fetchOpenidSession(code)
+    cachedOpenid = openid
+    return openid
+  } catch {
+    return null
   }
 }

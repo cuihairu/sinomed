@@ -47,6 +47,10 @@ sinomed:
   # 手机号查卡：off（默认，关闭）/ openid_only（openid 绑定查卡）/ sms_verified（短信验证码查卡）
   phone-lookup:
     mode: ${PHONE_LOOKUP_MODE:off}
+  # 微信小程序凭据：openid_only 模式经 jscode2session 换 openid 用；缺省空串=未配置，openid 查卡明确拒绝（不静默）
+  wechat:
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
 
 application:
   security:
