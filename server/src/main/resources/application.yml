@@ -42,6 +42,11 @@ sinomed:
   # 打印模板：覆盖目录（放同名 .html 覆盖内置版式，桌面壳经 /api/v1/print/templates 拉取，见 desktop.md D7）
   print:
     templates-dir: ${PRINT_TEMPLATES_DIR:data/printtemplates}
+  # 名医加价：挂号费溢价上限百分比（缺省 20，后台可改）；溢价值单列展示，不做阶梯/时段差异
+  famous-doctor-surge-cap-percent: ${FAMOUS_DOCTOR_SURGE_CAP_PERCENT:20}
+  # 手机号查卡：off（默认，关闭）/ openid_only（openid 绑定查卡）/ sms_verified（短信验证码查卡）
+  phone-lookup:
+    mode: ${PHONE_LOOKUP_MODE:off}
 
 application:
   security:

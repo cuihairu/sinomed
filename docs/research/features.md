@@ -31,7 +31,7 @@
 | 病症处方模板 | chinese_medicine_store_cos(病症处方模板库) | 已实现 | 病症模板库已实装（`prescription_templates` + items 两表；`/api/v1/prescription/template/*` CRUD + 上架过滤；开方页「套用模板」一键带出药味/剂数/用法，模板只存建议值不写回；**界面：[处方 · 病症模板](/screenshots/admin-herbprescription.png)**） |
 | 配伍禁忌审方 | Yukang(AI 审方:过敏/配伍禁忌/相互作用) | 部分 | 十八反/十九畏静态规则已实装（`POST /api/v1/prescription/compatibility`，别名包含匹配、提示不拦截；见 CompatibilityServiceImplTest）；过敏史静态审方已实装（`POST /api/v1/prescription/allergy-check`，按顾客过敏史原文包含匹配、提示不拦截；见 PrescriptionAllergyHttpTest）；相互作用比对与 AI 审方未做 |
 | 膏方/代煎 | 调研项目中未见 | 已实现 | 代煎与膏方两条独立领取链均已实装：代煎（开方勾选落「待煎」，流转 待煎→可取→已取，袋数=剂数，服务费仅提示）；膏方（`prescription_type=1` 开方落「待制作」，`craft` 记收膏方式，按料计不走袋数，流转 待制作→可取→已取，非膏方/跳跃报 400；与代煎互不影响） |
-| 名医排班 | 调研项目中未见 | 部分 | 裁定不单做「名医」分层（2026-10-12）：调研与原型均无名医标识/差异化定价/名医专属约期概念，凭空分层属伪造设计；排班已按员工维度统一实装（`/api/v1/shift` 员工×星期班表 + `/appointment/schedule` 医师×时段网格 + 周考勤对照，见排班行），若后续引入名医等级/加价口径再开独立字段 |
+| 名医排班 | 调研项目中未见 | 已实现 | 名医等级已实装（`staffs.famous_level` 0-3，0 普通/1-3 名医，仅影响列表排序与标识徽章）；排班已按员工维度统一实装（`/api/v1/shift` 员工×星期班表 + `/appointment/schedule` 医师×时段网格 + 周考勤对照，见排班行）；名医挂号费溢价上限 20%（配置项 `sinomed.famous-doctor-surge-cap-percent`，缺省 20，后台可改），溢价值单列展示，不做阶梯/时段差异；不做复杂定价引擎、不做动态调价（2026-10-14 裁定） |
 
 ## 三、Sinomed 已落地的模块(源码)
 

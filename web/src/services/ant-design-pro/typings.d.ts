@@ -49,6 +49,8 @@ declare namespace API {
     name?: string;
     /** 职务（自由文本，如 医师/针灸医师/前台；排班页医师名册=在职且职务含「医师」） */
     title?: string;
+    /** 名医等级：0 普通（缺省）/ 1-3 名医，仅影响列表排序与标识徽章 */
+    famousLevel?: number;
     /** 0 离职 / 1 在职 / 2 休假 */
     status?: number;
     password?: string;

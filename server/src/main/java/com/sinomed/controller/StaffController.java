@@ -23,6 +23,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -108,6 +109,9 @@ public class StaffController {
         if (title != null && !title.isEmpty()){
             staffEntity.setTitle(title);
         }
+        if (staffView.getFamousLevel() != null){
+            staffEntity.setFamousLevel(staffView.validFamousLevel(staffView.getFamousLevel()));
+        }
         String address = staffView.getAddress();
         if (address!= null && !address.isEmpty()){
             staffEntity.setAddress(address);
@@ -188,7 +192,9 @@ public class StaffController {
 
     @GetMapping("/page")
     public PageResp<StaffView> findByPage(@Validated @NotNull @RequestParam int current, @Validated @NotNull @RequestParam int pageSize, @Validated @Nullable @RequestParam String name, @Validated @Nullable @RequestParam Integer age, @Validated @Nullable @RequestParam String phone, @Validated @Nullable @RequestParam String startTime, @Validated @Nullable @RequestParam String endTime){
-        PageRequest page = PageRequest.of(current>0?current-1:0, pageSize>0?pageSize:1);
+        // 名医等级降序（名医在前），同等级按创建时间升序
+        PageRequest page = PageRequest.of(current>0?current-1:0, pageSize>0?pageSize:1,
+                Sort.by(Sort.Direction.DESC, "famousLevel").and(Sort.by(Sort.Direction.ASC, "createTime")));
         Page<StaffEntity> allByPage = staffService.findAllByPage(name,age,phone,startTime,endTime,page);
         List<StaffView> data = new ArrayList<>();
         for (StaffEntity staff : allByPage) {

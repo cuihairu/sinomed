@@ -73,6 +73,14 @@ public class StaffEntity implements UserDetails  {
     @Column(name = "title")
     private String title;
 
+    /**
+     * 名医等级：0 普通（缺省）、1-3 名医（等级越高越靠前）。
+     * 仅影响医师列表排序与标识徽章，不做复杂定价引擎、不做动态调价（2026-10-14 裁定）。
+     * 注意不写字段初始化器——分页查询用 Example 匹配，初始化器会把默认值带进查询条件。
+     */
+    @Column(name = "famous_level", columnDefinition = "integer default 0")
+    private Integer famousLevel;
+
     @Column(name = "birthday")
     private Date birthday;
 

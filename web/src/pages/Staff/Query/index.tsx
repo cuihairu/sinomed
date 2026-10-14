@@ -25,8 +25,17 @@ type Staff = {
   gender?: number;
   phone?: string;
   address?: string;
+  title?: string;
+  famousLevel?: number;
   birthday?: string;
   createTime?: string;
+};
+
+/** 名医等级徽章文案 */
+const FAMOUS_BADGE: Record<number, string> = {
+  1: '一级名医',
+  2: '二级名医',
+  3: '三级名医',
 };
 
 const columns: ProColumns<Staff>[] = [
@@ -67,6 +76,27 @@ const columns: ProColumns<Staff>[] = [
           message: '此项为必填项',
         },
       ],
+    },
+  },
+  {
+    title: '名医等级',
+    dataIndex: 'famousLevel',
+    valueType: 'select',
+    valueEnum: {
+      0: { text: '普通' },
+      1: { text: '一级名医' },
+      2: { text: '二级名医' },
+      3: { text: '三级名医' },
+    },
+    ellipsis: true,
+    tip: '仅影响列表排序与标识徽章',
+    formItemProps: {
+      rules: [],
+    },
+    render: (_, record) => {
+      const level = record.famousLevel ?? 0;
+      if (level === 0) return '普通';
+      return FAMOUS_BADGE[level] || '普通';
     },
   },
   {

@@ -42,6 +42,8 @@ public class StaffView implements Serializable {
     Integer role=99;
     @Schema(title = "职务",description = "自由文本职务名（如 医师/针灸医师/前台），可空；排班页医师名册=在职且职务含「医师」",example = "针灸医师")
     String title;
+    @Schema(title = "名医等级",description = "0 普通（缺省）/ 1-3 名医，仅影响列表排序与标识徽章",example = "2")
+    Integer famousLevel;
     @Schema(title = "状态",description = "0 离职 / 1 在职 / 2 休假（只读回显）",example = "1")
     Integer status;
     @Schema(title = "生日",description = "生日",example = "1990-1-1")
@@ -61,6 +63,7 @@ public class StaffView implements Serializable {
         staffEntity.setBirthday(birthday);
         staffEntity.setRole(role);
         staffEntity.setTitle(title);
+        staffEntity.setFamousLevel(validFamousLevel(famousLevel));
         staffEntity.setAvatar(avatar);
         return staffEntity;
     }
@@ -87,9 +90,23 @@ public class StaffView implements Serializable {
         if (title != null && !title.isEmpty() && !title.equals(staffEntity.getTitle())){
             staffEntity.setTitle(title);
         }
+        if (famousLevel != null){
+            staffEntity.setFamousLevel(validFamousLevel(famousLevel));
+        }
         if (birthday != null  && !birthday.equals(staffEntity.getBirthday())){
             staffEntity.setBirthday(birthday);
         }
+    }
+
+    /** 名医等级校验：null/0 为普通，1-3 为名医，越界报 400 */
+    public static Integer validFamousLevel(Integer famousLevel) {
+        if (famousLevel == null || famousLevel == 0) {
+            return 0;
+        }
+        if (famousLevel < 1 || famousLevel > 3) {
+            throw new IllegalArgumentException("名医等级无效：" + famousLevel + "（应为 0-3）");
+        }
+        return famousLevel;
     }
 
     public static StaffView fromStaffEntity(StaffEntity staffEntity){
@@ -107,6 +124,7 @@ public class StaffView implements Serializable {
                 .updateTime(staffEntity.getUpdateTime())
                 .role(staffEntity.getRole())
                 .title(staffEntity.getTitle())
+                .famousLevel(staffEntity.getFamousLevel())
                 .status(staffEntity.getStatus())
                 .build();
     }

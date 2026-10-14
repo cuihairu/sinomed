@@ -21,6 +21,8 @@ type Staff = {
   gender: number;
   address: string;
   role: number;
+  title?: string;
+  famousLevel?: number;
   birthday: string;
 };
 const Update: React.FC = () => {
@@ -44,6 +46,8 @@ const Update: React.FC = () => {
       phone: value.phone,
       address: value.address,
       role: value.role,
+      title: value.title,
+      famousLevel: value.famousLevel,
       birthday: value.birthday,
     });
   });
@@ -127,6 +131,20 @@ const Update: React.FC = () => {
         label="职务"
         tooltip="自由文本（如 医师/针灸医师/前台）；排班页医师名册=在职且职务含「医师」"
         placeholder="医师"
+      />
+      <ProFormSelect
+        colProps={{ md: 4, xl: 2 }}
+        name="famousLevel"
+        label="名医等级"
+        tooltip="0 普通 / 1-3 名医，仅影响列表排序与标识徽章"
+        valueEnum={{ 0: '普通', 1: '一级名医', 2: '二级名医', 3: '三级名医' }}
+        options={[
+          { value: 0, label: '普通' },
+          { value: 1, label: '一级名医' },
+          { value: 2, label: '二级名医' },
+          { value: 3, label: '三级名医' },
+        ]}
+        placeholder="普通"
       />
       <ProFormTextArea colProps={{ span: 24 }} name="address" label="详细的工作地址或家庭住址" />
       <ProFormDatePicker colProps={{ xl: 8, md: 12 }} label="生日" name="birthday" />
