@@ -85,7 +85,7 @@ pnpm build:weapp  # 编译微信小程序产物到 dist/
 微信端产物在 `app/dist`，用微信开发者工具导入该目录即可预览。注意 `app/project.config.json` 当前是模板占位 `appid`（`touristappid`），正式开发请替换为你自己的小程序 appid。
 
 ::: warning 小程序端现状
-小程序端已完成工程初始化 + 白标构建 + 顾客首页（单页，网络请求层见 `src/services/api.ts`，宫格拉真实上架项目）；预约/我的卡项等业务页面尚未开发。当前业务功能以管理端（web）为准。
+小程序端已完成工程初始化 + 白标构建 + 顾客首页 + 自助约期 + 我的 + 卡项查卡（底部四标签，网络请求层见 `src/services/api.ts`，宫格拉真实上架项目；自助约期走免登录 `POST /api/v1/kiosk/appointments`，手机查卡按后台 `sinomed.phone-lookup.mode` 三态开关、默认 `off` 关闭）。当前业务功能以管理端（web）为准。
 :::
 
 ## 下一步

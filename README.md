@@ -68,7 +68,7 @@ The admin frontend also has designs for the daily report, service packages, orde
 
 Implemented today: appointment scheduling (admin list / booking / arrival handoff / per-day schedule grid, plus mini-program self-service booking), billing (settlement desk with stored-value / WeChat / Alipay / cash / per-visit card deduction, receipt printing, refund and daily reconciliation), herbal prescription (create / query with compatibility review, allergy check, pricing, decoction and paste fulfillment, dispensary workbench), mini-program card lookup (openid + SMS two-factor, mode-gated by `sinomed.phone-lookup.mode`, audited), famous-doctor tiering (level 0-3 with roster sort and surge cap), desktop workstation, in-store kiosk, waiting-area display.
 
-Still open, by recorded decision: Western / patent medicine prescriptions (pending prototype design), online payment gateway (out of scope by policy), multi-store chains, purchase orders and stocktaking. Scope rulings live in `docs/research/features.md`; the audit trail is `docs/审计-文档一致性.md`.
+Online payment gateway stays open pending real merchant credentials (out of scope by policy until then). Not planned, by recorded decision (2026-10-14 ruling reaffirmed): Western / patent medicine prescriptions, multi-store chains, purchase orders and stocktaking — single-store TCM clinic scope. Scope rulings live in `docs/research/features.md`; the audit trail is `docs/审计-文档一致性.md`.
 
 ## Repository Layout
 
