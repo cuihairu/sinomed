@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { View, Image, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { BRAND } from '../../services/brand'
