@@ -1,6 +1,6 @@
 # sinomed
 
-[使用文档](docs/useage.md)
+[使用文档](https://cuihairu.github.io/sinomed/)
 
 ## 开发文档
 
