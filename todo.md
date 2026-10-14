@@ -17,7 +17,6 @@
 
 ### 手机端补完（第一优先）
 
-- [ ] 首页「我的卡项」区块去占位：`app/src/pages/index/index.tsx:136-143` 仍是静态「规划功能」pill，而卡项页查卡已实装（`app/src/pages/card/index.tsx:20-45`）；改为入口联动卡项页，查过卡的本机回显
 - [ ] 卡项页 openid 路径接入：服务端 `openid_only` 模式已就绪（`server/src/main/java/com/sinomed/controller/KioskController.java`），小程序未接 `wx.login`；缺正式 appid（`app/project.config.json:5` 现为占位 `touristappid`）与服务端 AppSecret 配置面，微信侧凭据属用户侧
 - [ ] 我的页跨设备身份：预约摘要仅本机存储（`app/src/services/session.ts:21`），换机即丢；需顾客身份方案拍板（免登录手机号直查横向暴露不做为既定裁定，验证码路径已用于查卡）
 
@@ -33,6 +32,7 @@
 
 ## 已完成
 
+- [x] 首页「我的卡项」区块去占位——入口联动「卡项」页（`pages/card`）+ 查过卡的本机摘要回显（称呼/持卡数/查询日期，7 天有效）；明细与余次不落本机（隐私口径同「裸手机号查卡不做」，见 `app/src/services/cards.ts` 注释与 docs/design/app-booking.md 候选取舍表新增行）｜证据：本轮 commit，`npx tsc --noEmit` 源码零报错（余 97 条全为 node_modules 库类型），weapp 与 h5 双端构建通过，docs check 通过
 - [x] 手机端类型门禁收口——移除 3 处未使用的 React 导入（`app/src/app.ts`、`pages/index/index.tsx`、`pages/me/index.tsx`，`jsx: react-jsx` 下默认导入无用途）｜证据：本轮 commit，`npx tsc --noEmit` 源码零报错（余 97 条全为 node_modules 内 Taro/@types 库类型），weapp 与 h5 双端构建通过
 - [x] 名医排班——名医等级与挂号费溢价上限｜证据：commit a28f000，4 测试
 - [x] 小程序手机号查卡——openid 与短信双因子，含审计｜证据：commit 28cfc0d，18 测试

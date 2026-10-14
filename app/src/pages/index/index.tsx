@@ -4,6 +4,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { BRAND } from '../../services/brand'
 import { fetchHomeItems } from '../../services/api'
 import { loadBookingSession } from '../../services/session'
+import { loadCardSession } from '../../services/cards'
 import type { HomeItem } from '../../services/api'
 import './index.css'
 
@@ -28,19 +29,18 @@ function greeting(name: string | undefined): string {
   return name ? `${part}，${name}` : `${part}，欢迎光临`
 }
 
-/** 规划功能标记：无接口的区块如实标注，不造假数据（口径同管理端 plan-note） */
-function PlanPill() {
-  return <Text className="plan-pill">规划功能</Text>
-}
-
 export default function Index() {
   const [items, setItems] = useState<HomeItem[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [session, setSession] = useState(loadBookingSession)
+  const [cardCs, setCardCs] = useState(loadCardSession)
 
-  // 从预约 tab 切换回来时重读本机预约，保持横幅提醒态新鲜
-  useDidShow(() => setSession(loadBookingSession()))
+  // 从预约/卡项 tab 切换回来时重读本机预约与查卡摘要，保持回显新鲜
+  useDidShow(() => {
+    setSession(loadBookingSession())
+    setCardCs(loadCardSession())
+  })
 
   const load = () => {
     setFailed(false)
@@ -133,13 +133,23 @@ export default function Index() {
         </View>
       )}
 
-      {/* 我的卡项：顾客购卡/余次无接口，如实规划占位（详见「卡项」页） */}
+      {/* 我的卡项：入口联动「卡项」页；查过卡的本机只回称呼+持卡数，明细余次留在验证后的卡项页 */}
       <View className="sec">
         <Text className="sec-h3">我的卡项</Text>
-        <PlanPill />
       </View>
-      <View className="plan-note">
-        购卡与余次查询为规划功能，上线后将在这里展示您的卡项与剩余次数；现已开卡可到前台或致电门店查询，「卡项」页有说明。
+      <View className="appt" onClick={() => Taro.switchTab({ url: '/pages/card/index' })}>
+        <View className="ic">{cardCs ? cardCs.customerName.slice(0, 1) : '卡'}</View>
+        <View className="appt-bd">
+          <View className="tt">
+            {cardCs ? `${cardCs.customerName}，持卡 ${cardCs.cardCount} 张` : '查卡项与余次'}
+          </View>
+          <View className="ss">
+            {cardCs
+              ? `上次查询 ${cardCs.queriedAt.slice(0, 10)} · 明细与余次点这里`
+              : '手机号+短信验证码双因子验证后展示，每次查询留痕'}
+          </View>
+        </View>
+        <View className="go">查询</View>
       </View>
 
       {/* 养生贴士：静态编辑内容 */}

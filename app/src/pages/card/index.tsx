@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import { lookupCards, requestSmsCode, type CardLookupResult } from '../../services/api'
+import { saveCardSession } from '../../services/cards'
 import './index.css'
 
 /**
@@ -43,7 +44,17 @@ export default function Card() {
     setSubmitting(true)
     setResult(null)
     lookupCards({ phone, smsCode: code.trim() })
-      .then((r) => setResult(r))
+      .then((r) => {
+        setResult(r)
+        // 只落称呼+持卡数+查询时间供首页入口回显，明细与余次不落本机（见 services/cards.ts）
+        if (r.customerName) {
+          saveCardSession({
+            customerName: r.customerName,
+            cardCount: r.cards.length,
+            queriedAt: new Date().toISOString(),
+          })
+        }
+      })
       .catch((e) => setError(e.message))
       .finally(() => setSubmitting(false))
   }

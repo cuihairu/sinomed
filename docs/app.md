@@ -20,7 +20,7 @@
 | `src/services/theme.ts` | 四主题（石墨/松烟绿/朱砂/黛蓝）：H5 端「我的」页切换 + 本机记忆（`data-theme` 挂 documentElement，走 tokens.css 变量组）；小程序端 WXSS 无运行时变量能力，固定石墨 |
 | `src/services/api.ts` | 请求封装层（`Taro.request`；已封装 `GET /api/v1/kiosk/items`，H5 开发态走 devServer 代理，其余端直连白标 apiBase） |
 | `src/app.config.ts` | 页面注册（`pages/index/index`、`pages/booking/index`、`pages/card/index`、`pages/me/index`）、导航栏品牌名/主题色；底部 tabBar 四标签（首页 / 预约 / 卡项 / 我的） |
-| `src/pages/index/` | 顾客首页：品牌头 / 预约横幅（入口 → 自助约期页）/ 今日宜养（宫格实拉上架项目）/ 我的卡项（购卡与余次仍为规划占位）/ 养生贴士 |
+| `src/pages/index/` | 顾客首页：品牌头 / 预约横幅（入口 → 自助约期页）/ 今日宜养（宫格实拉上架项目）/ 我的卡项（入口联动「卡项」页；查过卡的本机回称呼+持卡数+查询日期，7 天有效，明细与余次不落本机；购卡与余次明细仍为规划）/ 养生贴士 |
 | `src/pages/me/` | 我的 tab：本机预约摘要与快捷入口；主题区（仅 H5 端渲染）四主题色点切换；白标自检页底（品牌名/主题色/后端域名/页内图标） |
 | `src/pages/booking/` | 自助约期页：日期条（今天起 7 天）→ 时段网格（9:00–17:00 整点，今日已过时段禁选）→ 项目选择（实拉上架项目，可「到店再定」）→ 手机号/称呼提交；成功回执展示预约号与时段，服务端 400 文案原样透出 |
 | `scripts/build-brand.mjs` | 换马甲一键出包脚本（参数校验 → 注入 → 构建 → 恢复 appid） |

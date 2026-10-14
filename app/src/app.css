@@ -88,17 +88,6 @@
   color: var(--brand);
 }
 
-/* 规划标记（口径同管理端「规划功能」pill + note） */
-.plan-pill {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--amber-deep);
-  background: var(--amber-tint);
-  border: 1px solid #e6d5b8;
-  border-radius: 999px;
-  padding: 1px 7px;
-}
-
 .plan-note {
   margin: 0 16px;
   background: var(--card);
