@@ -41,13 +41,13 @@ DB_USERNAME=root DB_PASSWORD=test123 SERVER_PORT=2347 \
 - **管理端**：`pnpm lint`（eslint + prettier + tsc）、`pnpm jest`；
 - **小程序端**：暂无测试脚本，以多端构建通过为准。
 
-CI（GitHub Actions）：`Java CI with Maven` 在每次 push / PR 时执行 `mvn -B package --file server/pom.xml`（Java 21，**带测试**，非 `-DskipTests`）。
+CI（GitHub Actions）：`Java CI with Maven` 在每次 push / PR 时执行 `cd server && ./mvnw -B package`（Java 21，**带测试**，非 `-DskipTests`；Maven 版本由 wrapper 钉在 3.10.0，无需 runner 预装）。
 
 ## 环境版本要求
 
 | 端 | 要求 |
 | ---- | ---- |
-| server | Java 21（`pom.xml` `java.version`，CI 同步）、Maven 3.9+ 或 `mvnw` |
+| server | Java 21（`pom.xml` `java.version`，CI 同步）、Maven 3.10.0（`server/.mvn/wrapper` 钉，CI 与本地同版） |
 | web / app | Node.js 24（`engines` + `.nvmrc` + CI 约束）、pnpm 9/10 |
 | 文档站 | Node.js 24，`cd docs && pnpm install && pnpm build` |
 

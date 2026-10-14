@@ -84,7 +84,7 @@ sinomed/
 ```
 
 - `server/`、`app/` 与 `web/` 的源码直接在本仓维护。
-- 后端构建（需 Java 21）：`mvn -B package --file server/pom.xml`。
+- 后端构建（需 Java 21；Maven 版本由 `server/.mvn/wrapper` 钉在 3.10.0，无需本机装 Maven）：`cd server && ./mvnw -B package`。
 - 前端构建（需 Node.js 24）：进入 `web/`，`pnpm install && pnpm build`；小程序进入 `app/` 同法。
 
 各组件的详细说明见各自目录内 README，以及[文档站](https://cuihairu.github.io/sinomed/)。

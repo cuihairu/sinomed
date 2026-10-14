@@ -8,7 +8,7 @@
 
 技术栈： 
 - Java 21 LTS
-- Spring Boot 3 
+- Spring Boot 4.1.1 
 - React 18
 - Ant Pro 6
 - Nginx
@@ -32,14 +32,14 @@ src - 服务端
 #### 服务端
 
 - Java 21 LTS
-- Maven 3.9.1
+- Maven 3.10.0（仓库自带 `./mvnw` 已钉此版，无需另装）
 
 ### 项目初始化
 
 假设已经clone项目，并进入了项目根目录:
 
 ```bash
-mvn install #初始化依赖包
+server/mvnw install #初始化依赖包
 ```
 
 #### 客户端
