@@ -1,0 +1,116 @@
+# 前端构建门禁：顾客小程序同构端（app）、自助机（kiosk）、候诊区平板（tablet）、管理端（web）。
+# 触发：main 分支 push 且 app/、kiosk/、tablet/、web/ 或本文件变更；也可手动触发。
+# 口径与本地一致（docs/guide/development.md「构建」与「测试」）：
+#   - app 无测试脚本，以多端构建（微信端 + H5）通过为准，另加一道类型检查（skipLibCheck 屏蔽库自身类型噪音）；
+#   - kiosk / tablet 的 build 已是 `tsc -b && vite build`，类型检查含在构建里；
+#   - web 跑 eslint + 类型检查 + jest（构建本身由 docker.yml 出镜像时覆盖，此处不重复构建）。
+name: Frontend Build
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "app/**"
+      - "kiosk/**"
+      - "tablet/**"
+      - "web/**"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-build
+  cancel-in-progress: true
+
+jobs:
+  kiosk:
+    name: kiosk 自助机
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: kiosk/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: kiosk
+      - name: Build (tsc -b && vite build)
+        run: pnpm build
+        working-directory: kiosk
+
+  tablet:
+    name: tablet 平板展示
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: tablet/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: tablet
+      - name: Build (tsc -b && vite build)
+        run: pnpm build
+        working-directory: tablet
+
+  app:
+    name: app 小程序 + H5
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: app
+      - name: Type check
+        run: pnpm exec tsc --noEmit --skipLibCheck
+        working-directory: app
+        # --skipLibCheck：Taro / @types 库自身类型报错（约 97 条）不属本仓源码，屏蔽后只看本仓类型错误
+      - name: Build weapp
+        run: pnpm build:weapp
+        working-directory: app
+      - name: Build h5
+        run: pnpm build:h5
+        working-directory: app
+
+  web:
+    name: web 管理端
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: web
+      - name: Lint (eslint)
+        run: pnpm lint:js
+        working-directory: web
+      - name: Type check
+        run: pnpm tsc
+        working-directory: web
+      - name: Jest
+        run: pnpm test
+        working-directory: web

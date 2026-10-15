@@ -9,7 +9,7 @@ sinomed/
 ├── web/       # 管理端（Ant Design Pro / Umi，Node.js 24）
 ├── app/       # 小程序端（Taro 3.6 / React / NutUI，Node.js 24）
 ├── docs/      # 文档站（VitePress，本站源码）与调研资料
-└── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建）
+└── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建、前端三端构建）
 ```
 
 - 三端独立构建、互不依赖；管理端与小程序端通过服务端 `/api/v1` 接口通信。
@@ -26,6 +26,8 @@ sinomed/
 | 管理端开发 | `cd web && pnpm dev` | `http://localhost:8000` |
 | 小程序 H5 | `cd app && pnpm build:h5` | `app/dist/` |
 | 小程序微信端 | `cd app && pnpm build:weapp` | `app/dist/`（微信开发者工具导入） |
+| 自助机 | `cd kiosk && pnpm build`（`tsc -b && vite build`） | `kiosk/dist/` |
+| 候诊区平板 | `cd tablet && pnpm build`（`tsc -b && vite build`） | `tablet/dist/` |
 
 ## 测试
 
@@ -39,9 +41,18 @@ DB_USERNAME=root DB_PASSWORD=test123 SERVER_PORT=2347 \
 ```
 
 - **管理端**：`pnpm lint`（eslint + prettier + tsc）、`pnpm jest`；
-- **小程序端**：暂无测试脚本，以多端构建通过为准。
+- **小程序端**：暂无测试脚本，以多端构建通过为准；类型检查另跑 `pnpm exec tsc --noEmit --skipLibCheck`（`--skipLibCheck` 屏蔽 Taro / `@types` 库自身约 97 条类型报错，本仓源码零报错为准）。
+- **自助机 / 平板**：无独立测试脚本，`pnpm build` 里的 `tsc -b` 即类型门禁。
 
-CI（GitHub Actions）：`Java CI with Maven` 在每次 push / PR 时执行 `cd server && ./mvnw -B package`（Java 21，**带测试**，非 `-DskipTests`；Maven 版本由 wrapper 钉在 3.10.0，无需 runner 预装）。
+CI（GitHub Actions）：
+
+| 工作流 | 触发 | 内容 |
+| ---- | ---- | ---- |
+| `Java CI with Maven` | push / PR main（忽略纯文档改动） | `cd server && ./mvnw -B package`（Java 21，**带测试**，非 `-DskipTests`；Maven 版本由 wrapper 钉在 3.10.0，无需 runner 预装） |
+| `Frontend Build` | push main 且 `app/` `kiosk/` `tablet/` `web/` 变更 | app 类型检查 + 双端构建（weapp + h5）、kiosk / tablet `pnpm build`、web eslint + 类型检查 + jest（web 构建由 `Docker Images` 出镜像时覆盖） |
+| `Docker Images` | push main 且 `server/` `web/` 变更 | 构建并推送 ghcr.io 镜像 |
+| `Deploy Docs` | push main 且 `docs/**` 变更 | 文档站检查 + 构建 + 部署 github-pages |
+| `Desktop Build` | push main 且 `desktop/` 变更 | Windows NSIS / Linux deb 安装包（nightly 发布为手动点火） |
 
 ## 环境版本要求
 
