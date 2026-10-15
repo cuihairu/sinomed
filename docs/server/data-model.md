@@ -304,21 +304,21 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | status | Integer | 0 待叫、1 已叫（当前写入即 1） |
 | called_at | Date | 叫号时间 |
 
-## card_lookup_logs — 手机自助查询审计（查卡 + 查预约）
+## card_lookup_logs — 手机自助查询审计（查卡 + 查预约 + openid 绑定）
 
-表名沿用查卡审计；`/api/v1/kiosk/my-appointments`（跨设备查自己的待到店预约）与查卡共用同一表，同一留存口径——身份验证后的顾客自助查询不留空。
+表名沿用查卡审计；`/api/v1/kiosk/my-appointments`（跨设备查自己的待到店预约）与 `/api/v1/kiosk/openid-bind`（openid 自助绑定）与查卡共用同一表，同一留存口径——身份验证后的顾客自助查询不留空。
 
 | 字段 | 类型 | 含义 |
 | ---- | ---- | ---- |
 | id | Long | 主键 |
 | phone | String | 被查卡项所属顾客手机号（openid 路径命中后回填；未命中为空） |
-| operator | String | 查询者身份（谁查的）：openid 路径=openid，短信路径=手机号 |
+| operator | String | 查询者身份（谁查的）：openid 路径与 openid 绑定=openid，短信路径=手机号 |
 | mode | String | 生效模式（off / openid_only / sms_verified） |
 | customer_id | Long | 命中的顾客 id（未命中为空） |
-| result | String | 结果：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer` |
+| result | String | 结果：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer / bind_ok / bind_conflict`（后两个为 openid 绑定路径） |
 | create_time | Date | 时间 |
 
-索引：phone、operator。口径：每次尝试（含拒绝）都落一条，openid 与短信两条路径同口径；见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)。
+索引：phone、operator。口径：每次尝试（含拒绝）都落一条，查卡 / 查预约 / openid 绑定各路径同口径；见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)。
 
 ## sms_codes — 短信验证码（手机查卡短信路径）
 

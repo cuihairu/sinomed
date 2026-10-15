@@ -7,7 +7,7 @@
 - **放行路径**：
   - 登录与文档：`/api/v1/user/login`、`/doc.html`、`/swagger-ui.html`、`/swagger-ui/**`、`/v3/api-docs/**`、`/swagger-resources/**`、`/webjars/**`
   - **业务免登录端点（内网设备约定，见对应设计文档）**：
-    - `/api/v1/kiosk/**` — 顾客自助机浏览与下单 + 小程序自助约期（只读 + 两个写入口，见 [kiosk.md](/design/kiosk) 与 [app-booking.md](/design/app-booking)）
+    - `/api/v1/kiosk/**` — 顾客自助机浏览与下单 + 小程序自助约期 + openid 自助绑定（只读 + 下单、自助约期、绑定三个写入口，见 [kiosk.md](/design/kiosk) 与 [app-booking.md](/design/app-booking)）
     - `/api/v1/ads/playlist` — 平板拉取排期（只读 + 屏 code 校验，见 [tablet.md](/design/tablet)）
     - `/api/v1/calls/latest` — 平板轮询叫号（只读 + 屏 code 校验，见 [tablet.md](/design/tablet)）
     - `/api/v1/print/templates` — 打印模板下发（空白版式无业务数据，见 [desktop.md](/design/desktop) D7）
@@ -129,16 +129,17 @@
 
 ## 顾客选服务 Kiosk `/api/v1/kiosk`（kiosk.md K2）
 
-免登录（前台大屏自助入口，见[顾客选服务设计](/design/kiosk)）；浏览只读 + 下单、自助约期两个写入口。
+免登录（前台大屏自助入口，见[顾客选服务设计](/design/kiosk)）；浏览只读 + 下单、自助约期、openid 绑定三个写入口。
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
 | GET | `/api/v1/kiosk/items` | 上架卡项列表（enabled=1，sort+name 升序），只透 id/name/price/cover/description |
 | POST | `/api/v1/kiosk/orders` | 下单：body `{ phone, name?, itemIds[] }`。手机号须 `1\d{10}`；卡项须存在且上架（先全量校验再建档）；按手机号幂等建档（缺称呼默认「到店客人」），逐项落 `status=0` 订单并取卡项现价快照。返回 `{ customerId, customerName, orders[{id,itemId,itemName,price}], totalFee }` |
 | POST | `/api/v1/kiosk/appointments` | 自助约期：body `{ phone, name?, itemId?, startTime }`。时段 `yyyy-MM-dd HH:mm` **整点**、`09:00–17:00` 且晚于当前时刻；卡项可空（到店再定），须存在且上架；频控同手机号当日 `status IN (0,1)` 限 1 条（超出 400「当日已有预约，请到店或致电改约」）；按手机号幂等建档，落 `duration=60`、`status=0`、`staffId=null`、remark「小程序自助」的预约。返回 `{ customerId, customerName, appointmentId, startTime, itemName?, status: 0 }`。口径见[小程序自助约期设计](/design/app-booking) |
-| POST | `/api/v1/kiosk/sms-code` | 短信验证码（仅 `sms_verified` 模式可用，其余模式 400）：body `{ phone }`，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩——码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
+| POST | `/api/v1/kiosk/sms-code` | 短信验证码（`sms_verified` 查卡与 `openid_only` 绑定共用，`off` 模式 400）：body `{ phone }`，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩——码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
 | POST | `/api/v1/kiosk/openid-session` | 小程序登录换 openid（仅 `openid_only` 模式可用，其余模式 400）：body `{ code }`（`wx.login` 临时凭证），服务端经微信 jscode2session 换 openid 返回 `{ openid }`；需配置 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置时 400 明确拒绝（不静默）；微信返回错误映射 400；每次尝试（含拒绝）落 `card_lookup_logs` 审计；`session_key` 不出服务端 |
 | POST | `/api/v1/kiosk/card-lookup` | 手机查卡：body `{ phone?, openid?, smsCode? }`；按 `sinomed.phone-lookup.mode` 走 openid 或短信双因子，命中返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`；未命中/被拒不返回任何卡项，每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
+| POST | `/api/v1/kiosk/openid-bind` | openid 自助绑定（仅 `openid_only` 模式可用，其余模式 400；2026-10-15 代决）：body `{ openid, phone, smsCode }`，用一次性短信验证码自证手机号后把 openid 绑到该手机号对应的顾客档案（免前台免桌面）。同档案重复绑定幂等成功；openid 已绑其他档案 400 拒绝（不静默改绑，需前台处理）；缺 openid / 缺手机号或验证码 / 验证码错 / 该手机号无顾客档案均 400。返回 `{ message }`，每次尝试（含拒绝）落 `card_lookup_logs` 审计（result `bind_ok` / `bind_conflict`） |
 | POST | `/api/v1/kiosk/my-appointments` | 手机自助查预约（跨设备）：body `{ phone, smsCode }`（仅 `sms_verified` 模式可用，与查卡同一套一次性验证码），返回 `{ appointments: [{ appointmentId, startTime, itemName, status }] }`——该手机号**未过期**（今天 0 点起）的待到店预约（status=0），新约在前，无预约返回空数组；每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)（同一身份查询通道） |
 
 ## 打印模板 `/api/v1/print`（desktop.md D7）
