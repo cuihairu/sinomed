@@ -75,6 +75,26 @@ jobs:
           path: desktop/src-tauri/target/release/bundle/deb/*.deb
           if-no-files-found: error
 
+  # Rust 单元测试门禁：src-tauri 内的 #[test]（ESC/POS 字节流、打印模板、配置解析、
+  # 扫码行切分、崩溃预算等核心逻辑）。此前只存在于源码，构建流程不跑，此 job 与构建矩阵并行拦截逻辑回归。
+  # frontendDist 指向入库的 desktop/ui 静态资源，故无需前端构建即可编译。
+  test:
+    name: rust unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Install Linux deps (wry/serialport crate prerequisites)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libudev-dev
+      - name: Run cargo test
+        run: cargo test
+        working-directory: desktop/src-tauri
+
   # nightly 滚动 Release：仅手动点火（仓库口径不在 push 链上自动 tag/release）。
   # 前置：TAURI_SIGNING_PRIVATE_KEY 已存 repo secret（私钥口令为空，无需 PASSWORD secret）。
   # 产出：nightly 预发布 + NSIS 包 + .sig 签名 + latest.json（updater 清单），壳内查更新即命中该地址。
