@@ -43,6 +43,7 @@ DB_USERNAME=root DB_PASSWORD=test123 SERVER_PORT=2347 \
 - **管理端**：`pnpm lint`（eslint + prettier + tsc）、`pnpm jest`；
 - **小程序端**：暂无测试脚本，以多端构建通过为准；类型检查另跑 `pnpm exec tsc --noEmit --skipLibCheck`（`--skipLibCheck` 屏蔽 Taro / `@types` 库自身约 97 条类型报错，本仓源码零报错为准）。
 - **自助机 / 平板**：无独立测试脚本，`pnpm build` 里的 `tsc -b` 即类型门禁。
+- **桌面工作站**：`cd desktop && pnpm test`（即 `cargo test --manifest-path src-tauri/Cargo.toml`）跑 src-tauri 内 23 个 `#[test]`（ESC/POS 字节流、打印模板、配置解析、扫码行切分、崩溃预算等核心逻辑）；Linux 需先装 wry / serialport 前置依赖 `libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libudev-dev`。frontendDist 指向入库的 `desktop/ui` 静态资源，无需前端构建即可编译。
 
 CI（GitHub Actions）：
 
@@ -52,7 +53,7 @@ CI（GitHub Actions）：
 | `Frontend Build` | push main 且 `app/` `kiosk/` `tablet/` `web/` 变更 | app 类型检查 + 双端构建（weapp + h5）、kiosk / tablet `pnpm build`、web eslint + 类型检查 + jest（web 构建由 `Docker Images` 出镜像时覆盖） |
 | `Docker Images` | push main 且 `server/` `web/` 变更 | 构建并推送 ghcr.io 镜像 |
 | `Deploy Docs` | push main 且 `docs/**` 变更 | 文档站检查 + 构建 + 部署 github-pages |
-| `Desktop Build` | push main 且 `desktop/` 变更 | Windows NSIS / Linux deb 安装包（nightly 发布为手动点火） |
+| `Desktop Build` | push main 且 `desktop/` 变更 | Windows NSIS / Linux deb 安装包 + Rust 单元测试（独立 `cargo test` job，与构建矩阵并行）；nightly 发布为手动点火 |
 
 ## 环境版本要求
 
