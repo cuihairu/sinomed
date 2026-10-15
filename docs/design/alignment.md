@@ -43,9 +43,14 @@
 
 ## 三、小程序 app
 
+四标签结构（首页 / 预约 / 卡项 / 我的），页面注册与 tabBar 见 `app/src/app.config.ts`；白标自检已从首页挪到「我的」页底。下表按当前实现记「现状」，未实装部分照旧列差距、不造假数据。
+
 | # | 屏 | 现状 | 主要差距 | 级别 |
 |---|---|---|---|---|
-| 1 | 首页（mobile-home） | 已按原型实装：品牌头 / 预约横幅（入口 → `pages/booking` 自助约期）/ 今日宜养宫格（实拉 `GET /api/v1/kiosk/items`）/ 我的卡项 / 养生贴士 / 白标自检页底；**卡项余次 ❌ 无接口 → 标「规划」占位**；配色已收编 tokens（`src/tokens.css` 与 mockups 同源） | 自助约期已实装（`POST /api/v1/kiosk/appointments`，口径见 [/design/app-booking](/design/app-booking)）；登录与卡项余次页未做 | P1 |
+| 1 | 首页（mobile-home） | 已按原型实装：品牌头 / 预约横幅（入口 → `pages/booking`）/ 今日宜养宫格（实拉 `GET /api/v1/kiosk/items`）/ 我的卡项（入口联动 `pages/card`，查过卡的本机回显称呼+持卡数+查询日期、7 天有效）/ 养生贴士；配色已收编 tokens（`src/tokens.css` 与 mockups 同源） | 布局/配色无差距；**购卡与余次明细仍为规划**——余次只在验证后的卡项页展示，明文不落本机 | P1（已对齐） |
+| 2 | 自助约期（mobile-booking） | 已实装：日期条（今天起 7 天）→ 时段网格（9:00–17:00 整点，今日已过时段禁选）→ 项目选择（实拉上架项目，可「到店再定」）→ 手机号/称呼提交 → 回执展示预约号与时段；走免登录写入口 `POST /api/v1/kiosk/appointments`，口径见 [app-booking](./app-booking.md) | 无布局差距；**时段占用查询不做**——服务端不做占用查询，冲突到店人工调和（同页注记） | P1（已实装） |
+| 3 | 手机查卡（mobile-card） | 已实装：手机号 + 短信验证码双因子（`POST /api/v1/kiosk/sms-code` → `card-lookup`）；weapp 另接 `wx.login` → `openid-session` 换 openid 走 `openid_only` 路径（openid 仅存内存、换取失败静默回退短信路径，H5 只走短信）；按 `sinomed.phone-lookup.mode` 三态开关，**默认 `off` 关闭**；每次尝试含拒绝都落 `card_lookup_logs` 审计 | **顾客 openid 绑定登记接口未做**（`customers.openid` 只能落库直写，挂起在仓库根 `todo.md` 的卡点档）；登录态不做 | P1（已实装） |
+| 4 | 我的（mobile-me） | 已实装：本机预约摘要 + 跨设备查预约（手机号+验证码一次性双因子 `POST /api/v1/kiosk/my-appointments`，回未过期待到店预约、无预约如实回空）+ 主题切换（仅 H5 端渲染）+ 白标自检页底 | **登录态（会话保持）不做**——免登录手机号直查会造成横向数据暴露，超演示 MVP 口径 | P1（已实装） |
 
 ## 四、自助机 kiosk
 
@@ -102,3 +107,4 @@
 - [x] P1-32 药房与发药流转（features.md 药房与发药行的缺口「未实现」，按 [dispensing.md](./dispensing.md) 定稿口径：`prescriptions` 加 `dispense_status`（0 待发药默认/1 已发药单向；列 NOT NULL，服务 save 与种子两处创建点均显式置 0）/`dispense_time`/`dispense_by` 三列 + `dispense_logs` 单向流水（prescription_id 索引、action=1、staff_id、note ≤100 字）；`POST /api/v1/prescription/{id}/dispense` 待发药→已发药（重复 400「处方已发药」、不存在 400、操作人取当前登录账号、备注 ≤100 字）；`GET /api/v1/prescription/dispense/page` 工作台分页（dispenseStatus/customerKeyword 可空过滤、id 倒序、联顾客姓名手机与类型/剂数/药味数/代煎膏方文案）；代煎/膏方推进「已取」自动置已发药并落流水（操作人留空、note 写来源——与定稿「取做操作用户」的偏差已记录在稿）；web `/prescription/dispensary` 药房工作台（三态切换带计数、顾客检索、发药弹窗带可选备注单向确认、已发药行只读）+ 处方查询抽屉发药状态与快捷确认；种子发药演示（首个处方置已发药 + 流水回写时间线）；DispenseTest 5 例 + DispenseHttpTest 1 例（发药→分页过滤→重复 400→未登录 401））
 - [x] P1-33 退费与日对账（按 [reconciliation.md](./reconciliation.md) 定稿口径：`refund_logs` 单表（settlement_id **唯一索引**一单只退一次、order_id 索引、money=原结算实收（次卡 0）、pay_type 冗余、staff_id 可空、reason ≤100 字必填）；`POST /api/v1/settlement/{id}/refund` 退整单原路退回——储值补正数流水（`recharges` +`note` 列写「退单 #结算id」）、次卡作废该订单 `card_usages` 并回补余次、微信/支付宝/现金仅落退款记录；订单 `2→1` 可重收；`GET /reconciliation?date=` 按自然日三段聚合（收款/充值/退款 + `netMoney`、`cashNetMoney`），充值段只算真实充值（正数非退单 note——储值支付扣减归收款侧、退款补回归退款侧）；**settlements.order_id 唯一索引随「退款后重收」口径移除**（SettlementIndexMigration 启动 DROP 老库遗留索引，settle 防重改判「最近一张未退款」）；web `/billing/reconciliation` 日对账页（统计卡 + 收款构成 + 充值/退款明细表）+ 结算台最近结算行级「退款」（理由弹窗单向确认、已退款 tag）；种子退一笔历史现金结算单演示（订单回退队列可重收）；RefundReconciliationTest 6 例 + RefundHttpTest 2 例（退款→对账→重复 400→date 缺失/非法 400→未登录 401），实机验证储值退款补余额、重收落新结算单、三收拦截）
 - [x] P1-34 到店自动叫号（docs/tablet.md「到号自动叫号」缺口，2026-10-12 拍板：预约接待 0→1 服务端自动落 `queue_calls` 与前台手动叫号两条并行——号码=当日接待序号补零两位（接待时刻自然日、按 id 计序）、诊室=接诊医师名+「诊室」/未指派「待分配诊室」、姓名脱敏（张*）、广播全部屏；过号/取消不叫号；散客无预约仍走手动叫号。落 AppointmentServiceImpl.fireQueueCall + QueueCallEntity 注释刷新，回归 AppointmentSlotTest.receiveFiresQueueCallAndNoShowDoesNot（过号不叫/接待叫一条/号码两位/诊室取医师名/姓名脱敏/广播全屏/未指派诊室））
+- [x] P1-35 小程序四标签现状补记（§三 表格按当前实现重写：首页「我的卡项」由「规划」占位改为真实入口 + 本机摘要，预约 / 卡项 / 我的三屏从原型清单补进现状表；剩余规划项如实留白 = 购卡与余次明细、顾客 openid 绑定登记、登录态。对应实现 `9cfaa92`/`be5da27`/`af0af7f`）
