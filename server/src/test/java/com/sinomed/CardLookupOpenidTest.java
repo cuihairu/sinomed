@@ -120,11 +120,11 @@ class CardLookupOpenidTest {
     void unboundOpenidRejected() {
         var resp = lookup("{\"openid\":\"oUNKNOWN\"}");
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-        assertEquals("该 openid 未绑定顾客档案，请到前台登记绑定", JsonPath.read(resp.getBody(), "$.errorMessage"));
+        assertEquals("该 openid 未绑定顾客档案，请先完成微信绑定", JsonPath.read(resp.getBody(), "$.errorMessage"));
     }
 
     @Test
-    void smsCodeRejectedInOpenidMode() {
+    void smsCodeIssuedInOpenidModeForBinding() {
         var req = RequestEntity.post(URI.create("http://localhost:" + port + "/api/v1/kiosk/sms-code"))
                 .contentType(MediaType.APPLICATION_JSON).body("{\"phone\":\"13900004001\"}");
         ResponseEntity<String> resp;
@@ -133,9 +133,10 @@ class CardLookupOpenidTest {
         } catch (HttpClientErrorException e) {
             resp = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         }
-        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
-        assertEquals("当前查卡方式不支持短信验证码，请走 openid 登录态查询",
-                JsonPath.read(resp.getBody(), "$.errorMessage"));
+        // openid_only 下验证码供自助绑定用（查卡仍只走 openid），发码放行
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("验证码已发送（5 分钟内有效，演示环境请向店员索取）",
+                JsonPath.read(resp.getBody(), "$.message"));
     }
 
     @Test

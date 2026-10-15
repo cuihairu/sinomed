@@ -51,9 +51,10 @@ import java.util.concurrent.ThreadLocalRandom;
  * 浏览纯只读；下单与自助约期是两个写入口，写范围限定一条顾客档案（按手机号幂等）+ 待接待订单/预约。
  * 自助约期口径见 docs/design/app-booking.md（频控 1 条/日/手机号、整点 09:00–17:00、时长固定 60 分钟）。
  *
- * <p>手机查卡（card-lookup）是第三个写入口：不做裸手机号查卡——按 sinomed.phone-lookup.mode
- * （off/openid_only/sms_verified，默认 off）走身份绑定，openid 与短信两条路径都落审计
- * （card_lookup_logs：查了谁的卡/谁查的/时间），口径见 2026-10-14 裁定单。
+ * <p>手机查卡（card-lookup）与 openid 绑定（openid-bind）是第三、四个写入口：不做裸手机号查卡——
+ * 按 sinomed.phone-lookup.mode（off/openid_only/sms_verified，默认 off）走身份绑定，openid 与短信两条路径
+ * 都落审计（card_lookup_logs：查了谁的卡/谁查的/时间），口径见 2026-10-14 裁定单；openid-bind 只在
+ * openid_only 模式可用，用一次性短信验证码自证手机号后把登录 openid 绑到顾客档案（2026-10-15 代决）。
  */
 @Tag(name = "顾客选服务 Kiosk", description = "到店自助浏览卡项与下单（免登录）")
 @RestController
@@ -257,7 +258,7 @@ public class KioskController {
                 .build();
     }
 
-    @Operation(summary = "获取短信验证码", description = "sms_verified 模式下发 6 位验证码（5 分钟有效、一次性）；off/openid_only 模式拒绝。"
+    @Operation(summary = "获取短信验证码", description = "sms_verified 模式查卡、openid_only 模式绑定微信共用：6 位验证码（5 分钟有效、一次性）；off 模式拒绝。"
                     + "本系统无真实短信网关，发码只落库与日志（演示环境向店员索取）",
             responses = {
                     @ApiResponse(responseCode = "200", description = "发码回执", content = @Content(
@@ -324,6 +325,71 @@ public class KioskController {
             audit(null, null, mode, null, "code_exchange_failed");
             throw e;
         }
+    }
+
+    @Operation(summary = "绑定微信到顾客档案", description = "openid_only 模式专用：openid + 手机号 + 一次性短信验证码自证身份后，"
+                    + "把登录 openid 绑到该手机号对应的顾客档案（小程序自助绑定，2026-10-15 代决）。"
+                    + "同档案重复绑定幂等成功；openid 已绑其他档案则拒绝（不静默改绑，需前台处理）。"
+                    + "off/其他模式拒绝；每次尝试（含拒绝）落 card_lookup_logs 审计",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = KioskCardLookupRequest.class)
+            ), required = true),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "绑定回执", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    )),
+                    @ApiResponse(responseCode = "400", description = "模式不允许 / 缺 openid / 缺验证码 / 验证码错误 / 无顾客档案 / openid 已绑其他档案", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @PostMapping("/openid-bind")
+    public MessageView openidBind(@RequestBody KioskCardLookupRequest request) {
+        String mode = phoneLookupMode;
+        if ("off".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("在线查卡已关闭，请到店前台或致电门店查询");
+        }
+        if (!"openid_only".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("当前查卡方式不支持微信绑定，请走手机号验证码查询");
+        }
+        String openid = request.getOpenid();
+        String phone = request.getPhone();
+        if (openid == null || openid.isBlank()) {
+            audit(null, null, mode, null, "missing_openid");
+            throw new IllegalArgumentException("需要 openid（登录态）才能绑定");
+        }
+        if (phone == null || phone.isBlank() || request.getSmsCode() == null || request.getSmsCode().isBlank()) {
+            audit(phone, phone, mode, null, "missing_code");
+            throw new IllegalArgumentException("需要手机号与短信验证码才能绑定微信");
+        }
+        if (!phone.matches("^1\\d{10}$")) {
+            throw new IllegalArgumentException("手机号格式不对：应为 1 开头的 11 位数字");
+        }
+        // 自证身份与查卡 sms_verified 同一通道：一次性验证码，消耗即绑定凭据
+        consumeSmsCode(phone, request.getSmsCode(), mode);
+
+        CustomerEntity customer = customerRepository.findByPhone(phone).orElse(null);
+        if (customer == null) {
+            audit(phone, phone, mode, null, "no_customer");
+            throw new IllegalArgumentException("该手机号无顾客档案，请到前台建档");
+        }
+        CustomerEntity bound = customerRepository.findByOpenid(openid).orElse(null);
+        if (bound == null) {
+            customer.setOpenid(openid);
+            customerRepository.save(customer);
+            audit(phone, openid, mode, customer.getId(), "bind_ok");
+            return new MessageView("微信已绑定到「" + customer.getName() + "」的顾客档案，现在可直接查询卡项");
+        }
+        if (bound.getId().equals(customer.getId())) {
+            audit(phone, openid, mode, customer.getId(), "bind_ok");
+            return new MessageView("该微信已绑定此档案，无需重复绑定");
+        }
+        audit(phone, openid, mode, null, "bind_conflict");
+        throw new IllegalArgumentException("该微信已绑定其他顾客档案，请到前台处理");
     }
 
     @Operation(summary = "手机查卡", description = "按 sinomed.phone-lookup.mode 走身份绑定后返回持卡：off 全拒；"
@@ -436,7 +502,7 @@ public class KioskController {
         CustomerEntity customer = customerRepository.findByOpenid(openid).orElse(null);
         if (customer == null) {
             audit(null, openid, mode, null, "no_binding");
-            throw new IllegalArgumentException("该 openid 未绑定顾客档案，请到前台登记绑定");
+            throw new IllegalArgumentException("该 openid 未绑定顾客档案，请先完成微信绑定");
         }
         audit(customer.getPhone(), openid, mode, customer.getId(), "ok");
         return buildResult(customer);
@@ -483,14 +549,14 @@ public class KioskController {
         smsCodeRepository.save(issued);
     }
 
-    /** 校验手机号格式并确认模式为 sms_verified（取码与查卡同一口径） */
+    /** 校验手机号格式并确认模式允许短信通道：sms_verified 查卡取码、openid_only 绑定取码共用（off 全拒） */
     private void requireSmsMode(String phone, String operator) {
         String mode = phoneLookupMode;
         if ("off".equals(mode)) {
             audit(phone, operator, mode, null, "disabled");
             throw new IllegalArgumentException("在线查卡已关闭，请到店前台或致电门店查询");
         }
-        if (!"sms_verified".equals(mode)) {
+        if (!"sms_verified".equals(mode) && !"openid_only".equals(mode)) {
             audit(phone, operator, mode, null, "disabled");
             throw new IllegalArgumentException("当前查卡方式不支持短信验证码，请走 openid 登录态查询");
         }

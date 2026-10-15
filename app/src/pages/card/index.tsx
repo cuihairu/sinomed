@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { View, Text, Input } from '@tarojs/components'
-import { lookupCards, requestSmsCode, type CardLookupBody, type CardLookupResult } from '../../services/api'
+import {
+  bindOpenid,
+  lookupCards,
+  requestSmsCode,
+  type CardLookupBody,
+  type CardLookupResult
+} from '../../services/api'
 import { currentOpenid, saveCardSession } from '../../services/cards'
 import './index.css'
 
@@ -9,6 +15,8 @@ import './index.css'
  * 服务端按 sinomed.phone-lookup.mode 走：off 全拒（裸手机号查卡不做，隐私红线）、
  * openid_only 需 openid（登录态）、sms_verified 需手机号+验证码（双因子）。
  * openid 路径：weapp 登录换取（凭据未配置/失败时静默回退短信路径）；H5 只走短信路径。
+ * 未绑定时自助绑定：openid + 手机号 + 一次性验证码点「绑定微信」（2026-10-15 代决，
+ * 免前台免桌面；同档案幂等，已绑其他档案服务端拒绝）。
  * 身份带齐就带上（openid+手机号+验证码），服务端按 mode 取用——客户端不知道后台开关。
  * 每次尝试（含拒绝）服务端落审计。口径见 docs/design/kiosk.md 与 2026-10-14 裁定单。
  */
@@ -17,7 +25,9 @@ export default function Card() {
   const [code, setCode] = useState('')
   const [sending, setSending] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [binding, setBinding] = useState(false)
   const [error, setError] = useState('')
+  const [bindMsg, setBindMsg] = useState('')
   const [result, setResult] = useState<CardLookupResult | null>(null)
   const [openid, setOpenid] = useState<string | null>(null)
 
@@ -29,6 +39,7 @@ export default function Card() {
 
   const getCode = () => {
     setError('')
+    setBindMsg('')
     if (!/^1\d{10}$/.test(phone)) {
       setError('手机号格式不对：应为 1 开头的 11 位数字')
       return
@@ -40,8 +51,45 @@ export default function Card() {
       .finally(() => setSending(false))
   }
 
+  /** 自助绑定：openid + 手机号 + 一次性验证码自证身份，绑定成功后直接用 openid 查一次卡 */
+  const bind = () => {
+    setError('')
+    setBindMsg('')
+    if (!openid) return
+    if (!/^1\d{10}$/.test(phone)) {
+      setError('手机号格式不对：应为 1 开头的 11 位数字')
+      return
+    }
+    if (!code.trim()) {
+      setError('请先获取并填写短信验证码')
+      return
+    }
+    setBinding(true)
+    setResult(null)
+    bindOpenid(openid, phone, code.trim())
+      .then((r) => {
+        setBindMsg(r.message)
+        return lookupCards({ openid })
+          .then((res) => {
+            setResult(res)
+            // 只落称呼+持卡数+查询时间供首页入口回显，明细与余次不落本机（见 services/cards.ts）
+            if (res.customerName) {
+              saveCardSession({
+                customerName: res.customerName,
+                cardCount: res.cards.length,
+                queriedAt: new Date().toISOString(),
+              })
+            }
+          })
+          .catch((e) => setError(e.message))
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setBinding(false))
+  }
+
   const submit = () => {
     setError('')
+    setBindMsg('')
     const phoneOk = /^1\d{10}$/.test(phone)
     const codeOk = !!code.trim()
     if (!openid && !phoneOk) {
@@ -81,7 +129,9 @@ export default function Card() {
       </View>
 
       {openid ? (
-        <View className="lk-openid">已识别微信登录身份，可直接查询；未绑定顾客档案时请到前台登记绑定</View>
+        <View className="lk-openid">
+          已识别微信登录身份，可直接查询；未绑定顾客档案时，填手机号+验证码后点「绑定微信」自助绑定
+        </View>
       ) : null}
 
       <View className="lk-form">
@@ -109,6 +159,7 @@ export default function Card() {
       </View>
 
       {error ? <View className="lk-err">{error}</View> : null}
+      {bindMsg ? <View className="lk-bindmsg">{bindMsg}</View> : null}
 
       <View
         className={`lk-submit ${submitting ? 'off' : ''}`}
@@ -116,6 +167,15 @@ export default function Card() {
       >
         {submitting ? '查询中…' : '查询卡项'}
       </View>
+
+      {openid ? (
+        <View
+          className={`lk-bind ${binding ? 'off' : ''}`}
+          onClick={() => { if (!binding) bind() }}
+        >
+          {binding ? '绑定中…' : '绑定微信'}
+        </View>
+      ) : null}
 
       {result ? (
         <View className="lk-result">
@@ -146,6 +206,10 @@ export default function Card() {
         <View className="how-row">
           <Text className="how-k">查卡</Text>
           <Text className="how-v">微信登录 openid 或手机号+短信验证码双因子，验证后展示您的持卡与剩余次数；每次查询都留痕可查</Text>
+        </View>
+        <View className="how-row">
+          <Text className="how-k">绑定</Text>
+          <Text className="how-v">首次用微信查卡先绑定：填手机号+验证码点「绑定微信」，验证码一次性，仅验证身份不展示内容</Text>
         </View>
         <View className="how-row">
           <Text className="how-k">核销</Text>

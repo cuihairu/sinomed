@@ -183,6 +183,16 @@ class CardLookupSmsTest {
     }
 
     @Test
+    void openidBindRejectedInSmsMode() {
+        String code = requestCode();
+        var resp = post("/api/v1/kiosk/openid-bind",
+                "{\"openid\":\"oSMS001\",\"phone\":\"" + PHONE + "\",\"smsCode\":\"" + code + "\"}");
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("当前查卡方式不支持微信绑定，请走手机号验证码查询",
+                JsonPath.read(resp.getBody(), "$.errorMessage"));
+    }
+
+    @Test
     void successAndRejectsLeaveAuditLog() {
         String code = requestCode();
         assertEquals(HttpStatus.OK,

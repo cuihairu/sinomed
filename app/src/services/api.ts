@@ -100,7 +100,8 @@ function kioskError(data: unknown, statusCode: number, fallback: string): Error 
 }
 
 /**
- * 获取短信验证码（POST /api/v1/kiosk/sms-code）；仅 sms_verified 模式可用。
+ * 获取短信验证码（POST /api/v1/kiosk/sms-code）：sms_verified 模式查卡、
+ * openid_only 模式绑定微信共用；off 模式服务端 400 拒绝。
  */
 export async function requestSmsCode(phone: string): Promise<void> {
   const res = await Taro.request({
@@ -146,6 +147,24 @@ export async function fetchOpenidSession(code: string): Promise<{ openid: string
     throw kioskError(res.data, res.statusCode, '微信登录失败')
   }
   return res.data as { openid: string }
+}
+
+/**
+ * openid 自助绑定（POST /api/v1/kiosk/openid-bind）：openid_only 模式专用——
+ * openid + 手机号 + 一次性短信验证码自证身份后，把登录 openid 绑到该手机号的顾客档案。
+ * 同档案重复绑定幂等成功；openid 已绑其他档案服务端 400 拒绝（不静默改绑）。
+ */
+export async function bindOpenid(openid: string, phone: string, smsCode: string): Promise<{ message: string }> {
+  const res = await Taro.request({
+    url: kioskUrl('openid-bind'),
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    data: { openid, phone, smsCode }
+  })
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw kioskError(res.data, res.statusCode, '绑定失败')
+  }
+  return res.data as { message: string }
 }
 
 /** 手机自助查预约：一条待到店预约（与服务端 KioskMyAppointmentsResult.AppointmentLine 同构） */
