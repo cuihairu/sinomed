@@ -1,37 +1,10 @@
-/* 卡项 tab：规划占位 + 查询指引（共享样式在 app.css） */
+/* 卡项 tab：手机查卡表单 + 结果（共享样式在 app.css） */
 .card-page {
   min-height: 100vh;
   box-sizing: border-box;
   background: var(--paper);
   /* 底部留白给原生 tabBar */
   padding-bottom: 76px;
-}
-
-/* 占位空卡（规划功能态，与原型 .mycard 同位异态） */
-.empty-card {
-  margin: 0 16px;
-  background: var(--card);
-  border: 1px dashed var(--line);
-  border-radius: 14px;
-  padding: 26px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.ec-zi {
-  font-family: var(--serif);
-  font-size: 34px;
-  color: var(--faint);
-  opacity: 0.6;
-}
-
-.ec-t {
-  font-size: 12.5px;
-  color: var(--muted);
-  line-height: 1.7;
-  text-align: center;
 }
 
 /* 查询指引卡 */
