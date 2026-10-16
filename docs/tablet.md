@@ -1,5 +1,7 @@
 # 广告展示端（平板）
 
+> 🌐 [English](./tablet.en.md) · **本页为中文**
+
 ::: info 现状
 广告展示端已实现（`tablet/` + 服务端 ads/calls 模块 + 管理端单页四 tab：素材 / 排期 / 屏 / 叫号），开发态已逐项实证；部署需自行托管 `/tablet/` 与 `/media/`（见[部署文档](/server/deploy)）。设计与验收细节见[平板展示设计](/design/tablet)。
 :::

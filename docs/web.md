@@ -1,5 +1,7 @@
 # 管理端（web）
 
+> 🌐 [English](./web.en.md) · **本页为中文**
+
 `web/` 是医馆日常运转的主工作台：Ant Design Pro + Umi（@umijs/max）工程，Node.js 24 / pnpm，中文界面。
 
 已实装界面截图（数据为虚构演示，石墨×古金主题取自品牌 logo，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色）：

@@ -1,5 +1,7 @@
 # 小程序端（app）
 
+> 🌐 [English](./app.en.md) · **本页为中文**
+
 `app/` 是 Taro 多端工程（React + TypeScript + NutUI React Taro），同一套代码编译到微信小程序、H5 等目标。
 
 ::: warning 当前状态

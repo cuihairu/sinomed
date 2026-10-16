@@ -1,5 +1,7 @@
 # Dependabot 依赖告警清理（分批升级轮）
 
+> 🌐 [English](./deps-audit.en.md) · **本页为中文**
+
 对照基准：GitHub dependabot open alerts **188 条**（快照 2026-10-08：critical 29 / high 74 / medium 74 / low 11）。
 分布：npm 187（`app/pnpm-lock.yaml` 131、`web/pnpm-lock.yaml` 52、`docs/pnpm-lock.yaml` 4）+ rust 1（`desktop/src-tauri/Cargo.lock` glib）。
 

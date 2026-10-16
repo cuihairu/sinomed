@@ -61,6 +61,8 @@ features:
     details: 提供 Dockerfile 与 docker-compose 编排（SQLite + 服务端 + Nginx），亦支持 systemd 裸机部署。
 ---
 
+> 🌐 [English](./index.en.md) · **本页为中文**
+
 ## 产品预览
 
 一套界面语言贯穿五个设备端：石墨×古金主题（取自品牌 logo 的灰与金）、宣纸底、宋体标题，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色。以下为各端已实装页面的界面截图（数据全为虚构演示）。
