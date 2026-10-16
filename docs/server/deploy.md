@@ -32,7 +32,9 @@
 | `logging.level.*` | debug/trace | Hibernate SQL 与 Security 日志，生产建议调低 |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | 100MB | 素材上传体积上限 |
 | `sinomed.ads.upload-dir` | `data/ads`（`ADS_UPLOAD_DIR` 可覆盖） | 广告素材目录，`/media/**` 静态映射 |
+| `sinomed.ads.url-prefix` | 仅 `@Value` 默认值 `/media`（yml 未落键） | 广告媒体静态映射前缀，`WebMvcConfig` 与 playlist 下发 URL 共用 |
 | `sinomed.print.templates-dir` | `data/printtemplates`（`PRINT_TEMPLATES_DIR` 可覆盖） | 打印模板覆盖目录 |
+| `sinomed.receipt.clinic-name` | 仅 `@Value` 默认值 `示例医馆`（yml 未落键） | 结算小票机构名（`{{clinicName}}` 占位替换） |
 | `sinomed.pay.qrcodes-dir` | 仅 `PayQrCodeController` 的 `@Value` 默认值（yml 未落键） | 收款码图片目录 |
 | `demo.seed` | `false`（`DEMO_SEED` 可覆盖） | 演示数据幂等播种开关 |
 | `sinomed.famous-doctor-surge-cap-percent` | `20`（`FAMOUS_DOCTOR_SURGE_CAP_PERCENT` 可覆盖） | 名医挂号费溢价上限百分比；溢价值单列展示，不做阶梯/时段差异，不做定价引擎 |

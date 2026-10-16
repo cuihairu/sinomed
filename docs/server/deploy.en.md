@@ -32,7 +32,9 @@ All server-side configuration is centralized in `server/src/main/resources/appli
 | `logging.level.*` | debug/trace | Hibernate SQL and Security logging; recommended to be lowered in production |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | 100MB | Upload size cap for materials |
 | `sinomed.ads.upload-dir` | `data/ads` (overridable by `ADS_UPLOAD_DIR`) | Advertising materials directory, statically mapped at `/media/**` |
+| `sinomed.ads.url-prefix` | Only the `@Value` default `/media` (no key in the yml) | Static mapping prefix for ad media, shared by `WebMvcConfig` and the playlist URLs |
 | `sinomed.print.templates-dir` | `data/printtemplates` (overridable by `PRINT_TEMPLATES_DIR`) | Print template override directory |
+| `sinomed.receipt.clinic-name` | Only the `@Value` default `示例医馆` (no key in the yml) | Clinic name on the settlement receipt (`{{clinicName}}` placeholder replacement) |
 | `sinomed.pay.qrcodes-dir` | Only the `@Value` default on `PayQrCodeController` (no key in the yml) | Payment QR code image directory |
 | `demo.seed` | `false` (overridable by `DEMO_SEED`) | Idempotent demo-data seeding switch |
 | `sinomed.famous-doctor-surge-cap-percent` | `20` (overridable by `FAMOUS_DOCTOR_SURGE_CAP_PERCENT`) | Cap percentage for the famous-doctor registration fee surcharge; the surcharge is shown as a separate line, with no tiered / time-slot differential and no pricing engine |
