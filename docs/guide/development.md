@@ -1,5 +1,7 @@
 # 开发指南
 
+> 🌐 [English](./development.en.md) · **本页为中文**
+
 ## 目录约定
 
 ```text

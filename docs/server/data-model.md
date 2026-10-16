@@ -1,5 +1,7 @@
 # 数据模型
 
+> 🌐 [English](./data-model.en.md) · **本页为中文**
+
 数据表由 JPA 按实体自动创建（`ddl-auto: update`），主键均为自增 `id`。所有实体带审计字段 `create_time` / `update_time`（JPA Auditing 自动维护；`card_adjusts` 仅 `create_time`）；实体之间不使用外键约束，通过业务 id 字段在服务层关联。
 
 > 范围说明：下列详表覆盖核心业务表；`acupoints`、`ad_schedules`、`ad_screens`、`dispense_logs`、`formula_items`、`formulas`、`herb_stock_logs`、`herbs`、`prescription_items`、`prescription_template_items`、`prescription_templates`、`recharges`、`review_customers`、`review_staffs`、`therapy_templates` 等表以实体与 [api](/server/api) 为准（`TokenEntity` 为死代码，不计入）。

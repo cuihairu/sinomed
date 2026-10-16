@@ -1,5 +1,7 @@
 # 开源项目盘点
 
+> 🌐 [English](./projects.en.md) · **本页为中文**
+
 > 调研日期:2026-10-05。所有项目均经 GitHub `gh api` 或 Gitee `gitee.com/api/v5` 实时核验,查不到的如实标注「未查到」。功能清单摘自各自 README,未做推断。
 
 ## 起点线索核验

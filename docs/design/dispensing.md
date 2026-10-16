@@ -1,5 +1,7 @@
 # 药房与发药流转（口径设计稿）
 
+> 🌐 [English](./dispensing.en.md) · **本页为中文**
+
 > 状态：**已实装（2026-10-11）**。与定稿口径的两处偏差：① 自动带出（代煎/膏方「已取」）流水操作人留空、note 写来源（定稿原文「取做操作用户」）——自动路径没有真人确认，留空更诚实；② 工作台检索合并为 `customerKeyword` 单参数（姓名/手机同一模糊匹配）。测试落点与第五节一致（`DispenseTest` 5 例 + `DispenseHttpTest` 1 例）。
 > 关联：[服务端接口](../server/api.md) 处方组、[数据模型](../server/data-model.md) `prescriptions`/`decoction`/`paste`、饮片出入库台账 `/api/v1/herb-stock`、[对齐清单](./alignment.md) P1-32。
 

@@ -23,7 +23,7 @@
 
 ### 文档与站点补完
 
-- [ ] docs 子目录双语化——2026-10-16 用户执行单指定「本轮只做 docs/ 根目录，子目录登记 todo 下一轮再做」。范围：`docs/guide/`（getting-started、development）、`docs/server/`（architecture、api、data-model、deploy）、`docs/design/`、`docs/research/`、`docs/marketing/` 下全部实质 .md（排除 CHANGELOG/CONTRIBUTING/LICENSE/CODE_OF_CONDUCT/SECURITY 与 node_modules/dist 等）。口径同根目录：中文→配英文版 `.en.md`、英文→配中文 `.zh.md`，两份首屏（前 3 行）各带语言切换器；超长文档（1000+ 行）可只放切换器+「暂无译版」如实标注，不硬造劣质翻译；命令/路径/代码块/专有名词原样不译；门禁 = docs check + vitepress build（docs-only 不跑编译与测试）。根目录 8 份已配对完成（commit 待补）
+- [x] docs 子目录双语化——2026-10-16 用户执行单指定「本轮只做 docs/ 根目录，子目录登记 todo 下一轮再做」。范围：`docs/guide/`（getting-started、development）、`docs/server/`（architecture、api、data-model、deploy）、`docs/design/`、`docs/research/`、`docs/marketing/` 下全部实质 .md（排除 CHANGELOG/CONTRIBUTING/LICENSE/CODE_OF_CONDUCT/SECURITY 与 node_modules/dist 等）。口径同根目录：中文→配英文版 `.en.md`、英文→配中文 `.zh.md`，两份首屏（前 3 行）各带语言切换器；超长文档（1000+ 行）可只放切换器+「暂无译版」如实标注，不硬造劣质翻译；命令/路径/代码块/专有名词原样不译；门禁 = docs check + vitepress build（docs-only 不跑编译与测试）｜已完成：guide/server/design/research/marketing 全部 23 份中文文档（含 design/mockups/README）配对英文版，切换器双侧第 3 行、中文源仅 +2 行零删改（git numstat 逐份核验）；docs check 与 vitepress build（27.08s）双绿；证据：本轮 commit；根目录 8 份为 commit d243801
 
 ### 卡点
 

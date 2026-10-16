@@ -1,5 +1,7 @@
 # 配置与部署
 
+> 🌐 [English](./deploy.en.md) · **本页为中文**
+
 服务端的全部配置集中在 `server/src/main/resources/application.yml`，运行时环境变量可覆盖；部署形态有三种：Docker Compose 编排、裸机 systemd、以及开发调试编排。
 
 ## 配置项

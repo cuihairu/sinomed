@@ -1,5 +1,7 @@
 # 界面原型 → 现状差距清单与对齐计划
 
+> 🌐 [English](./alignment.en.md) · **本页为中文**
+
 对照基准：[docs/design/mockups](./mockups/README.md)（tokens.css 为五端唯一样式源：默认「石墨×古金」主题取自 logo #666666/#C7A674，`data-theme="pine|cinnabar|indigo"` 三套可切换主色；宣纸底 `--paper`、金棕点缀 `--amber`、宋体标题 `--serif`）。
 
 口径约定：
