@@ -17,6 +17,7 @@ import com.sinomed.service.AppointmentService;
 import com.sinomed.service.OrderService;
 import com.sinomed.service.WechatClient;
 import com.sinomed.vo.ExceptionView;
+import com.sinomed.vo.KioskAppointmentCancelRequest;
 import com.sinomed.vo.KioskAppointmentRequest;
 import com.sinomed.vo.KioskAppointmentResult;
 import com.sinomed.vo.KioskCardLookupRequest;
@@ -55,6 +56,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * 按 sinomed.phone-lookup.mode（off/openid_only/sms_verified，默认 off）走身份绑定，openid 与短信两条路径
  * 都落审计（card_lookup_logs：查了谁的卡/谁查的/时间），口径见 2026-10-14 裁定单；openid-bind 只在
  * openid_only 模式可用，用一次性短信验证码自证手机号后把登录 openid 绑到顾客档案（2026-10-15 代决）。
+ * 自助取消预约（appointment-cancel）是第五个写入口（2026-10-16 代决，app-booking.md 拍板 2 前提已失效）：
+ * 手机号+一次性验证码核验身份后，只允许取消本人待到店且未过期的预约（0→9），与 my-appointments 同通道同审计。
  */
 @Tag(name = "顾客选服务 Kiosk", description = "到店自助浏览卡项与下单（免登录）")
 @RestController
@@ -490,6 +493,85 @@ public class KioskController {
         }
         audit(phone, phone, mode, customer.getId(), "ok");
         return KioskMyAppointmentsResult.builder().appointments(lines).build();
+    }
+
+    @Operation(summary = "手机自助取消预约", description = "跨设备取消自己的待到店预约：手机号+验证码双因子（与 my-appointments 同一套一次性验证码，"
+                    + "验证码一次性、取消须重新取码）；只允许取消本人 status=0 且未过期的预约，已受理/已过号/已取消/过期/非本人均 400。"
+                    + "off/其他模式拒绝；每次尝试（含拒绝）落 card_lookup_logs 审计",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = KioskAppointmentCancelRequest.class)
+            ), required = true),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "取消回执", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    )),
+                    @ApiResponse(responseCode = "400", description = "模式不允许 / 缺身份 / 缺预约 id / 验证码错误 / 非本人 / 状态不允许", content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MessageView.class)
+                    ))
+            })
+    @PostMapping("/appointment-cancel")
+    public MessageView appointmentCancel(@RequestBody KioskAppointmentCancelRequest request) {
+        String mode = phoneLookupMode;
+        if ("off".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("在线自助查询已关闭，请到店前台或致电门店");
+        }
+        if (!"sms_verified".equals(mode)) {
+            audit(null, null, mode, null, "disabled");
+            throw new IllegalArgumentException("当前查卡方式不支持预约取消，请走手机号验证码");
+        }
+        String phone = request.getPhone();
+        String submitted = request.getSmsCode();
+        if (phone == null || phone.isBlank() || submitted == null || submitted.isBlank()) {
+            audit(phone, phone, mode, null, "missing_code");
+            throw new IllegalArgumentException("需要手机号与短信验证码才能取消预约");
+        }
+        Long appointmentId = request.getAppointmentId();
+        if (appointmentId == null) {
+            audit(phone, phone, mode, null, "missing_appointment");
+            throw new IllegalArgumentException("缺少要取消的预约 id");
+        }
+        if (!phone.matches("^1\\d{10}$")) {
+            throw new IllegalArgumentException("手机号格式不对：应为 1 开头的 11 位数字");
+        }
+        consumeSmsCode(phone, submitted, mode);
+
+        CustomerEntity customer = customerRepository.findByPhone(phone).orElse(null);
+        if (customer == null) {
+            audit(phone, phone, mode, null, "no_customer");
+            throw new IllegalArgumentException("该手机号无顾客档案，请到前台建档");
+        }
+        AppointmentEntity appointment = appointmentRepository.findById(appointmentId).orElse(null);
+        if (appointment == null) {
+            audit(phone, phone, mode, null, "missing_appointment");
+            throw new IllegalArgumentException("预约不存在：" + appointmentId);
+        }
+        if (!customer.getId().equals(appointment.getCustomerId())) {
+            audit(phone, phone, mode, null, "not_owner");
+            throw new IllegalArgumentException("该预约不属于此手机号，请到前台处理");
+        }
+        Integer status = appointment.getStatus();
+        if (status != null && status == 9) {
+            audit(phone, phone, mode, null, "not_cancelable");
+            throw new IllegalArgumentException("该预约已取消，无需重复取消");
+        }
+        if (status == null || status != 0) {
+            audit(phone, phone, mode, null, "not_cancelable");
+            throw new IllegalArgumentException("该预约已受理或已过号，不能自助取消，请到前台处理");
+        }
+        if (appointment.getStartTime() == null || !appointment.getStartTime().after(new Date())) {
+            audit(phone, phone, mode, null, "not_cancelable");
+            throw new IllegalArgumentException("预约时间已过，不能自助取消");
+        }
+        appointment.setStatus(9);
+        appointmentRepository.save(appointment);
+        audit(phone, phone, mode, customer.getId(), "cancel_ok");
+        String when = LocalDateTime.ofInstant(appointment.getStartTime().toInstant(), ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("MM-dd HH:mm"));
+        return new MessageView("已取消 " + when + " 的预约，如需再约可重新提交");
     }
 
     /** openid 路径：登录态天然带 openid，按 openid 查绑定顾客，查无即拒绝（不回退手机号） */

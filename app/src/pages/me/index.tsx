@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { View, Image, Text, Input } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { BRAND } from '../../services/brand'
-import { fetchMyAppointments, requestSmsCode, type MyAppointmentsResult } from '../../services/api'
+import { cancelAppointment, fetchMyAppointments, requestSmsCode, type MyAppointmentsResult } from '../../services/api'
 import { loadBookingSession } from '../../services/session'
 import { THEMES, applyTheme, readTheme, type ThemeKey } from '../../services/theme'
 import './index.css'
@@ -22,6 +22,9 @@ export default function Me() {
   const [submitting, setSubmitting] = useState(false)
   const [qError, setQError] = useState('')
   const [qResult, setQResult] = useState<MyAppointmentsResult | null>(null)
+  // 自助取消预约：正在取消的预约 id（null=空闲）；成功提示与错误就地展示
+  const [cancelling, setCancelling] = useState<number | null>(null)
+  const [notice, setNotice] = useState('')
 
   // 切回本页时重读本机预约（首页/预约页都可能更新它）
   useDidShow(() => setSession(loadBookingSession()))
@@ -54,6 +57,29 @@ export default function Me() {
       .then((r) => setQResult(r))
       .catch((e) => setQError(e.message))
       .finally(() => setSubmitting(false))
+  }
+
+  const cancel = (appointmentId: number) => {
+    setQError('')
+    setNotice('')
+    if (!/^1\d{10}$/.test(qPhone)) {
+      setQError('手机号格式不对：应为 1 开头的 11 位数字')
+      return
+    }
+    if (!qCode.trim()) {
+      setQError('请先获取并填写短信验证码（取消需重新取码，验证码一次性）')
+      return
+    }
+    setCancelling(appointmentId)
+    cancelAppointment({ phone: qPhone, smsCode: qCode.trim(), appointmentId })
+      .then((r) => {
+        setNotice(r.message)
+        setQResult((prev) =>
+          prev ? { appointments: prev.appointments.filter((a) => a.appointmentId !== appointmentId) } : prev
+        )
+      })
+      .catch((e) => setQError(e.message))
+      .finally(() => setCancelling(null))
   }
 
   const pickTheme = (key: ThemeKey) => {
@@ -128,19 +154,28 @@ export default function Me() {
           {submitting ? '查询中…' : '查询预约'}
         </View>
         {qError ? <View className="mq-err">{qError}</View> : null}
+        {notice ? <View className="mq-ok">{notice}</View> : null}
         {qResult ? (
           qResult.appointments.length === 0 ? (
             <View className="mq-empty">该手机号当前没有待到店预约</View>
           ) : (
             qResult.appointments.map((a) => (
               <View className="mq-appt" key={a.appointmentId}>
-                <View className="mq-time">{a.startTime.slice(0, 16)}</View>
+                <View className="mq-line">
+                  <View className="mq-time">{a.startTime.slice(0, 16)}</View>
+                  <View
+                    className={`mq-cancel${cancelling === a.appointmentId ? ' off' : ''}`}
+                    onClick={() => { if (cancelling === null) cancel(a.appointmentId) }}
+                  >
+                    {cancelling === a.appointmentId ? '取消中…' : '取消'}
+                  </View>
+                </View>
                 <View className="mq-item">{a.itemName || '项目到店再定'}</View>
               </View>
             ))
           )
         ) : null}
-        <View className="mq-note">手机号+验证码验证后展示待到店预约；无预约如实显示，不造数据；每次查询留痕</View>
+        <View className="mq-note">手机号+验证码验证后展示待到店预约；无预约如实显示，不造数据；每次查询与取消留痕；取消需重新获取验证码（验证码一次性），只能取消待到店且未过期的预约</View>
       </View>
 
       <View className="sec">

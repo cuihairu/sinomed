@@ -95,6 +95,15 @@ class CardLookupOffTest {
     }
 
     @Test
+    void appointmentCancelRejected() {
+        var resp = post("/api/v1/kiosk/appointment-cancel",
+                "{\"phone\":\"13900003001\",\"smsCode\":\"123456\",\"appointmentId\":1}");
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("在线自助查询已关闭，请到店前台或致电门店",
+                JsonPath.read(resp.getBody(), "$.errorMessage"));
+    }
+
+    @Test
     void openidBindRejected() {
         var resp = post("/api/v1/kiosk/openid-bind",
                 "{\"openid\":\"oOFF123\",\"phone\":\"13900003001\",\"smsCode\":\"123456\"}");

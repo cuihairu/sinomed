@@ -167,6 +167,16 @@
   color: var(--amber-deep);
 }
 
+.mq-ok {
+  margin-top: 12px;
+  background: var(--brand-tint);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--brand-deep);
+}
+
 .mq-empty {
   margin-top: 12px;
   font-size: 13px;
@@ -178,6 +188,28 @@
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
+}
+
+.mq-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.mq-cancel {
+  flex-shrink: 0;
+  background: var(--amber-tint);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px 12px;
+  font-size: 12px;
+  color: var(--amber-deep);
+  white-space: nowrap;
+}
+
+.mq-cancel.off {
+  opacity: 0.5;
 }
 
 .mq-time {

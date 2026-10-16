@@ -52,7 +52,7 @@
 | 1 | 首页（mobile-home） | 已按原型实装：品牌头 / 预约横幅（入口 → `pages/booking`）/ 今日宜养宫格（实拉 `GET /api/v1/kiosk/items`）/ 我的卡项（入口联动 `pages/card`，查过卡的本机回显称呼+持卡数+查询日期、7 天有效）/ 养生贴士；配色已收编 tokens（`src/tokens.css` 与 mockups 同源） | 布局/配色无差距；**购卡与余次明细仍为规划**——余次只在验证后的卡项页展示，明文不落本机 | P1（已对齐） |
 | 2 | 自助约期（mobile-booking） | 已实装：日期条（今天起 7 天）→ 时段网格（9:00–17:00 整点，今日已过时段禁选）→ 项目选择（实拉上架项目，可「到店再定」）→ 手机号/称呼提交 → 回执展示预约号与时段；走免登录写入口 `POST /api/v1/kiosk/appointments`，口径见 [app-booking](./app-booking.md) | 无布局差距；**时段占用查询不做**——服务端不做占用查询，冲突到店人工调和（同页注记） | P1（已实装） |
 | 3 | 手机查卡（mobile-card） | 已实装：手机号 + 短信验证码双因子（`POST /api/v1/kiosk/sms-code` → `card-lookup`）；weapp 另接 `wx.login` → `openid-session` 换 openid 走 `openid_only` 路径（openid 仅存内存、换取失败静默回退短信路径，H5 只走短信）；按 `sinomed.phone-lookup.mode` 三态开关，**默认 `off` 关闭**；每次尝试含拒绝都落 `card_lookup_logs` 审计 | openid 自助绑定已实装（`POST /api/v1/kiosk/openid-bind`，openid_only 下填手机号+验证码自证后绑档案，同档案幂等、已绑其他档案拒绝；激活仍缺微信凭据，见仓库根 `todo.md` 卡点档）；登录态不做 | P1（已实装） |
-| 4 | 我的（mobile-me） | 已实装：本机预约摘要 + 跨设备查预约（手机号+验证码一次性双因子 `POST /api/v1/kiosk/my-appointments`，回未过期待到店预约、无预约如实回空）+ 主题切换（仅 H5 端渲染）+ 白标自检页底 | **登录态（会话保持）不做**——免登录手机号直查会造成横向数据暴露，超演示 MVP 口径 | P1（已实装） |
+| 4 | 我的（mobile-me） | 已实装：本机预约摘要 + 跨设备查预约（手机号+验证码一次性双因子 `POST /api/v1/kiosk/my-appointments`，回未过期待到店预约、无预约如实回空）+ 待到店预约自助取消（`POST /api/v1/kiosk/appointment-cancel`，重取验证码后取消，2026-10-16 代决）+ 主题切换（仅 H5 端渲染）+ 白标自检页底 | **登录态（会话保持）不做**——免登录手机号直查会造成横向数据暴露，超演示 MVP 口径 | P1（已实装） |
 
 ## 四、自助机 kiosk
 

@@ -308,7 +308,7 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 
 ## card_lookup_logs — 手机自助查询审计（查卡 + 查预约 + openid 绑定）
 
-表名沿用查卡审计；`/api/v1/kiosk/my-appointments`（跨设备查自己的待到店预约）与 `/api/v1/kiosk/openid-bind`（openid 自助绑定）与查卡共用同一表，同一留存口径——身份验证后的顾客自助查询不留空。
+表名沿用查卡审计；`/api/v1/kiosk/my-appointments`（跨设备查自己的待到店预约）、`/api/v1/kiosk/appointment-cancel`（自助取消本人待到店预约，2026-10-16 代决）与 `/api/v1/kiosk/openid-bind`（openid 自助绑定）与查卡共用同一表，同一留存口径——身份验证后的顾客自助查询不留空。
 
 | 字段 | 类型 | 含义 |
 | ---- | ---- | ---- |

@@ -4,6 +4,7 @@
 
 ::: tip Status: implemented (2026-10-10)
 The decision points in §7 have been ruled on (see "Decision record"), and every item of the §8 implementation checklist has landed: server `36102cf`, mini program `f7ccbbf`. This document keeps the full agreed policy as the implementation reference.
+**2026-10-16 update**: patient-side self-service cancellation is implemented (ruling 2's premise lapsed; see the decision-record note) — `POST /api/v1/kiosk/appointment-cancel` + a cancel button on the mini program's "Me" page.
 :::
 
 ## 1. Goals and Scope
@@ -64,7 +65,7 @@ Appointments appear as usual in `/appointment/query` and `/appointment/schedule`
 | # | Question | Ruling | Rationale |
 | ---- | ---- | ---- | ---- |
 | 1 | Is the "1 per day per phone" rate limit the right fit? | **1 per day per phone** (counting status IN (0,1); beyond that, 400) | Unauthenticated with no verification code, so anti-abuse comes first; loosening it is only a counter-threshold change, to be retuned once real repeat-booking cases appear |
-| 2 | Can patients cancel on their own? | **No** (admin-console 0→9 cancellation only) | Cancellation verifies no identity, so maliciously canceling other people's appointments could not be stopped; admin-console cancellation already covers the operational scenarios |
+| 2 | Can patients cancel on their own? | **No** (admin-console 0→9 cancellation only) → **overturned by a decision on the user's behalf 2026-10-16 (the user can overturn)** | The original rationale "cancellation verifies no identity, so maliciously canceling other people's appointments could not be stopped" lapsed: phone-number + one-time-code two-factor verification and openid binding landed on 2026-10-14/15, making identity verifiable. Implemented as `POST /api/v1/kiosk/appointment-cancel` (`sms_verified` mode only, one-time codes, only the caller's own status=0 not-yet-expired appointment; not the owner / already received / already expired are refused with 400, same `card_lookup_logs` audit; the slot is released after cancellation and the same-day frequency cap lifts), with an inline "Cancel" button on the lookup results in the mini program's "Me" page. Admin-console cancellation remains available in parallel |
 | 3 | Should the slot be fixed at 60 minutes? | **Fixed at 60 minutes** | Simplifies both server-side validation and scheduling-grid display; the admin console can still book 30/60/90 — the two policies do not affect each other |
 | 4 | Add a `source` column? | **No**; `remark` records 「小程序自助」 as a soft marker | At demo scale a soft marker is enough; a column would touch the schema and existing queries — migrate only when a real reporting need shows up |
 

@@ -82,9 +82,9 @@
 
 | mode | 行为 |
 | ---- | ---- |
-| `off` | 默认。`card-lookup`、`sms-code`、`openid-session`、`openid-bind` 与 `my-appointments` 一律 400 拒绝，小程序页面透出「在线查卡已关闭 / 在线自助查询已关闭，请到店前台或致电门店查询」 |
-| `openid_only` | 登录态换 openid：小程序 `wx.login` → 服务端 `POST /api/v1/kiosk/openid-session` 经微信 jscode2session 换 openid（需 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置 400 明确拒绝），按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号**；`sms-code` 在此模式仅服务自助绑定（发码放行，查卡仍只走 openid） |
-| `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡（`card-lookup`）或查自己的待到店预约（`my-appointments`，跨设备）；验证码 5 分钟有效、一次性，错/过期/已用均拒绝；`openid-session` / `openid-bind` 在此模式 400 拒绝 |
+| `off` | 默认。`card-lookup`、`sms-code`、`openid-session`、`openid-bind`、`my-appointments` 与 `appointment-cancel` 一律 400 拒绝，小程序页面透出「在线查卡已关闭 / 在线自助查询已关闭，请到店前台或致电门店查询」 |
+| `openid_only` | 登录态换 openid：小程序 `wx.login` → 服务端 `POST /api/v1/kiosk/openid-session` 经微信 jscode2session 换 openid（需 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置 400 明确拒绝），按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号**；`sms-code` 在此模式仅服务自助绑定（发码放行，查卡仍只走 openid）；`my-appointments` / `appointment-cancel` 在此模式 400 拒绝 |
+| `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡（`card-lookup`）、查自己的待到店预约（`my-appointments`，跨设备）或取消自己的待到店预约（`appointment-cancel`，2026-10-16 代决）；验证码 5 分钟有效、一次性，错/过期/已用均拒绝；`openid-session` / `openid-bind` 在此模式 400 拒绝 |
 
 | 方法 | 路径 | 说明 |
 | ---- | ---- | ---- |
@@ -94,7 +94,9 @@
 
 **openid 自助绑定（2026-10-15 代决，用户可推翻）**：绑定路径拍板为**小程序自助**——`openid-bind` 用一次性短信验证码自证手机号后，把登录 openid 绑到该手机号对应的顾客档案，免桌面免前台；与查卡 `sms_verified` 同一验证码通道、同一审计口径。同档案重复绑定幂等成功；openid 已绑其他档案 400 拒绝（不静默改绑，需前台处理）。此前 `customers.openid` 只能落库直写、无登记入口，此为唯一登记入口。激活仍缺微信侧凭据（正式 appid + AppSecret，同 openid-session「先建后激活」先例）。
 
-**审计**：每次尝试（成功与拒绝）都落 `card_lookup_logs` 一条——查了谁的卡（`phone` / `customer_id`）、谁查的（`operator`：openid 路径=openid，短信路径=手机号，绑定路径=openid）、什么模式（`mode`）、结果（`result`：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer / bind_ok / bind_conflict`）、时间（`create_time`）。各路径同口径，off 模式的拒绝也留痕。
+**审计**：每次尝试（成功与拒绝）都落 `card_lookup_logs` 一条——查了谁的卡（`phone` / `customer_id`）、谁查的（`operator`：openid 路径=openid，短信路径=手机号，绑定路径=openid）、什么模式（`mode`）、结果（`result`：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer / bind_ok / bind_conflict / missing_appointment / not_owner / not_cancelable / cancel_ok`）、时间（`create_time`）。各路径同口径，off 模式的拒绝也留痕。
+
+**自助取消预约（2026-10-16 代决，用户可推翻）**：`app-booking.md` 拍板 2（2026-10-10）裁「顾客侧取消不做」，前提是「取消不核验身份，无法阻止恶意取消他人约」；该前提已因 2026-10-14/15 手机号+一次性验证码双因子与 openid 绑定落地而失效，故恢复顾客侧取消——`POST /api/v1/kiosk/appointment-cancel`（`{ phone, smsCode, appointmentId }`）核验身份后只允许取消**本人** `status=0` 且未过期的预约（0→9），非本人/已受理/已过号/已取消/已过期/未知预约均 400 不静默；取消后该时段按「每时段限约 1 位」自动释放、当日频控随之解除（与 `ensureSlotFree` 的 status IN (0,1) 计数同一口径）；与 `my-appointments` 同一套一次性验证码通道（查预约用过的码取消须重新取码）与审计口径。管理端取消（0→9）保留并行。
 
 小程序侧（`app/src/pages/card`）：手机号 + 验证码表单，服务端 400 的 `errorMessage` 原样透出；命中后列持卡与余次。weapp 登录换取 openid（仅存内存不落存储），openid 带上即可查卡；未绑定时填手机号+验证码点「绑定微信」走自助绑定（绑定成功直接以 openid 查一次卡）；H5 无 `wx.login` 只走短信路径。
 

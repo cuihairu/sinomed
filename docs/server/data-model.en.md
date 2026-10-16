@@ -308,7 +308,7 @@ These back the Kiosk side of [tablet/](/design/tablet); see the [tablet display 
 
 ## card_lookup_logs — phone self-service lookup audit (card lookup + appointment lookup + openid binding)
 
-The table name carries over from the card-lookup audit; `/api/v1/kiosk/my-appointments` (cross-device lookup of one's own not-yet-arrived appointments) and `/api/v1/kiosk/openid-bind` (openid self-service binding) share this same table with card lookup, under the same retention convention — patient self-service lookups after identity verification never leave gaps.
+The table name carries over from the card-lookup audit; `/api/v1/kiosk/my-appointments` (cross-device lookup of one's own not-yet-arrived appointments), `/api/v1/kiosk/appointment-cancel` (self-service cancellation of one's own not-yet-arrived appointments, decided on the user's behalf 2026-10-16) and `/api/v1/kiosk/openid-bind` (openid self-service binding) share this same table with card lookup, under the same retention convention — patient self-service lookups after identity verification never leave gaps.
 
 | Field | Type | Meaning |
 | ---- | ---- | ---- |

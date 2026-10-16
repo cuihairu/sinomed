@@ -5,6 +5,7 @@
 > 2026-10-16 巡检 PATROL1016：复核全部 5 条 open 项（2 卡点 + 3 已代决），解锁条件均未到——微信凭据仍占位（`app/project.config.json:5` touristappid、服务端 `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 缺省空串），支付通道服务端无任何商户配置且付费红线未授权；三条已代决无推翻信号，维持非目标不重开。无合法开工项。
 > 2026-10-16 巡检 P1016AM：卡点逐条再实证——微信凭据仍占位（`app/project.config.json:5` touristappid、`application.yml:51-53` 空缺省）、服务端支付商户配置仍零匹配，均未解除；三条已代决无推翻信号。无合法开工项。
 > 2026-10-16 巡检 PATROL016：复核结论不变（两条外部凭据卡点、三条已代决均无解锁信号，未重开）；docs 根目录 8 份文档已补中英配对与切换器（用户 2026-10-16 执行单），子目录双语化按单登记为下一条（见「文档与站点补完」）。
+> 2026-10-16 巡检 R2PATROL：账本 open 仅 2 条外部凭据卡点 + 3 条已代决，按单条款 1 转「路线图 + 最近 git log 自找下一批」——从小程序功能清单过筛，唯一同时满足「手机端优先 + 不碰付费/桌面/非目标 + 有现成基础设施」的缺口是**自助取消预约**（原拍板 2「取消不核验身份」前提已因 2026-10-14/15 双因子与 openid 绑定落地而失效），已按 TDD 落地并补齐文档。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -38,6 +39,8 @@
 - [ ] 采购单据与盘点——已代决（2026-10-14 巡检授权）：维持非目标。理由：出入库台账口径已够用（供货方随入库流水留痕，FEFO 批次消耗与效期预警已实装），不做采购单据/盘点/报损/多库房（docs/design/dispensing.md 裁定不变）
 
 ## 已完成
+
+- [x] 小程序自助取消预约——已代决（2026-10-16 R2PATROL，用户可推翻）：`app-booking.md` 拍板 2（2026-10-10）裁「顾客侧取消不做」，依据「取消不核验身份，无法阻止恶意取消他人约」；该前提已因 2026-10-14/15 手机号+一次性验证码双因子与 openid 绑定落地而失效，故恢复。服务端新增 `POST /api/v1/kiosk/appointment-cancel`（`{ phone, smsCode, appointmentId }`，仅 `sms_verified` 模式；验证码一次性，查预约用过的码须重新取码、缺 appointmentId 不烧码；只允许取消本人 status=0 且未过期预约 0→9，非本人/已受理或已过号/已取消/已过期/未知均 400 不静默；取消后时段按「每时段限约 1 位」自动释放、当日频控随之解除；每次尝试含拒绝落 `card_lookup_logs`，新增 result `cancel_ok / missing_appointment / not_owner / not_cancelable`）；小程序「我的」页查预约结果行内「取消」按钮（`pages/me/index.tsx` + `services/api.ts`）｜证据：`KioskAppointmentCancelTest` 13 新测试 + 2 模式门禁（`CardLookupOffTest`/`CardLookupOpenidTest`）全绿，全量服务端 283 测试 0 失败 0 错误（72 类），app `tsc --noEmit --skipLibCheck` 源码零报错，weapp/h5 双端构建通过；文档同 commit 闭合（app、alignment、app-booking、kiosk、server/api、data-model 共 12 份中英双份），docs check 与 vitepress build 双绿；证据：本轮 commit
 
 - [x] 顾客 openid 自助绑定——已代决（2026-10-15 R1015F，用户可推翻）：绑定路径拍板为**小程序自助**（openid + 一次性短信验证码自证手机号后绑定，免桌面免前台；不选管理端登记——与本阶段「不新增桌面功能」冲突且需原 UX 取舍；不选双轨——凭据未到位先建两套面属超前）。落地：服务端新增 `POST /api/v1/kiosk/openid-bind`（openid_only 模式专用，复用查卡一次性验证码通道与审计口径；同档案重复绑定幂等、openid 已绑其他档案 400 拒绝不静默改绑；每次尝试含拒绝落 `card_lookup_logs`，结果新增 `bind_ok / bind_conflict`），`sms-code` 放宽到 openid_only 发码（仅服务绑定，查卡仍只走 openid），openid 查卡未绑定文案由「请到前台登记绑定」改为自助绑定引导；小程序「卡项」页加「绑定微信」按钮（openid_only 下可见，绑定成功直接以 openid 查一次卡）、「说明」卡补绑定行｜证据：commit 9b3190e，定向服务端测试 37 全绿（`CardLookup*Test`+`KioskOpenid*Test`：绑定新测试 10、off/sms_verified 模式拒绝 2、openid_only 发码断言更新 1），`tsc --noEmit --skipLibCheck` 源码零报错，weapp/h5 双端构建通过；**激活仍缺微信侧凭据**（见卡点）
 - [x] desktop Rust 测试进 CI 门禁——desktop.yml 新增 `rust unit tests` job（ubuntu、`cargo test`，libudev/webkit2gtk 等前置同构建矩阵，rust-cache），与 NSIS/deb 构建并行拦截逻辑回归；此前 src-tauri 23 个 `#[test]`（ESC/POS 字节流、打印模板、配置解析、扫码行切分、崩溃预算）只存在于源码，desktop.yml 只跑 `pnpm tauri build` 不跑测试，改坏逻辑要到打包产物才暴露；frontendDist 为入库静态资源（desktop/ui），无需前端构建即可编译｜证据：commit 48edcc5，本地 `cargo test` 23 全绿（宏强制重展开实证编译不依赖 pnpm 产物）、CI 配置改动门禁全套（server 全量 256 测试 0 失败 + docs check 通过 + YAML 校验）、CI run 38669705114 全绿（rust unit tests / windows-nsis / linux-deb 均 success）

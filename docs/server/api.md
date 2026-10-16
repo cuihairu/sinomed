@@ -143,6 +143,7 @@
 | POST | `/api/v1/kiosk/card-lookup` | 手机查卡：body `{ phone?, openid?, smsCode? }`；按 `sinomed.phone-lookup.mode` 走 openid 或短信双因子，命中返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`；未命中/被拒不返回任何卡项，每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
 | POST | `/api/v1/kiosk/openid-bind` | openid 自助绑定（仅 `openid_only` 模式可用，其余模式 400；2026-10-15 代决）：body `{ openid, phone, smsCode }`，用一次性短信验证码自证手机号后把 openid 绑到该手机号对应的顾客档案（免前台免桌面）。同档案重复绑定幂等成功；openid 已绑其他档案 400 拒绝（不静默改绑，需前台处理）；缺 openid / 缺手机号或验证码 / 验证码错 / 该手机号无顾客档案均 400。返回 `{ message }`，每次尝试（含拒绝）落 `card_lookup_logs` 审计（result `bind_ok` / `bind_conflict`） |
 | POST | `/api/v1/kiosk/my-appointments` | 手机自助查预约（跨设备）：body `{ phone, smsCode }`（仅 `sms_verified` 模式可用，与查卡同一套一次性验证码），返回 `{ appointments: [{ appointmentId, startTime, itemName, status }] }`——该手机号**未过期**（今天 0 点起）的待到店预约（status=0），新约在前，无预约返回空数组；每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)（同一身份查询通道） |
+| POST | `/api/v1/kiosk/appointment-cancel` | 手机自助取消预约（2026-10-16 代决，`app-booking.md` 拍板 2 的「取消不核验身份」前提已因双因子落地失效；仅 `sms_verified` 模式可用）：body `{ phone, smsCode, appointmentId }`，验证码一次性（查预约用过的码取消须重新取码，缺预约 id 不烧码）；只允许取消本人 status=0 且未过期的预约（0→9），非本人 / 已受理或已过号 / 已取消 / 已过期 / 未知预约均 400 不静默；取消后该时段按「每时段限约 1 位」自动释放、当日频控随之解除。返回 `{ message }`，每次尝试（含拒绝）落 `card_lookup_logs` 审计（result `cancel_ok` / `missing_appointment` / `not_owner` / `not_cancelable`） |
 
 ## 打印模板 `/api/v1/print`（desktop.md D7）
 

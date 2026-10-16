@@ -195,3 +195,28 @@ export async function fetchMyAppointments(phone: string, smsCode: string): Promi
   }
   return res.data as MyAppointmentsResult
 }
+
+/** 手机自助取消预约请求（与服务端 POST /api/v1/kiosk/appointment-cancel 同构） */
+export interface CancelAppointmentBody {
+  phone: string
+  smsCode: string
+  appointmentId: number
+}
+
+/**
+ * 手机自助取消预约（POST /api/v1/kiosk/appointment-cancel）：手机号+验证码双因子（与查预约
+ * 同一套一次性验证码通道，验证码一次性——取消前需重新取码）；只能取消本人待到店且未过期的
+ * 预约，非本人/已受理/已取消/过期均 400，服务端 errorMessage 原样透出。
+ */
+export async function cancelAppointment(body: CancelAppointmentBody): Promise<{ message: string }> {
+  const res = await Taro.request({
+    url: kioskUrl('appointment-cancel'),
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    data: body
+  })
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw kioskError(res.data, res.statusCode, '取消失败')
+  }
+  return res.data as { message: string }
+}
