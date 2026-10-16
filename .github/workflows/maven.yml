@@ -35,7 +35,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
       - name: Cache maven repo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('server/pom.xml') }}
