@@ -9,6 +9,7 @@
 > 2026-10-16 巡检 R1016PATROL：复核两条卡点仍未解除（`app/project.config.json:5` 仍 touristappid、`application.yml:51-53` 空缺省；支付商户配置零匹配）；账本无合法开工项——上轮自找批次（自助取消预约）已收口 `fcf98e1`+`3712733`，features.md 路线图其余缺口均属已代决非目标或外部凭据卡点。
 > 2026-10-16 巡检 R1017PATROL：两条卡点与三条已代决复核结论不变（无合法开工项），按条款 6 扫工作区与 git log 接手可做的活——合入当日 4 条 dependabot PR（#6-#9，逐条 CI 绿），但 dependabot 重写 pnpm-lock 时丢 `overrides` 元数据且顺带把 app 的 webpack 解析漂移到 5.111.1（与 Taro 3.6.40 的 ProgressPlugin 传参不兼容），main 的 Frontend Build / Docker Images 双双红；修复 = 重生成两份 lockfile + `pnpm.overrides` 加 `"webpack@5": "5.104.1"` 兼容 pin（`1d6b915`），修复后 main 五工作流全绿。
 > 2026-10-16 巡检 R1020：卡点结论不变（2 卡点 + 3 已代决）；按单自找对账批次——api.md 端点与代码零漂移、controller 测试无缺口，补 deploy.md 配置键表漏列的 `sinomed.ads.url-prefix` / `sinomed.receipt.clinic-name`（中英双份），删零引用的 TokenEntity 注释存根（`741ce57`+`29c0c05`，283 测试全绿，CI 绿）。
+> 2026-10-18 巡检 PATROL1018A：两条卡点逐条再实证——微信凭据仍占位（`app/project.config.json:5` touristappid、`application.yml:51-53` 空缺省）、支付商户配置服务端零匹配且付费红线未授权，均未解锁；三条已代决无推翻信号，维持非目标；origin/main 无新提交、无 open PR、CI 全绿，无上游/CI 类新证据。工作区收口：来历不明的 README/README.zh 未提交改动（2026-10-17 19:21:11 同一进程一次写盘，把全部截图宽度 880/300/400 改 64，各会话记录均无写盘痕迹，属劣化）不入库、stash 存档可恢复；同批 .gitignore 防护规则（node_modules/.pnpm-store，带 2026-10-17 禁令注释）经 check-ignore 实证后入库。无合法开工项。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
