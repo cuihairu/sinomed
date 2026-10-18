@@ -31,6 +31,9 @@ public class KioskItemView {
     @Schema(title = "简介", example = "到店体验")
     private String description;
 
+    @Schema(title = "服务时长（分钟），可空——供预约页展示，不编造", example = "40")
+    private Integer durationMinutes;
+
     public static KioskItemView FromItemEntity(ItemEntity entity) {
         return KioskItemView.builder()
                 .id(entity.getId())
@@ -38,6 +41,7 @@ public class KioskItemView {
                 .price(entity.getPrice())
                 .cover(entity.getCover())
                 .description(entity.getDescription())
+                .durationMinutes(entity.getDurationMinutes())
                 .build();
     }
 }

@@ -8,6 +8,8 @@ export interface HomeItem {
   price: number
   cover: string | null
   description: string | null
+  /** 服务时长（分钟），可空；服务端不编造，无值不展示 */
+  durationMinutes?: number | null
 }
 
 function kioskUrl(path: string): string {

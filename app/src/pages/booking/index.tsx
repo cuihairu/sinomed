@@ -189,6 +189,7 @@ export default function Booking() {
               onClick={() => pickItem(i)}
             >
               {it.name} <Text className="bk-item-p">¥{it.price}</Text>
+              {it.durationMinutes ? <Text className="bk-item-p">·{it.durationMinutes}分钟</Text> : null}
             </View>
           ))}
         </View>

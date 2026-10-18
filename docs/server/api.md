@@ -139,7 +139,7 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| GET | `/api/v1/kiosk/items` | 上架卡项列表（enabled=1，sort+name 升序），只透 id/name/price/cover/description |
+| GET | `/api/v1/kiosk/items` | 上架卡项列表（enabled=1，sort+name 升序），只透 id/name/price/cover/description/durationMinutes（时长可空，供小程序预约页展示服务时长，服务端不编造；2026-10-19 补入） |
 | POST | `/api/v1/kiosk/orders` | 下单：body `{ phone, name?, itemIds[] }`。手机号须 `1\d{10}`；卡项须存在且上架（先全量校验再建档）；按手机号幂等建档（缺称呼默认「到店客人」），逐项落 `status=0` 订单并取卡项现价快照。返回 `{ customerId, customerName, orders[{id,itemId,itemName,price}], totalFee }` |
 | POST | `/api/v1/kiosk/appointments` | 自助约期：body `{ phone, name?, itemId?, startTime }`。时段 `yyyy-MM-dd HH:mm` **整点**、`09:00–17:00` 且晚于当前时刻；卡项可空（到店再定），须存在且上架；频控同手机号当日 `status IN (0,1)` 限 1 条（超出 400「当日已有预约，请到店或致电改约」）；按手机号幂等建档，落 `duration=60`、`status=0`、`staffId=null`、remark「小程序自助」的预约。返回 `{ customerId, customerName, appointmentId, startTime, itemName?, status: 0 }`。口径见[小程序自助约期设计](/design/app-booking) |
 | POST | `/api/v1/kiosk/sms-code` | 短信验证码（`sms_verified` 查卡与 `openid_only` 绑定共用，`off` 模式 400）：body `{ phone }`，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩——码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |

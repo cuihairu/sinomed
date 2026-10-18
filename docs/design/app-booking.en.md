@@ -55,7 +55,7 @@ Appointments appear as usual in `/appointment/query` and `/appointment/schedule`
 
 ## 6. Mini Program Pages (implemented after the ruling)
 
-- `pages/booking`: date strip (7 days from today) → slot grid (9:00–17:00 on the hour, all shown as bookable — the server does no occupancy lookup; conflicts are reconciled manually at in-store check-in) → item selection (reuses `GET /api/v1/kiosk/items`, skippable) → submit with phone + name.
+- `pages/booking`: date strip (7 days from today) → slot grid (9:00–17:00 on the hour, all shown as bookable — the server does no occupancy lookup; conflicts are reconciled manually at in-store check-in) → item selection (reuses `GET /api/v1/kiosk/items`, skippable; if an item carries a duration it shows "·N min" beside the name — the kiosk item payload has included `durationMinutes` since 2026-10-19, and is omitted when absent) → submit with phone + name.
 - A successful submission shows the appointment number and slot; 400 messages are surfaced verbatim (e.g. 「当日已有预约…」).
 - The home "booking banner" (an implemented placeholder) navigates to this page, and the placeholder marker is retired along with it.
 - H5 integrates directly; the WeChat mini program needs the API domain added to the business-domain whitelist (a deployment policy; see the same-origin constraints in the [换马甲构建指南](/app-white-label)).

@@ -28,7 +28,7 @@
 
 ### 手机端补完（第一优先）
 
-- （当前无未完成项）
+- [x] 小程序预约页展示服务时长——2026-10-19 巡检续推（手机端优先）：核现状发现 `durationMinutes` 已入 `items`（`ItemView` 透出、管理端可编辑、`ItemDurationHttpTest` 锁定），但 kiosk 浏览项视图白名单丢弃该字段（`KioskItemView` 只透 id/name/price/cover/description，api.md:142 亦按旧白名单如实标注）——顾客在 `pages/booking` 选项目时只能盲选时段。修复：`KioskItemView` 补 `durationMinutes`（可空，服务端不编造）+ 小程序 `HomeItem` 类型加可选字段 + 预约页项目名旁显示「·N分钟」（无值不渲染，复用 `.bk-item-p` 样式）｜证据：commit 本轮，TDD 红→绿——`KioskItemHttpTest` 新测试先红（`get("durationMinutes")` 返 null）后绿（有值 40 透出、无值不编造为 null、停用项不出现在浏览列表），类内 1/1 + `ItemDurationHttpTest` 1/1，全量 `./mvnw -B test` 314 测试 0 失败 0 错误；docs/server/api.md:142 与 api.en.md 白名单补字段、docs/design/app-booking.md 与 .en.md 预约页描述补时长展示
 
 ### 文档与站点补完
 
