@@ -23,6 +23,8 @@ type Item = {
   cover?: string;
   /** Kiosk 展示顺序，小者在前 */
   sort?: number;
+  /** 0 医馆服务（缺省）/ 1 皮肤管理 / 2 身体护理 / 3 中医美容 */
+  category?: number;
   createTime?: string;
   updateTime?: string;
 };
@@ -119,6 +121,19 @@ const Create: React.FC = () => {
         max={600}
         fieldProps={{ precision: 0 }}
         tooltip="单次服务时长，仅展示用，选填"
+      />
+      <ProFormSelect
+        colProps={{ md: 4, xl: 2 }}
+        name="category"
+        label="类目"
+        initialValue={0}
+        options={[
+          { label: '医馆服务', value: 0 },
+          { label: '皮肤管理', value: 1 },
+          { label: '身体护理', value: 2 },
+          { label: '中医美容', value: 3 },
+        ]}
+        tooltip="医馆服务为存量缺省；美容类目见美容业态扩展（docs/design/salon-extension.md）"
       />
       <ProFormTextArea
         colProps={{ md: 12, xl: 6 }}

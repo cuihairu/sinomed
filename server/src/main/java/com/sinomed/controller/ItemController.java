@@ -115,11 +115,15 @@ public class ItemController {
     })
 
     @GetMapping("/page")
-    public PageResp<ItemView> findByPage(@Validated @NotNull @RequestParam int current, @Validated @NotNull @RequestParam int pageSize, @Validated @Nullable @RequestParam String name, @Validated @Nullable @RequestParam Integer price){
+    public PageResp<ItemView> findByPage(@Validated @NotNull @RequestParam int current, @Validated @NotNull @RequestParam int pageSize, @Validated @Nullable @RequestParam String name, @Validated @Nullable @RequestParam Integer price, @Validated @Nullable @RequestParam Integer category){
         // 排序字段小者在前（原型 admin-items 口径），同序号 id 倒序稳定分页
         PageRequest page = PageRequest.of(current>0?current-1:0, pageSize>0?pageSize:1,
                 Sort.by(Sort.Direction.ASC, "sort").and(Sort.by(Sort.Direction.DESC, "id")));
         ItemEntity itemEntity = new ItemEntity();
+        // 类目过滤（美容业态 a）：null 不过滤，传值按 Example 精确匹配（与 name/price 同一 QBE 口径）
+        if (category != null) {
+            itemEntity.setCategory(category);
+        }
         Page<ItemEntity> allByPage = itemService.finAll(itemEntity,page);
         List<ItemView> data = new ArrayList<>();
         for (ItemEntity item : allByPage) {

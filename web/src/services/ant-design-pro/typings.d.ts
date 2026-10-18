@@ -255,6 +255,8 @@ declare namespace API {
     enabled?: number;
     cover?: string;
     sort?: number;
+    /** 0 医馆服务（缺省）/ 1 皮肤管理 / 2 身体护理 / 3 中医美容 */
+    category?: number;
   };
   type QueryItemParams = {
     pageSize?: number;
@@ -263,6 +265,8 @@ declare namespace API {
     name?: string;
     startTime?: string;
     endTime?: string;
+    /** 类目过滤：0 医馆服务 / 1 皮肤管理 / 2 身体护理 / 3 中医美容 */
+    category?: number;
   };
   type QueryItemResult = {
     total?: number;

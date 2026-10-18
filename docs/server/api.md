@@ -82,9 +82,9 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/item/` | 创建卡项（名称唯一、价格、描述；`durationMinutes` 单次时长分钟可空，展示用不参与结算） |
+| POST | `/api/v1/item/` | 创建卡项（名称唯一、价格、描述；`durationMinutes` 单次时长分钟可空，展示用不参与结算；`category` 类目 0 医馆服务（缺省）/ 1 皮肤管理 / 2 身体护理 / 3 中医美容） |
 | PUT | `/api/v1/item/` | 更新卡项 |
-| GET | `/api/v1/item/page` | 分页查询（当前实现未按条件过滤，返回全部） |
+| GET | `/api/v1/item/page` | 分页查询（`category` 类目过滤已生效，ItemCategoryHttpTest 锁死；`name`/`price` 参数当前仍未接入过滤，未传 `category` 返回全部） |
 | GET | `/api/v1/item/{id}` | 按 id 查询 |
 | GET | `/api/v1/item/name/{name}` | 按名称查询（`{name}` 为路径变量；PathLookupHttpTest 锁死） |
 | DELETE | `/api/v1/item/{id}` | 删除，返回删除前的卡项 |

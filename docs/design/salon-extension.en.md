@@ -21,6 +21,8 @@
 | c | Technician commission rules (distinct from doctors) | performance attribution already anchored: `orders.staff_id` + `order_items` multi-line detail (name/price snapshots) | `commission_rules` (P0 fixed ratio: project × position) + `commission_records` (generated at checkout, summable); doctors and technicians share **one** table distinguished by position — never two | grep for commission across the whole server source: **zero hits** — purely new, no parallel conflict |
 | d | Beauty customer tags (skin type / allergy history / care plan) | **allergy history reuses `customer_histories`** (type 0 allergy / 1 history, free text, `CustomerHistoryEntity.java:20`) | skin type/preference = lightweight customer tags; care plan = a customer-record extension (**not** reusing `TherapyTemplateEntity` — that is an external-treatment prescription template: method/points/course, a clinical-orders context) | `CustomerEntity.java` has no tag or skin-type fields today |
 
+> Progress: **a implemented** (2026-10-18, authorized as a standing decision: `items.category` column (integer default 0; ddl-auto adds the column as the migration) + create/update/paged category filtering + admin category select and list annotation, locked down by 4 tests in `ItemCategoryHttpTest`); b / c / d await scheduling.
+
 ## 3. Shared-core confirmation and survey corrections
 
 The ledger sentence "shares the customer-records / cards / follow-up core with the clinic business", checked item by item:
@@ -41,7 +43,7 @@ The ledger sentence "shares the customer-records / cards / follow-up core with t
 
 ## 5. Phasing direction (per survey §10; unscheduled)
 
-- **P0 (opening essentials)**: a catalog categories + b workstation entity and two-dimensional conflict detection + c fixed-ratio commission booking + d tags/allergy (reuse + additions); combined payment with per-visit card redemption, receipts, daily close and shift handover per the survey checklist.
+- **P0 (opening essentials)**: a catalog categories (**implemented**) + b workstation entity and two-dimensional conflict detection + c fixed-ratio commission booking + d tags/allergy (reuse + additions); combined payment with per-visit card redemption, receipts, daily close and shift handover per the survey checklist.
 - **P1**: commission rule engine (tiered/multi-party split), consumables BOM, expiry alerts, marketing (coupons/group-buy/referral/win-back), outreach channels.
 - **P2**: multi-store (decided non-goal, see todo.md; store fields and aggregation to be defined then), deep POS-terminal adaptation, door access.
 - Within each phase, **mobile first** (todo.md ordering basis: 手机端优先).

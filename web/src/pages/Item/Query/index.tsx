@@ -17,12 +17,21 @@ type Item = {
   sort?: number;
   /** 服务时长（分钟），卡项详情与预约下单展示用 */
   durationMinutes?: number;
+  /** 0 医馆服务（缺省）/ 1 皮肤管理 / 2 身体护理 / 3 中医美容 */
+  category?: number;
   createTime?: string;
   updateTime?: string;
 };
 
 /** 首字封面渐变轮换（g1 石墨 / g2 金棕 / g3 黛蓝 / g4 藤紫，同原型四色循环） */
 const COVER_GRADS = ['g1', 'g2', 'g3', 'g4'];
+
+/** 类目名（美容业态 a）；0 医馆服务为存量缺省，列表不重复标注 */
+const CATEGORY_LABELS: Record<number, string> = {
+  1: '皮肤管理',
+  2: '身体护理',
+  3: '中医美容',
+};
 
 export default () => {
   const actionRef = useRef<ActionType>();
@@ -53,6 +62,7 @@ export default () => {
             <div className="nm">{record.name || '-'}</div>
             <div className="ds">
               {[
+                CATEGORY_LABELS[record.category ?? 0] || '',
                 record.description || '',
                 record.durationMinutes ? `${record.durationMinutes} 分钟` : '',
               ]

@@ -82,6 +82,7 @@ Treatment-timeline convention (2026-10-12 ruling; the "treatment records" list o
 | enabled | Integer | 1 on sale / 0 off sale (the Kiosk shows on-sale items only; existing rows default to 1) |
 | cover | String | Cover image relative URL (nullable, hosted under `/media`) |
 | duration_minutes | Integer | Duration (minutes, nullable, for display) |
+| category | Integer | Category: 0 clinic service (default; existing rows get 0 when the column is added) / 1 skin care / 2 body care / 3 TCM beauty (beauty extension item a, docs/design/salon-extension.md) |
 | sort | Integer | Display order, lower values first |
 
 ## reviews / review_staffs / review_customers — feedback and retrospectives

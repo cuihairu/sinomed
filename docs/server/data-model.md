@@ -82,6 +82,7 @@
 | enabled | Integer | 1 上架、0 下架（Kiosk 只展示上架项；存量行默认 1） |
 | cover | String | 封面图相对 url（可空，`/media` 托管） |
 | duration_minutes | Integer | 时长（分钟，可空，展示用） |
+| category | Integer | 类目：0 医馆服务（缺省，存量行加列即为 0）/ 1 皮肤管理 / 2 身体护理 / 3 中医美容（美容业态 a，docs/design/salon-extension.md） |
 | sort | Integer | 展示顺序，小者在前 |
 
 ## reviews / review_staffs / review_customers — 反馈与复盘
