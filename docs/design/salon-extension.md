@@ -21,7 +21,7 @@
 | c | 技师提成规则（区别于医师） | 业绩归属已有挂点：`orders.staff_id` + `order_items` 多行明细（含名称/价格快照） | `commission_rules`（P0 固定比例：项目×岗位）+ `commission_records`（结账生成、可汇总）；医师/技师**同表**用岗位区分，不建两套 | 全服务端源码 grep 提成/commission **零命中**——纯新增，无并行冲突 |
 | d | 美容客群标签（肤质/过敏史/护理方案） | **过敏史复用 `customer_histories`**（type 0 过敏 / 1 既往，自由文本，`CustomerHistoryEntity.java:20`） | 肤质/偏好 = 轻量客户标签；护理方案 = 客户档案扩展（**不复用** `TherapyTemplateEntity`——那是外治处方模板：方法/取穴/疗程，属医嘱语境） | `CustomerEntity.java` 现无标签与肤质字段 |
 
-> 进度：**a、b 已实施**。a（2026-10-18 已代决开工）：`items.category` 列（integer default 0，ddl-auto 加列即迁移）+ 创建/更新/分页类目过滤 + 管理端类目选择与列表标注，`ItemCategoryHttpTest` 4 测试锁死。b（2026-10-18 巡检开工）：`rooms` 工位表 + `appointments.room_id`（可空）+ 技师/工位双维时段互斥（`ensureSlotFree` 加工位桶计数）+ 管理端工位管理页与建约工位选择，`RoomHttpTest` 3 + `AppointmentRoomConflictHttpTest` 5 测试锁死；叫号 `roomOf()` 仍为员工名+「诊室」展示文本，不动。c / d 待排期。
+> 进度：**a、b、c 已实施**。a（2026-10-18 已代决开工）：`items.category` 列（integer default 0，ddl-auto 加列即迁移）+ 创建/更新/分页类目过滤 + 管理端类目选择与列表标注，`ItemCategoryHttpTest` 4 测试锁死。b（2026-10-18 巡检开工）：`rooms` 工位表 + `appointments.room_id`（可空）+ 技师/工位双维时段互斥（`ensureSlotFree` 加工位桶计数）+ 管理端工位管理页与建约工位选择，`RoomHttpTest` 3 + `AppointmentRoomConflictHttpTest` 5 测试锁死；叫号 `roomOf()` 仍为员工名+「诊室」展示文本，不动。c（2026-10-18 巡检开工）：`commission_rules`（P0 固定比例「项目×岗位」，一岗一比例）+ `commission_records`（结算落账、次卡抵扣实收 0 也记、退单负向冲销净额归零、按员工合计报表），`CommissionRuleHttpTest` 3 + `CommissionRecordHttpTest` 5 测试锁死。d 待排期。
 
 ## 3. 共用核心确认与调研偏差修正
 
@@ -43,7 +43,7 @@
 
 ## 5. 分期方向（照搬调研 §10，未排期）
 
-- **P0（开业必需）**：a 项目库类目（**已实施**）+ b 工位实体与双维冲突检测（**已实施**）+ c 固定比例提成记账 + d 标签/过敏（复用+新增）；组合支付与次卡核销、小票、日结交接班按调研清单逐项落。
+- **P0（开业必需）**：a 项目库类目（**已实施**）+ b 工位实体与双维冲突检测（**已实施**）+ c 固定比例提成记账（**已实施**）+ d 标签/过敏（复用+新增）；组合支付与次卡核销、小票、日结交接班按调研清单逐项落。
 - **P1**：提成规则引擎（阶梯/多人分佣）、耗材 BOM、效期预警、营销（券/拼团/老带新/沉睡召回）、触达体系。
 - **P2**：多门店（已代决维持非目标，见 todo.md；届时再定门店字段与聚合口径）、收银一体机深度适配、门禁。
 - 分期内每项**先落手机端**（todo.md 排序依据：手机端优先）。

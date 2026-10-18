@@ -15,6 +15,7 @@ import com.sinomed.repository.RefundLogRepository;
 import com.sinomed.repository.SettlementRepository;
 import com.sinomed.repository.TreatRepository;
 import com.sinomed.service.CardService;
+import com.sinomed.service.CommissionService;
 import com.sinomed.service.SettlementService;
 import com.sinomed.vo.ReconciliationView;
 import com.sinomed.vo.ReconciliationView.RechargeRow;
@@ -63,6 +64,7 @@ public class SettlementServiceImpl implements SettlementService {
     private final CardUsageRepository cardUsageRepository;
     private final CustomerCardRepository customerCardRepository;
     private final TreatRepository treatRepository;
+    private final CommissionService commissionService;
 
     /**
      * 收费结算：订单 0 已下单 / 1 已确认 → 2 已完成；落一条结算单（一单一结算，order_id 唯一兜底）。
@@ -117,6 +119,8 @@ public class SettlementServiceImpl implements SettlementService {
 
         order.setStatus(2);
         orderRepository.save(order);
+        // 提成记账（美容业态 c）：按订单明细行×规则比例落记录，无归属/无岗位/无规则自然不记
+        commissionService.bookForSettlement(order, settlement);
         return settlement;
     }
 
@@ -320,6 +324,8 @@ public class SettlementServiceImpl implements SettlementService {
 
         order.setStatus(1); // 已完成 → 已接单，可重新走结算台收款
         orderRepository.save(order);
+        // 提成冲销（美容业态 c）：退单写等额负向记录，净额归零；重收后按新结算单重新记账
+        commissionService.reverseForSettlement(settlement);
         log.info("退单：settlement={} 订单 {} 回退待结算，退款 {} 元（payType {}），理由：{}",
                 settlementId, order.getId(), money, payType, trimmed);
         return refund;

@@ -191,6 +191,15 @@ Append-only: bonus visits add N to both `total/remaining` (in the same transacti
 
 Indexes: patient, service card, workstation, time slot. Endpoints in the appointments group of [api](/server/api); same-slot conflict check: a booking is rejected when the same physician already has a `status 0/1` appointment on the same day and hour (one booking per slot; the empty-`staffId` group is mutually exclusive on its own); a non-empty `roomId` is mutually exclusive on the workstation axis too (technician + workstation two dimensions, beauty phase b, locked by `AppointmentRoomConflictHttpTest`).
 
+## commission_rules / commission_records — commission (beauty phase c)
+
+| Table | Fields | Notes |
+| ---- | ---- | ---- |
+| `commission_rules` (rules) | `item_id` (not null), `title` (position, exact match on `staffs.title`), `ratio` (integer percent 0–100) | P0 fixed ratio "card × position", one ratio per position (unique constraint item_id+title); physicians and technicians share one table, never a parallel one; rule engine is P1 |
+| `commission_records` (records) | `order_id`, `settlement_id`, `order_item_id` (all not null), `staff_id` (not null), `item_name`/`subtotal`/`ratio` (snapshots), `amount` (yuan, negative on refund reversal), `remark` | Generated automatically when a settlement completes (hooked in SettlementServiceImpl): attribution = `orders.staff_id`, booked per `order_items` line subtotal × ratio (card-deduction settlements with 0 paid still book; integer yuan rounded down); insert-only, refunds write equal negative reversals (remark 「退单冲销 #结算id」) netting to zero; legacy orders without item lines are not booked |
+
+Indexes: rule item_id + unique (item_id, title); record order_id, settlement_id, staff_id. Endpoints in the commission group of [api](/server/api).
+
 ## rooms — workstations / rooms (beauty phase b)
 
 | Field | Type | Meaning |

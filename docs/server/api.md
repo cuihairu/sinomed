@@ -181,6 +181,21 @@
 时段为开始时刻 + 时长（分钟）；状态：`0` 待到店、`1` 已接待、`8` 过号、`9` 已取消（8/9 为终态）。每时段限约 1 位（原型 admin-booking 口径）：同医师同日同小时已有待到店/已接待预约即拒，取消/过号后时段自动释放；自助约期（staffId 空）与已指派医师分属不同组互不影响。到店接待后请从接诊页发起接诊，预约状态不随接诊单自动回写。
 :::
 
+## 提成 `/api/v1/commission`（需登录，美容业态 c）
+
+| 方法 | 路径 | 功能 |
+| ---- | ---- | ---- |
+| GET | `/api/v1/commission/rule` | 规则列表（全量按 id 倒序；`itemId` 可选按卡项过滤） |
+| POST | `/api/v1/commission/rule` | 新建规则：`itemId` + `title`（岗位，`staffs.title` 精确匹配）+ `ratio`（整数百分比 0–100）必填；同项目同岗位唯一（一岗一比例） |
+| PUT | `/api/v1/commission/rule` | 更新规则：`id` 必填，可改 `title`/`ratio`；itemId 建议删了重建 |
+| DELETE | `/api/v1/commission/rule/{id}` | 删除规则（硬删；已生成记录不受影响，快照在记录里） |
+| GET | `/api/v1/commission/record/page` | 记录分页（current、pageSize，`orderId`/`staffId` 可选过滤），按 id 倒序，联出员工名 |
+| GET | `/api/v1/commission/record/summary` | 按员工合计（工资基数）：`staffId`/`start`（含）/`end`（不含）可空；净额 = 正向 + 冲销 |
+
+::: tip 提成口径
+P0 固定比例「项目×岗位」（docs/design/salon-extension.md §2-c）：岗位取 `staffs.title`，与排班医师名册同一岗位口径；医师/技师共用本套规则（同表区分），不建并行实体。**记账锚点**：业绩归属 = `orders.staff_id`（建单人），结算完成时按 `order_items` 行小计 × 比例生成记录（行小计/比例/卡项名均为快照）；**按业绩不按实收**——次卡抵扣实收 0 也照记；整数元向下取整。员工无归属（前台单）、员工无岗位、岗位无规则，任一缺失不落记录（0 不建规则即得）。**退单**写等额负向冲销（remark「退单冲销 #结算id」），净额归零；重收后按新结算单重新记账。存量单无 `order_item` 明细行的不记账（明细行随多品项建单落库）。阶梯/多人分佣规则引擎为 P1。
+:::
+
 ## 工位 `/api/v1/room`（需登录，美容业态 b）
 
 | 方法 | 路径 | 功能 |
@@ -207,11 +222,11 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/settlement/` | 收款结算：`orderId` + `payType`（`1` 储值 / `2` 微信 / `3` 支付宝 / `4` 现金 / `5` 次卡抵扣）；订单状态 `0/1 → 2` 已完成；储值支付校验余额并落负数流水，不足报 400；次卡抵扣按订单卡项扣 1 次、实收记 0，无有效余次卡报 400；防重复收款按「最近一张结算单未退款」判断（退费重收后一单可多张结算单） |
+| POST | `/api/v1/settlement/` | 收款结算：`orderId` + `payType`（`1` 储值 / `2` 微信 / `3` 支付宝 / `4` 现金 / `5` 次卡抵扣）；订单状态 `0/1 → 2` 已完成；储值支付校验余额并落负数流水，不足报 400；次卡抵扣按订单卡项扣 1 次、实收记 0，无有效余次卡报 400；防重复收款按「最近一张结算单未退款」判断（退费重收后一单可多张结算单）；**结算完成自动落提成记录**（美容业态 c：订单明细行小计 × 规则比例，见下方提成组） |
 | GET | `/api/v1/settlement/page` | 结算单分页（current、pageSize），联出顾客名，时间倒序 |
 | GET | `/api/v1/settlement/report/month?month=` | 月度收费报表：`month=yyyy-MM` 必填（格式非法/月份不存在报 400）；按结算时间聚合当月结算单——`totalCount` 单数、`totalMoney` 实收合计（元）、`cardCount` 次卡核销单数、`days[]` 逐日单数/实收（只列有结算的日，升序）、`payTypes[]` 支付方式构成（`payType`/`payTypeText`/单数/实收，只列出现过的，升序）；储值充值不计入营收 |
 | GET | `/api/v1/settlement/report/trend?months=` | 经营趋势：`months` 1-24 可空（缺省 6，越界报 400）；近 N 月（含当月）逐月聚合实收/结算单数/次卡核销单数与接诊量（`rows[]`：`month`/`money`/`count`/`cardCount`/`treatCount`），无数据月零填充、月份升序 |
-| POST | `/api/v1/settlement/{id}/refund` | 退单：`reason` 必填 ≤100 字；一笔结算只能退一次（`refund_logs.settlement_id` 唯一兜底，已退款报 400「该结算已退款」）；退款 = 退整单、按原 `payType` 原路退回——储值补正数流水（note「退单 #结算id」）、次卡作废该订单核销流水并回补余次（金额记 0）、微信/支付宝/现金仅落退款记录；订单 `2 → 1` 已接单可重收；回退款单视图（联顾客/操作人名） |
+| POST | `/api/v1/settlement/{id}/refund` | 退单：`reason` 必填 ≤100 字；一笔结算只能退一次（`refund_logs.settlement_id` 唯一兜底，已退款报 400「该结算已退款」）；退款 = 退整单、按原 `payType` 原路退回——储值补正数流水（note「退单 #结算id」）、次卡作废该订单核销流水并回补余次（金额记 0）、微信/支付宝/现金仅落退款记录；订单 `2 → 1` 已接单可重收；回退款单视图（联顾客/操作人名）；**退单自动冲销该结算单的提成记录**（等额负向，净额归零） |
 | GET | `/api/v1/settlement/reconciliation?date=` | 日对账单：`date=yyyy-MM-dd` 必填（缺失/非法报 400）；按自然日聚合收款（单数/实收/`incomePayTypes[]`/次卡核销单列）、充值（笔数/金额单列不计营收，只含真实充值——储值支付扣减归收款侧、退款补回归退款侧）、退款（笔数/金额/`refundPayTypes[]` 按原支付方式 + 明细行）；`netMoney` = 实收 - 退款，`cashNetMoney` = 现金收款 - 现金退款（钱箱核对用） |
 
 ::: tip 收费口径

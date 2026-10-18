@@ -191,6 +191,15 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 
 索引：顾客、卡项、工位、时段。接口见 [api](/server/api) 预约组；同时段冲突校验：同医师同日同小时已有 `status 0/1` 的预约时拒绝（每时段限约 1 位，`staffId` 空组独立互斥）；`roomId` 非空时同工位同小时同样互斥（技师+工位双维，美容业态 b，`AppointmentRoomConflictHttpTest` 锁死）。
 
+## commission_rules / commission_records — 提成（美容业态 c）
+
+| 表 | 字段 | 说明 |
+| ---- | ---- | ---- |
+| `commission_rules`（规则） | `item_id`（非空）、`title`（岗位，`staffs.title` 精确匹配）、`ratio`（整数百分比 0–100） | P0 固定比例「项目×岗位」，一岗一比例（唯一约束 item_id+title）；医师/技师同表区分，不建并行实体；P1 再上规则引擎 |
+| `commission_records`（记录） | `order_id`、`settlement_id`、`order_item_id`（均非空）、`staff_id`（非空）、`item_name`/`subtotal`/`ratio`（快照）、`amount`（元，退单冲销为负）、`remark` | 结算完成自动生成（SettlementServiceImpl 落钩）：业绩归属 = `orders.staff_id`，按 `order_items` 行小计 × 比例记（次卡抵扣实收 0 也记，整数元向下取整）；insert-only，退单写等额负向冲销（remark「退单冲销 #结算id」）净额归零；存量单无明细行不记账 |
+
+索引：规则 item_id + 唯一 (item_id,title)；记录 order_id、settlement_id、staff_id。接口见 [api](/server/api) 提成组。
+
 ## rooms — 工位/房间（美容业态 b）
 
 | 字段 | 类型 | 含义 |

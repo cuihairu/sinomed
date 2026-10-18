@@ -268,6 +268,11 @@ export default [
         path: '/billing/reconciliation',
         component: './Billing/Reconciliation',
       },
+      {
+        name: 'billing-commission',
+        path: '/billing/commission',
+        component: './Billing/Commission',
+      },
     ],
   },
   {
