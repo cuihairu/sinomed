@@ -182,13 +182,25 @@ Append-only: bonus visits add N to both `total/remaining` (in the same transacti
 | customer_id | Long | Patient id (not null, customers.id) |
 | item_id | Long | Booked service card id (nullable = decided on arrival) |
 | staff_id | Long | Check-in staff id (nullable = assigned on arrival) |
+| room_id | Long | Workstation id (nullable = no workstation axis; beauty bookings occupy one, rooms.id) |
 | start_time | Date | Start time of the booked slot (not null) |
 | duration | Integer | Duration (minutes; self-service slot booking is fixed at 60) |
 | status | Integer | `0` not yet arrived → `1` checked in (converted to treatment); `0→9` cancelled; only `9` can be deleted |
 | remark | String | Remarks (symptoms / needs); self-service slot booking records the soft marker "mini program self-service" — there is no source column |
 | create_time / update_time | Date | Audit times |
 
-Indexes: patient, service card, time slot. Endpoints in the appointments group of [api](/server/api); same-slot conflict check: a booking is rejected when the same physician already has a `status 0/1` appointment on the same day and hour (one booking per slot; the empty-`staffId` group is mutually exclusive on its own).
+Indexes: patient, service card, workstation, time slot. Endpoints in the appointments group of [api](/server/api); same-slot conflict check: a booking is rejected when the same physician already has a `status 0/1` appointment on the same day and hour (one booking per slot; the empty-`staffId` group is mutually exclusive on its own); a non-empty `roomId` is mutually exclusive on the workstation axis too (technician + workstation two dimensions, beauty phase b, locked by `AppointmentRoomConflictHttpTest`).
+
+## rooms — workstations / rooms (beauty phase b)
+
+| Field | Type | Meaning |
+| ---- | ---- | ---- |
+| id | Long | Primary key |
+| name | String | Workstation name (not null, unique) |
+| enabled | Integer | 1 in use, 0 disabled (existing rows default to 1; the booking form only lists workstations in use) |
+| create_time / update_time | Date | Audit times |
+
+Index: name. The resource axis of appointments — beauty bookings occupy a workstation, clinic bookings do not (`appointments.room_id` is nullable); unrelated to the queue display text `queue_calls.room` (a display field, not a bookable resource). See the workstations group of [api](/server/api).
 
 ## prescriptions / prescription_items — herbal prescriptions
 

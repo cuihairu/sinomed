@@ -133,6 +133,12 @@ export default function AppointmentQuery() {
       render: (_, entity) => entity.staffName || '-',
     },
     {
+      title: '工位',
+      dataIndex: 'roomName',
+      width: 100,
+      render: (_, entity) => entity.roomName || '-',
+    },
+    {
       title: '时段',
       dataIndex: 'startTime',
       width: 170,

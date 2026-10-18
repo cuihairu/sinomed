@@ -19,6 +19,10 @@ export interface Appointment {
   staffId?: number | null;
   /** 接待员工名（列表联出） */
   staffName?: string;
+  /** 工位id（美容业态 b，可空：医馆预约不占工位维） */
+  roomId?: number | null;
+  /** 工位名（列表联出） */
+  roomName?: string;
   /** 预约时段开始时刻 */
   startTime?: string;
   /** 时长（分钟） */

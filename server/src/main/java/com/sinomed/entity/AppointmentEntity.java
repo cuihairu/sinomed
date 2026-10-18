@@ -17,6 +17,7 @@ import java.util.Date;
 @Table(name = "`appointments`",indexes = {
         @Index(name = "idx_appointment_customer_id",columnList = "customer_id"),
         @Index(name = "idx_appointment_item_id",columnList = "item_id"),
+        @Index(name = "idx_appointment_room_id",columnList = "room_id"),
         @Index(name = "idx_appointment_start_time",columnList = "start_time")
 })
 @EntityListeners(AuditingEntityListener.class)
@@ -34,6 +35,11 @@ public class AppointmentEntity {
 
     @Column(name = "staff_id")
     private Long staffId;
+
+    /** 工位/房间（美容业态 b，docs/design/salon-extension.md §2-b）：可空——医馆预约不占工位维；
+     *  带工位的预约参与「技师+工位」双维时段互斥 */
+    @Column(name = "room_id")
+    private Long roomId;
 
     /** 预约时段开始时刻 */
     @Column(name = "start_time",nullable = false)

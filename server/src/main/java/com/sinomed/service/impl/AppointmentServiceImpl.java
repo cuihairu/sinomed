@@ -46,11 +46,12 @@ public class AppointmentServiceImpl implements AppointmentService {
      */
     @Override
     public AppointmentEntity save(AppointmentView view) {
-        ensureSlotFree(view.getStartTime(), view.getStaffId());
+        ensureSlotFree(view.getStartTime(), view.getStaffId(), view.getRoomId());
         AppointmentEntity appointment = new AppointmentEntity();
         appointment.setCustomerId(view.getCustomerId());
         appointment.setItemId(view.getItemId());
         appointment.setStaffId(view.getStaffId());
+        appointment.setRoomId(view.getRoomId());
         appointment.setStartTime(view.getStartTime());
         appointment.setDuration(view.getDuration());
         appointment.setRemark(view.getRemark());
@@ -61,9 +62,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     /**
      * 每时段限约 1 位（原型 admin-booking.html 口径）：同医师同日同小时已有 status 0/1 预约则拒；
      * staffId 为空（Kiosk 自助约期，到店分配）归同一空组参与互斥。取消/过号后的时段自动释放。
+     * 工位维（美容业态 b）：roomId 非空时同工位同小时同样互斥，跨技师占同一工位也算冲突；
+     * roomId 为空（医馆预约/Kiosk 自助）不参与工位互斥，旧口径不变。
      */
     @Override
-    public void ensureSlotFree(Date startTime, Long staffId) {
+    public void ensureSlotFree(Date startTime, Long staffId, Long roomId) {
         if (startTime == null) {
             return;
         }
@@ -79,6 +82,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                         staffId, hourStart, hourEnd, List.of(0, 1));
         if (taken > 0) {
             throw new IllegalArgumentException("该时段已约满（每时段限约 1 位），请换医师或时段");
+        }
+        if (roomId != null && appointmentRepository
+                .countByRoomIdAndStartTimeGreaterThanEqualAndStartTimeLessThanAndStatusIn(
+                        roomId, hourStart, hourEnd, List.of(0, 1)) > 0) {
+            throw new IllegalArgumentException("该工位该时段已被占用（每时段限约 1 位），请换工位或时段");
         }
     }
 

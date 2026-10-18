@@ -44,6 +44,12 @@ public class AppointmentView {
     @Schema(title = "接待员工名（列表联出）", example = "沈中医师")
     private String staffName;
 
+    @Schema(title = "工位id（美容业态 b，可空：医馆预约不占工位维）", example = "1")
+    private Long roomId;
+
+    @Schema(title = "工位名（列表联出）", example = "美容一号工位")
+    private String roomName;
+
     @Schema(title = "预约时段开始时刻", example = "2026-10-10 10:30:00")
     private Date startTime;
 
@@ -68,6 +74,7 @@ public class AppointmentView {
                 .customerId(entity.getCustomerId())
                 .itemId(entity.getItemId())
                 .staffId(entity.getStaffId())
+                .roomId(entity.getRoomId())
                 .startTime(entity.getStartTime())
                 .duration(entity.getDuration())
                 .status(entity.getStatus())

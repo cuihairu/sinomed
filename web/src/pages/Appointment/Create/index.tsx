@@ -13,6 +13,7 @@ import { createAppointment } from '@/services/ant-design-pro/appointment';
 import { fetchCustomerByPhone } from '@/services/ant-design-pro/customer';
 import { queryStaffByPage } from '@/services/ant-design-pro/staff';
 import { queryItemByPage } from '@/services/ant-design-pro/item';
+import { queryRoomList } from '@/services/ant-design-pro/room';
 import './index.less';
 
 /** 会员等级展示口径（同顾客档案）：1 普通 / 2 银卡 / 3 金卡 */
@@ -26,18 +27,26 @@ const Create: React.FC = () => {
   const [finding, setFinding] = useState(false);
   const [staffOptions, setStaffOptions] = useState<{ label: string; value: number }[]>([]);
   const [itemOptions, setItemOptions] = useState<{ label: string; value: number }[]>([]);
+  const [roomOptions, setRoomOptions] = useState<{ label: string; value: number }[]>([]);
 
   const loadOptions = async () => {
     if (staffOptions.length > 0) return;
-    const [staffs, items] = await Promise.all([
+    const [staffs, items, rooms] = await Promise.all([
       queryStaffByPage({ current: 1, pageSize: 100 }),
       queryItemByPage({ current: 1, pageSize: 100 }),
+      queryRoomList().catch(() => [] as { id?: number; name?: string; enabled?: number }[]),
     ]);
     setStaffOptions(
       (staffs?.data || []).map((s) => ({ label: s.name || `员工${s.id}`, value: s.id! })),
     );
     setItemOptions(
       (items?.data || []).map((i) => ({ label: i.name || `卡项${i.id}`, value: i.id! })),
+    );
+    // 只列在用工位；美容项目占工位，医馆预约可不选（服务端技师+工位双维限约）
+    setRoomOptions(
+      (rooms || [])
+        .filter((r) => r.enabled === 1)
+        .map((r) => ({ label: r.name || `工位${r.id}`, value: r.id! })),
     );
   };
 
@@ -111,6 +120,7 @@ const Create: React.FC = () => {
               customerId: customer.id,
               itemId: values.itemId,
               staffId: values.staffId,
+              roomId: values.roomId,
               startTime: values.startTime
                 ? moment(values.startTime).format('YYYY-MM-DDTHH:mm:ssZ')
                 : undefined,
@@ -164,6 +174,14 @@ const Create: React.FC = () => {
             width="md"
             placeholder="可选，到店再定"
             options={itemOptions}
+            fieldProps={{ onFocus: loadOptions }}
+          />
+          <ProFormSelect
+            name="roomId"
+            label="预约工位"
+            width="md"
+            placeholder="可选，美容项目建议选；同工位同小时只排一位"
+            options={roomOptions}
             fieldProps={{ onFocus: loadOptions }}
           />
           <ProFormTextArea

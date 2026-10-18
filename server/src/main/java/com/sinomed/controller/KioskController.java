@@ -238,9 +238,9 @@ public class KioskController {
             throw new IllegalArgumentException("当日已有预约，请到店或致电改约");
         }
 
-        // 每时段限约 1 位：自助约期未指派医师（staffId 空，到店分配），空组互斥
+        // 每时段限约 1 位：自助约期未指派医师（staffId 空，到店分配），空组互斥；Kiosk 不占工位维
         appointmentService.ensureSlotFree(
-                Date.from(start.atZone(ZoneId.systemDefault()).toInstant()), null);
+                Date.from(start.atZone(ZoneId.systemDefault()).toInstant()), null, null);
 
         AppointmentEntity appointment = new AppointmentEntity();
         appointment.setCustomerId(customer.getId());

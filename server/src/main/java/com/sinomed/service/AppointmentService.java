@@ -14,13 +14,14 @@ public interface AppointmentService {
      * */
     Optional<AppointmentEntity> findById(Long id);
     /**
-     * 保存预约（新建：status 置 0 待到店；每时段限约 1 位，同医师同小时已有待到店/已接待预约报错）
+     * 保存预约（新建：status 置 0 待到店；每时段限约 1 位，同医师/同工位同小时已有待到店/已接待预约报错）
      * */
     AppointmentEntity save(AppointmentView view);
     /**
-     * 每时段限约 1 位：同医师（staffId 为空归同组）同日同小时已有 status 0/1 预约则抛 IllegalArgumentException
+     * 每时段限约 1 位：同医师（staffId 为空归同组）同小时已有 status 0/1 预约则抛 IllegalArgumentException；
+     * roomId 非空时工位维同样互斥（美容业态 b 双维冲突，docs/design/salon-extension.md §2-b）
      * */
-    void ensureSlotFree(Date startTime, Long staffId);
+    void ensureSlotFree(Date startTime, Long staffId, Long roomId);
     /**
      * 根据预约的id删除预约
      * */

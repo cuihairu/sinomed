@@ -28,6 +28,10 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity,L
     long countByStaffIdIsNullAndStartTimeGreaterThanEqualAndStartTimeLessThanAndStatusIn(
             Date start, Date end, Collection<Integer> statusList);
 
+    /** 每时段限约 1 位·工位维（美容业态 b）：同工位在 [start, end) 半开区间内的预约数 */
+    long countByRoomIdAndStartTimeGreaterThanEqualAndStartTimeLessThanAndStatusIn(
+            Long roomId, Date start, Date end, Collection<Integer> statusList);
+
     /** 按时段过滤分页（date 参数落到 [day 00:00, 次日 00:00) 区间） */
     Page<AppointmentEntity> findByStartTimeBetween(Date start, Date end, Pageable pageable);
 

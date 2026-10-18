@@ -182,13 +182,25 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | customer_id | Long | 顾客 id（非空，customers.id） |
 | item_id | Long | 预约卡项 id（可空=到店再定） |
 | staff_id | Long | 接待员工 id（可空=到店分配） |
+| room_id | Long | 工位 id（可空=不占工位维；美容项目预约占工位，rooms.id） |
 | start_time | Date | 预约时段开始时刻（非空） |
 | duration | Integer | 时长（分钟；自助约期固定 60） |
 | status | Integer | `0` 待到店 → `1` 已接待（转接诊），`0→9` 取消；仅 `9` 可删 |
 | remark | String | 备注（症状/需求）；自助约期记「小程序自助」软标记，无 source 列 |
 | create_time / update_time | Date | 审计时间 |
 
-索引：顾客、卡项、时段。接口见 [api](/server/api) 预约组；同时段冲突校验：同医师同日同小时已有 `status 0/1` 的预约时拒绝（每时段限约 1 位，`staffId` 空组独立互斥）。
+索引：顾客、卡项、工位、时段。接口见 [api](/server/api) 预约组；同时段冲突校验：同医师同日同小时已有 `status 0/1` 的预约时拒绝（每时段限约 1 位，`staffId` 空组独立互斥）；`roomId` 非空时同工位同小时同样互斥（技师+工位双维，美容业态 b，`AppointmentRoomConflictHttpTest` 锁死）。
+
+## rooms — 工位/房间（美容业态 b）
+
+| 字段 | 类型 | 含义 |
+| ---- | ---- | ---- |
+| id | Long | 主键 |
+| name | String | 工位名（非空、唯一） |
+| enabled | Integer | 1 在用、0 停用（存量行默认 1；新建预约表单只列在用工位） |
+| create_time / update_time | Date | 审计时间 |
+
+索引：名称。预约的资源维度——美容项目预约占工位、医馆预约不占（`appointments.room_id` 可空）；与叫号展示文本 `queue_calls.room` 无关（那是展示字段，不是可预约资源）。见 [api](/server/api) 工位组。
 
 ## prescriptions / prescription_items — 中药处方
 

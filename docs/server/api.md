@@ -172,13 +172,27 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| POST | `/api/v1/appointment/` | 新建预约：`customerId` + `startTime` 必填，`itemId`/`staffId`/`duration`/`remark` 可选；新预约一律 `status=0` 待到店；**每时段限约 1 位**——同医师同日同小时（floor 到整点桶）已有 `status IN (0,1)` 预约报 400「该时段已约满（每时段限约 1 位），请换医师或时段」，`staffId` 为空（自助约期，到店分配）归同一空组互斥 |
-| GET | `/api/v1/appointment/page` | 分页（current、pageSize、status 可空、date 可空 `yyyy-MM-dd` 按日过滤），联出顾客名/手机号、卡项名、员工名 |
+| POST | `/api/v1/appointment/` | 新建预约：`customerId` + `startTime` 必填，`itemId`/`staffId`/`roomId`/`duration`/`remark` 可选；新预约一律 `status=0` 待到店；**每时段限约 1 位**——同医师同日同小时（floor 到整点桶）已有 `status IN (0,1)` 预约报 400「该时段已约满（每时段限约 1 位），请换医师或时段」，`staffId` 为空（自助约期，到店分配）归同一空组互斥；`roomId` 非空时**工位维同样互斥**（同工位同小时跨技师也拒，报 400「该工位该时段已被占用」；美容业态 b 双维冲突，AppointmentRoomConflictHttpTest 锁死，工位须存在） |
+| GET | `/api/v1/appointment/page` | 分页（current、pageSize、status 可空、date 可空 `yyyy-MM-dd` 按日过滤），联出顾客名/手机号、卡项名、员工名、工位名 |
 | PUT | `/api/v1/appointment/status` | 状态流转：只允许 `0→1`（到店接待，随后从接诊页建单）、`0→8`（过号）与 `0→9`（取消）；过号/取消为终态，其余组合报错。`0→1` **自动叫号联动**（docs/tablet.md「到号自动叫号」）：接待即落一条 `queue_calls`（号码=当日接待序号补零两位、诊室=接诊医师名+「诊室」/未指派「待分配诊室」、姓名脱敏、广播全部屏），过号/取消不叫号 |
 | DELETE | `/api/v1/appointment/{id}` | 删除，仅 `status=9`（已取消）可删 |
 
 ::: tip 预约口径
 时段为开始时刻 + 时长（分钟）；状态：`0` 待到店、`1` 已接待、`8` 过号、`9` 已取消（8/9 为终态）。每时段限约 1 位（原型 admin-booking 口径）：同医师同日同小时已有待到店/已接待预约即拒，取消/过号后时段自动释放；自助约期（staffId 空）与已指派医师分属不同组互不影响。到店接待后请从接诊页发起接诊，预约状态不随接诊单自动回写。
+:::
+
+## 工位 `/api/v1/room`（需登录，美容业态 b）
+
+| 方法 | 路径 | 功能 |
+| ---- | ---- | ---- |
+| GET | `/api/v1/room/` | 全量工位（含停用，按 id 升序）；历史预约仍引用停用工位，故不隐藏 |
+| GET | `/api/v1/room/{id}` | 按 id 查询 |
+| POST | `/api/v1/room/` | 新建工位：`name` 必填且唯一，`enabled` 缺省 1 在用 |
+| PUT | `/api/v1/room/` | 更新工位：改名/停用（`enabled=0`）皆走此接口；停用不影响历史预约，新建预约表单只列在用工位 |
+| DELETE | `/api/v1/room/{id}` | 删除，硬删；历史预约联不出工位名时显示为空 |
+
+::: tip 工位口径
+工位是预约的资源维度（美容业态 b，docs/design/salon-extension.md §2-b）：美容项目预约占工位，同工位同小时只排一位（技师+工位双维限约）；医馆预约不选工位（`roomId` 空），旧口径不变。与叫号展示文本 `queue_calls.room` 无关——那是叫号屏展示字段，不是可预约资源。
 :::
 
 ## 储值 `/api/v1/recharge`（需登录）

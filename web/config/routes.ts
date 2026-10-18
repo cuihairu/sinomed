@@ -138,6 +138,11 @@ export default [
         component: './Appointment/Query',
       },
       {
+        name: 'appointment-room',
+        path: '/appointment/room',
+        component: './Appointment/Room',
+      },
+      {
         path: '/appointment/create',
         component: './Appointment/Create',
       },

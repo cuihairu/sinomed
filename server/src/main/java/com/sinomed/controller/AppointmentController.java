@@ -7,6 +7,7 @@ import com.sinomed.entity.StaffEntity;
 import com.sinomed.repository.AppointmentRepository;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.ItemRepository;
+import com.sinomed.repository.RoomRepository;
 import com.sinomed.repository.StaffRepository;
 import com.sinomed.service.AppointmentService;
 import com.sinomed.vo.AppointmentView;
@@ -46,21 +47,24 @@ public class AppointmentController {
     private final CustomerRepository customerRepository;
     private final ItemRepository itemRepository;
     private final StaffRepository staffRepository;
+    private final RoomRepository roomRepository;
 
     public AppointmentController(AppointmentService appointmentService,
                                  AppointmentRepository appointmentRepository,
                                  CustomerRepository customerRepository,
                                  ItemRepository itemRepository,
-                                 StaffRepository staffRepository) {
+                                 StaffRepository staffRepository,
+                                 RoomRepository roomRepository) {
         this.appointmentService = appointmentService;
         this.appointmentRepository = appointmentRepository;
         this.customerRepository = customerRepository;
         this.itemRepository = itemRepository;
         this.staffRepository = staffRepository;
+        this.roomRepository = roomRepository;
     }
 
 
-    @Operation(summary = "新建预约", description = "顾客+时段必填，卡项/员工/备注可选；新预约一律 status=0 待到店；每时段限约 1 位（同医师同日同小时已有待到店/已接待预约报 400）",
+    @Operation(summary = "新建预约", description = "顾客+时段必填，卡项/员工/工位/备注可选；新预约一律 status=0 待到店；每时段限约 1 位（同医师/同工位同日同小时已有待到店/已接待预约报 400，美容业态 b 双维互斥）",
             responses = {
                     @ApiResponse(responseCode = "200", description = "创建后的预约", content = @Content(
                             mediaType = "application/json",
@@ -92,6 +96,10 @@ public class AppointmentController {
         if (view.getStaffId() != null) {
             staffRepository.findById(view.getStaffId())
                     .orElseThrow(() -> new IllegalArgumentException("员工不存在：" + view.getStaffId()));
+        }
+        if (view.getRoomId() != null) {
+            roomRepository.findById(view.getRoomId())
+                    .orElseThrow(() -> new IllegalArgumentException("工位不存在：" + view.getRoomId()));
         }
         return AppointmentView.FromAppointmentEntity(appointmentService.save(view));
     }
@@ -194,6 +202,9 @@ public class AppointmentController {
         }
         if (appointment.getStaffId() != null) {
             staffRepository.findById(appointment.getStaffId()).ifPresent(s -> view.setStaffName(s.getName()));
+        }
+        if (appointment.getRoomId() != null) {
+            roomRepository.findById(appointment.getRoomId()).ifPresent(r -> view.setRoomName(r.getName()));
         }
         return view;
     }

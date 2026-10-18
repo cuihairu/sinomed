@@ -172,13 +172,27 @@ Unauthenticated (blank layouts with no business data; the desktop workstation sh
 
 | Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/appointment/` | Create an appointment: `customerId` + `startTime` required, `itemId`/`staffId`/`duration`/`remark` optional; new appointments always get `status=0` not yet arrived; **at most 1 booking per slot** — when an appointment with `status IN (0,1)` already exists for the same physician on the same day and hour (floored to the hour bucket), it returns 400 “该时段已约满（每时段限约 1 位），请换医师或时段” (this slot is fully booked, at most 1 booking per slot, please pick a different physician or slot); an empty `staffId` (self-service booking, assigned on arrival) belongs to the same empty group and is mutually exclusive within it |
-| GET | `/api/v1/appointment/page` | Paged query (current, pageSize, optional status; optional date `yyyy-MM-dd` to filter by day), joining out the patient name/phone, service card name, and staff name |
+| POST | `/api/v1/appointment/` | Create an appointment: `customerId` + `startTime` required, `itemId`/`staffId`/`roomId`/`duration`/`remark` optional; new appointments always get `status=0` not yet arrived; **at most 1 booking per slot** — when an appointment with `status IN (0,1)` already exists for the same physician on the same day and hour (floored to the hour bucket), it returns 400 “该时段已约满（每时段限约 1 位），请换医师或时段” (this slot is fully booked, at most 1 booking per slot, please pick a different physician or slot); an empty `staffId` (self-service booking, assigned on arrival) belongs to the same empty group and is mutually exclusive within it; a non-empty `roomId` is **mutually exclusive on the workstation axis too** (the same workstation in the same hour is refused even across technicians, 400 「该工位该时段已被占用」— this workstation is occupied; two-dimension conflict per beauty phase b, locked by AppointmentRoomConflictHttpTest; the workstation must exist) |
+| GET | `/api/v1/appointment/page` | Paged query (current, pageSize, optional status; optional date `yyyy-MM-dd` to filter by day), joining out the patient name/phone, service card name, staff name, and workstation name |
 | PUT | `/api/v1/appointment/status` | Status transitions: only `0→1` (arrived and checked in, after which the order is created from the treatment page), `0→8` (skipped), and `0→9` (cancelled) are allowed; skipped/cancelled are terminal states and other combinations are rejected. `0→1` triggers the **automatic queue-calling linkage** (docs/tablet.md "到号自动叫号"): checking in immediately writes one `queue_calls` record (number = the day's check-in sequence zero-padded to two digits, room = the treating physician's name + “诊室” (consultation room) or “待分配诊室” (room to be assigned) when unassigned, name masked, broadcast to all screens); skipping or cancelling does not call the queue |
 | DELETE | `/api/v1/appointment/{id}` | Delete; only appointments with `status=9` (cancelled) can be deleted |
 
 ::: tip Appointment conventions
 A slot is the start time + duration (minutes); statuses: `0` not yet arrived, `1` checked in, `8` skipped, `9` cancelled (8/9 are terminal). At most 1 booking per slot (per the admin-booking prototype): a request is rejected when a not-yet-arrived or checked-in appointment already exists for the same physician on the same day and hour; cancelling or skipping automatically releases the slot; self-service bookings (empty staffId) and physician-assigned ones belong to different groups and do not affect each other. After check-in, start the treatment from the treatment page — the appointment status is not written back automatically from the treatment record.
+:::
+
+## Workstations `/api/v1/room` (login required, beauty phase b)
+
+| Method | Path | Purpose |
+| ---- | ---- | ---- |
+| GET | `/api/v1/room/` | All workstations (including disabled ones, ordered by id); historical appointments still reference disabled workstations, so none are hidden |
+| GET | `/api/v1/room/{id}` | Get by id |
+| POST | `/api/v1/room/` | Create a workstation: `name` required and unique, `enabled` defaults to 1 (in use) |
+| PUT | `/api/v1/room/` | Update a workstation: rename or disable (`enabled=0`) both go through this endpoint; disabling does not affect historical appointments, and the booking form only lists workstations in use |
+| DELETE | `/api/v1/room/{id}` | Delete, hard delete; historical appointments show an empty workstation name when the join finds nothing |
+
+::: tip Workstation conventions
+A workstation is the resource axis of appointments (beauty phase b, docs/design/salon-extension.md §2-b): beauty bookings occupy a workstation, at most one per workstation per hour (technician + workstation two-dimension conflict check); clinic appointments leave `roomId` empty and keep the old behavior. Unrelated to the queue display text `queue_calls.room` — that is a display field on the queue screen, not a bookable resource.
 :::
 
 ## Stored Value `/api/v1/recharge` (login required)

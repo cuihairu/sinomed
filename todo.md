@@ -68,8 +68,8 @@
       定位：美容护肤 + 中医美容，**不含美发**；与现有医馆业态共用建档/卡项/回访核心。
       待分期待办（未排期，先记录方向）：
         a) 项目类型扩展：皮肤管理 / 身体护理 / 中医美容项目库——**已实施**（2026-10-18 已代决开工，用户事后可核）：`items.category` 列（integer default 0，ddl-auto 加列即迁移，存量行=0 医馆服务；同 enabled 不写字段初始化器防 Example 污染）+ 创建/更新带类目 + 分页 `category` 过滤（该端点首个真过滤，name/price 仍如实标注未接）+ 管理端新建/编辑类目下拉与列表行内标注（0 缺省不加噪）｜证据：本轮 commit，`ItemCategoryHttpTest` 4 新测试全绿（保存/回读、缺省 0、更新改类目、分页过滤与不过滤），web `tsc`+`eslint` 0 错、jest 17 全绿，docs check 通过
-        b) 预约资源模型：从「诊室/医师」扩展出「工位/技师」排班
+        b) 预约资源模型：从「诊室/医师」扩展出「工位/技师」排班——**已实施**（2026-10-18 巡检开工，用户事后可核）：`rooms` 工位字典表（name 唯一、enabled 列默认 1、@DynamicInsert；与叫号文本 QueueCallEntity.room 无关）+ `appointments.room_id`（可空=不占工位维，医馆预约旧口径不变）+ `ensureSlotFree` 工位桶计数（技师+工位双维时段互斥，同工位同小时跨技师也拒；Kiosk 自助仍空组）+ 管理端「预约 → 工位管理」页与建约工位下拉（只列在用）、预约列表联出工位名｜证据：本轮 commit，`RoomHttpTest` 3 + `AppointmentRoomConflictHttpTest` 5 新测试全绿（建/改/删工位、roomId 保存回读联表、同工位同小时拒、同工位错时过、异工位同小时过、无工位旧口径不回退），web `tsc`+`eslint` 0 错、jest 17 全绿
         c) 技师提成规则（区别于医师）
         d) 美容客群标签：肤质、过敏史、护理方案
       实施前先与现有医馆模型核对，避免产生两套并行的实体设计。
-      ｜模型核对已完成（2026-10-18 巡检）：见 docs/design/salon-extension.md（中英双份）——a 复用 `items` 加类目、b 技师/排班复用 `staffs`/`staff_shifts` + 新增工位实体与 `appointments.room_id`（房间现状仅叫号文本 `QueueCallEntity.room`）、c 提成全新增（服务端 grep 零命中）、d 过敏史复用 `customer_histories` + 肤质标签轻量新增；并修正调研两处偏差：积分服务端未实现（调研 §10.1「已实现」不成立）、全仓无资源级房间模型。a 已实施（见上），b/c/d 分期待用户排期。
+      ｜模型核对已完成（2026-10-18 巡检）：见 docs/design/salon-extension.md（中英双份）——a 复用 `items` 加类目、b 技师/排班复用 `staffs`/`staff_shifts` + 新增工位实体与 `appointments.room_id`（房间现状仅叫号文本 `QueueCallEntity.room`）、c 提成全新增（服务端 grep 零命中）、d 过敏史复用 `customer_histories` + 肤质标签轻量新增；并修正调研两处偏差：积分服务端未实现（调研 §10.1「已实现」不成立）、全仓无资源级房间模型。a、b 已实施（见上），c/d 分期待用户排期。
