@@ -11,6 +11,7 @@
 > 2026-10-16 巡检 R1020：卡点结论不变（2 卡点 + 3 已代决）；按单自找对账批次——api.md 端点与代码零漂移、controller 测试无缺口，补 deploy.md 配置键表漏列的 `sinomed.ads.url-prefix` / `sinomed.receipt.clinic-name`（中英双份），删零引用的 TokenEntity 注释存根（`741ce57`+`29c0c05`，283 测试全绿，CI 绿）。
 > 2026-10-18 巡检 PATROL1018A：两条卡点逐条再实证——微信凭据仍占位（`app/project.config.json:5` touristappid、`application.yml:51-53` 空缺省）、支付商户配置服务端零匹配且付费红线未授权，均未解锁；三条已代决无推翻信号，维持非目标；origin/main 无新提交、无 open PR、CI 全绿，无上游/CI 类新证据。工作区收口：来历不明的 README/README.zh 未提交改动（2026-10-17 19:21:11 同一进程一次写盘，把全部截图宽度 880/300/400 改 64，各会话记录均无写盘痕迹，属劣化）不入库、stash 存档可恢复；同批 .gitignore 防护规则（node_modules/.pnpm-store，带 2026-10-17 禁令注释）经 check-ignore 实证后入库。无合法开工项。
 > 2026-10-19 巡检 sinomed_r1019：两条外部凭据卡点复核未解锁（`app/project.config.json:5` 仍 touristappid、`application.yml:52-53` 空缺省、支付商户配置服务端零匹配）；无 open PR。自找批次=收口 `/api/v1/item/page` 的 name/price 静默忽略（Specification 接线 + ItemFilterHttpTest 5 测试，全量 312 绿），见已完成。
+> 2026-10-19 巡检 R1019B：账面仍仅两条外部凭据卡点，转对账批次——全端点 vs api.md 漂移审计归零（145 端点全有文档行，ads 三条系 POST/PUT 合并行假阳性；/error 为 Spring 内建），api/data-model 中英表行齐平（228/228、226/226）；dependabot 告警 #147（npm react-router SSR hydration 注入，medium）登记为安全态势决策项（见卡点），不代决不强升。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -35,6 +36,7 @@
 ### 卡点
 
 - [ ] 微信正式凭据（appid + AppSecret）——挂起：`app/project.config.json:5` 仍为 `touristappid` 占位，服务端 `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置。小程序真机运行与 openid 通道（openid-session 登录换取、openid-bind 自助绑定）的激活都压在这条上；实现已可测试、凭据到位即激活（「先建后激活」先例），无需改码
+- [ ] dependabot 告警 #147 react-router（medium）——安全态势决策项，待用户定夺（2026-10-19 巡检登记）：npm `react-router` `>=6.4.0,<7.18.0`「SSR hydration deserializeErrors() 任意构造注入」，修复版仅 7.18.0（跨大版本）。本仓实际暴露面：唯一消费方 web（umi max 4.7.23 纯客户端 SPA，`web/package.json:117` overrides 钉 `react-router@6.3.0→6.30.6`），全仓零 SSR/hydrate/deserialize 引用（web/.umirc.ts、web/src 已 grep 实证）——漏洞路径不可达，属「不可利用但告警开着」。两个选项：a) 接受风险并关告警（dismiss + 注明 client-only SPA 不受影响）；b) 排期 umi/react-router 大版本升级（umi 4 内建路由基于 react-router 6，强升必破坏 web 构建，须整体升级 umi 并全量回归）。巡检不代决：不自行 dismiss（安全态势属外向决策）、不硬凑 7.x 强升（不许硬凑实现）。
 - [ ] 在线支付真实通道——挂起：需支付通道商户号与密钥等真实凭据 + 你授权接网关；红线不碰付费通道
 
 ### 已代决（维持非目标，用户事后可推翻）
