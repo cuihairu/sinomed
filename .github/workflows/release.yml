@@ -1,0 +1,113 @@
+# 发布工作流：仅由用户手动打 v* tag 并 push 后触发，构建后端可运行产物并发布到 GitHub Release。
+# 本 workflow 绝不创建 tag：tag push 只消费已存在的 tag；手动补发必须显式传入已有 tag，
+# 且 gh release create 带 --verify-tag（tag 不存在即失败，杜绝自动建 tag）。
+# 构建口径与 maven.yml 保持一致：JDK 21 / temurin + Maven wrapper（3.10.0 pinned in server/.mvn/wrapper）；
+# ./mvnw -B package 自带 surefire 测试阶段（见 server/pom.xml 注入的 SQLite 测试环境），不可绕过——
+# 测试或构建失败时 build job 失败，release job 因 needs 依赖不会运行，绝不产出 Release。
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build & publish (e.g. v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  # tag push 时 ref_name 即 tag 名（如 v1.2.3）；手动补发时取输入的 tag。
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & test (linux-x64)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate tag format (vX.Y.Z, 可带 -rc1 类后缀)
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$RELEASE_TAG' does not match vX.Y.Z format, refusing to release"
+            exit 1
+          fi
+      - name: Checkout tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Cache maven repo
+        uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('server/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+      # 与 maven.yml 逐字一致；package 阶段包含测试，不允许 -DskipTests
+      - name: Build and test with Maven wrapper (3.10.0 pinned in server/.mvn/wrapper)
+        run: cd server && ./mvnw -B package
+      - name: Stage release artifacts
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p dist
+          cp server/target/sinomed-server.jar "dist/sinomed-${VERSION}.jar"
+          tar -czf "dist/sinomed-${VERSION}-linux-x64.tar.gz" -C dist "sinomed-${VERSION}.jar"
+          (cd dist && sha256sum "sinomed-${VERSION}.jar" "sinomed-${VERSION}-linux-x64.tar.gz" > SHA256SUMS)
+          ls -l dist
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-dist
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build # 质量门禁：构建或测试失败时本 job 直接跳过，不创建 Release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download built artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-dist
+          path: dist
+      - name: Verify checksums after transfer
+        working-directory: dist
+        run: sha256sum -c SHA256SUMS
+      - name: Generate release notes
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          {
+            echo "## Artifacts"
+            echo
+            echo "| File | SHA-256 |"
+            echo "| --- | --- |"
+            while read -r digest file; do
+              echo "| \`$file\` | \`$digest\` |"
+            done < dist/SHA256SUMS
+            echo
+            echo "Spring Boot executable fat jar (portable, requires Java 21+):"
+            echo
+            echo '```bash'
+            echo "java -jar sinomed-${VERSION}.jar"
+            echo '```'
+            echo
+            echo "Verify all assets: \`sha256sum -c SHA256SUMS\`"
+          } > release-notes.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # --verify-tag：目标 tag 必须已存在于远端，否则直接失败（不会自动建 tag）
+        run: gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md dist/*
