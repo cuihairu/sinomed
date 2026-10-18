@@ -13,6 +13,7 @@
 > 2026-10-19 巡检 sinomed_r1019：两条外部凭据卡点复核未解锁（`app/project.config.json:5` 仍 touristappid、`application.yml:52-53` 空缺省、支付商户配置服务端零匹配）；无 open PR。自找批次=收口 `/api/v1/item/page` 的 name/price 静默忽略（Specification 接线 + ItemFilterHttpTest 5 测试，全量 312 绿），见已完成。
 > 2026-10-19 巡检 R1019B：账面仍仅两条外部凭据卡点，转对账批次——全端点 vs api.md 漂移审计归零（145 端点全有文档行，ads 三条系 POST/PUT 合并行假阳性；/error 为 Spring 内建），api/data-model 中英表行齐平（228/228、226/226）；dependabot 告警 #147（npm react-router SSR hydration 注入，medium）登记为安全态势决策项（见卡点），不代决不强升。
 > 2026-10-19 巡检 R1018：账面无合法开工项（3 条卡点均用户侧），转测试缺口审计批次——新增测试锁死 `/api/v1/commission/record/page` 的 staffId 单过滤/双参 AND/无过滤排序三缝隙，红→绿暴露并修复「orderId+staffId 同传静默忽略 staffId」契约违约（与同日 item/page 修复同类），见已完成。
+> 2026-10-19 巡检 sinomed（open=3 单，含「需拍板的选项直接选推荐方案并标已代决」口径）：react-router #147 告警按推荐方案执行代决——接受风险并关告警（CVE-2026-53666，漏洞路径不可达、修复版 7.18.0 跨大版本会破坏 umi 4 路由，理由全量入注释与账本），见已完成；账本余两条纯外部凭据卡点。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -37,7 +38,6 @@
 ### 卡点
 
 - [ ] 微信正式凭据（appid + AppSecret）——挂起：`app/project.config.json:5` 仍为 `touristappid` 占位，服务端 `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置。小程序真机运行与 openid 通道（openid-session 登录换取、openid-bind 自助绑定）的激活都压在这条上；实现已可测试、凭据到位即激活（「先建后激活」先例），无需改码
-- [ ] dependabot 告警 #147 react-router（medium）——安全态势决策项，待用户定夺（2026-10-19 巡检登记）：npm `react-router` `>=6.4.0,<7.18.0`「SSR hydration deserializeErrors() 任意构造注入」，修复版仅 7.18.0（跨大版本）。本仓实际暴露面：唯一消费方 web（umi max 4.7.23 纯客户端 SPA，`web/package.json:117` overrides 钉 `react-router@6.3.0→6.30.6`），全仓零 SSR/hydrate/deserialize 引用（web/.umirc.ts、web/src 已 grep 实证）——漏洞路径不可达，属「不可利用但告警开着」。两个选项：a) 接受风险并关告警（dismiss + 注明 client-only SPA 不受影响）；b) 排期 umi/react-router 大版本升级（umi 4 内建路由基于 react-router 6，强升必破坏 web 构建，须整体升级 umi 并全量回归）。巡检不代决：不自行 dismiss（安全态势属外向决策）、不硬凑 7.x 强升（不许硬凑实现）。
 - [ ] 在线支付真实通道——挂起：需支付通道商户号与密钥等真实凭据 + 你授权接网关；红线不碰付费通道
 
 ### 已代决（维持非目标，用户事后可推翻）
@@ -47,6 +47,8 @@
 - [x] 采购单据与盘点——已代决（2026-10-14 巡检授权，2026-10-17 用户令收口勾销）：维持非目标。理由：出入库台账口径已够用（供货方随入库流水留痕，FEFO 批次消耗与效期预警已实装），不做采购单据/盘点/报损/多库房（docs/design/dispensing.md 裁定不变）
 
 ## 已完成
+
+- [x] dependabot 告警 #147 react-router（medium）——**已代决**（2026-10-19 巡检，推荐方案=接受风险并关告警，GHA `CVE-2026-53666`）：npm `react-router` `>=6.4.0,<7.18.0`「SSR hydration deserializeErrors() 任意构造注入」，修复版仅 7.18.0（跨大版本）。暴露面实证：唯一消费方 web（umi max 4.7.23 纯客户端 SPA，`web/pnpm-lock.yaml` manifest `react-router@6.3.0→6.30.6`，scope=development 传递依赖），全仓零 SSR/hydrate/deserialize 引用，官方描述亦注明「Declarative Mode 不受影响」——漏洞路径不可达。修复唯一途径=强升 7.x 会破坏 umi 4 路由（内建路由基于 react-router 6）。处置：`gh api PATCH …/dependabot/alerts/147` `state=dismissed, dismissed_reason=tolerable_risk`（dismissed_at 2026-10-18T21:11:40Z，dismissed_by cuihairu，注释 280 字上限内写明依据与触发条件）；账本同步勾销；重新评估触发条件=下一次 umi/react-router 大版本升级
 
 - [x] 提成记录分页双过滤收口——巡检 R1018 自找批次（2026-10-19）：`GET /api/v1/commission/record/page` 三目链在 `orderId`+`staffId` 同传时静默忽略 `staffId`（查询契约违约，与同日 item/page 修复同类；且该端点 staffId 单过滤、无过滤分支、分页 staffName 联出均无测试覆盖）。修复：`CommissionRecordRepository` 加 `findByOrderIdAndStaffId`，`CommissionController.recordPage` 双参同传走 AND 分支，swagger 参数描述注明可叠加；api.md:196/api.en.md:196 同步口径｜证据：commit 本轮，TDD 红→绿——`CommissionRecordHttpTest` 新增 `recordPageFiltersStaffAndCombinedAndAll` 先红（同传返回技师记录 1 失败实锚）后绿（staffId 单过滤命中且联名、同传 AND 为空、无过滤含两笔且 id 倒序；共享库内只断包含与相对次序），类内 6/6 + `CommissionRuleHttpTest` 3/3 绿，全量 `./mvnw -B test` 313 测试 0 失败 0 错误（79 类，03:39）
 
