@@ -153,6 +153,7 @@
 
 | GET | `/api/v1/wx/callback/{accountId}` | 公众号后台服务器配置验证（免登录，`SecurityConfig` 放行；签名 = `SHA1(token,timestamp,nonce 字典序拼接)`）：通过原样返回 `echostr`；验签失败回空 body；模块关闭（`sinomed.official-account.enabled` 缺省 false）/ 账号不存在或停用一律回 `success` 拒处理并落 `wx_message_logs` 拒绝审计（result `disabled` / `account_missing` / `bad_signature`），不静默 |
 | POST | `/api/v1/wx/callback/{accountId}` | 消息推送回调（免登录靠验签，仅明文模式；安全模式 AES 第二期）：验签 → 按 `MsgId`（消息）或 `FromUserName:CreateTime:Event`（事件）排重（微信 5s 超时重试 3 次）→ 全量落 `wx_message_logs`（`direction=in/out/reject`）→ 路由：`subscribe`/`unsubscribe` 维护 `wx_fans` 粉丝行（取关保留行不回复）、`text` 按启用规则 `priority` 升序做关键词匹配（exact 全等 / contains 包含），未命中走 `fallback` 兜底，`image`/`voice` 等仅落流水+兜底；被动回复 `text` XML（中英文内容 UTF-8，CDATA 转义），无回复回 `success`（微信 5s 约束）；请求体收原始字节按 UTF-8 解码（微信 Content-Type 常不带 charset） |
+| GET | `/api/v1/wx/message-logs` | 消息流水只读列表（管理端，需登录；第一期交付物 4，不做对话式 UI）：分页 `current`/`pageSize`（1 起），可选过滤 `accountId`/`fromUser`/`direction`（in 入站、out 出站回复、reject 拒绝审计）/`msgType`/`result`（ok/disabled/account_missing/bad_signature/duplicate）/`startTime`/`endTime`（`yyyy-MM-dd[ HH:mm:ss]`，转 Date 比较），AND 语义；默认 `createTime`+`id` 倒序最新在前；返回 `PageResp<WxMessageLogView>`（不含服务端排重字段 dedupeKey）；不依赖模块开关——disabled 期间的 reject 审计也可查 |
 | GET | `/api/v1/wx/capabilities/{accountId}` | 账号能力矩阵（需登录）：按 `wx_accounts.account_type` + `verified` 返回 `{ accountId, accountName, accountType, verified, callback, materials, webAuth, menuManagement, customerService, massMessaging, templateMessage }`——模板消息仅服务号；菜单/客服/群发 = 服务号或已认证；管理端据此隐藏降级入口，不写死枚举分支；账号不存在 400 |
 
 ## 打印模板 `/api/v1/print`（desktop.md D7）

@@ -8,8 +8,13 @@ import com.sinomed.repository.WxAccountRepository;
 import com.sinomed.repository.WxAutoReplyRepository;
 import com.sinomed.repository.WxFanRepository;
 import com.sinomed.repository.WxMessageLogRepository;
+import com.sinomed.util.DateUtil;
 import com.sinomed.util.WxSignatureUtil;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
@@ -18,6 +23,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -244,6 +250,52 @@ public class WxOfficialAccountService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * 管理端只读流水列表（设计稿第一期交付物 4）：按账号/粉丝/方向/类型/结果/时间窗过滤（AND 语义），
+     * 排序由 Pageable 携带（默认 createTime、id 倒序=最新在前）。不依赖模块开关——
+     * disabled 期间的 reject 审计也要可查（不静默）。不做对话式 UI。
+     */
+    public Page<WxMessageLogEntity> pageLogs(Long accountId, String fromUser, String direction, String msgType,
+                                             String result, String startTime, String endTime, Pageable pageable) {
+        if (accountId == null && isBlank(fromUser) && isBlank(direction) && isBlank(msgType)
+                && isBlank(result) && isBlank(startTime) && isBlank(endTime)) {
+            return messageLogRepository.findAll(pageable);
+        }
+        Specification<WxMessageLogEntity> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new LinkedList<>();
+            if (accountId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("accountId").as(Long.class), accountId));
+            }
+            if (!isBlank(fromUser)) {
+                predicates.add(criteriaBuilder.equal(root.get("fromUser").as(String.class), fromUser.trim()));
+            }
+            if (!isBlank(direction)) {
+                predicates.add(criteriaBuilder.equal(root.get("direction").as(String.class), direction.trim()));
+            }
+            if (!isBlank(msgType)) {
+                predicates.add(criteriaBuilder.equal(root.get("msgType").as(String.class), msgType.trim()));
+            }
+            if (!isBlank(result)) {
+                predicates.add(criteriaBuilder.equal(root.get("result").as(String.class), result.trim()));
+            }
+            // createTime 落库为毫秒整数，需按 Date 比较；字符串词法比较在 SQLite 永不命中
+            Date start = DateUtil.parseParam(startTime);
+            if (start != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.<Date>get("createTime"), start));
+            }
+            Date end = DateUtil.parseParam(endTime);
+            if (end != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.<Date>get("createTime"), end));
+            }
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+        return messageLogRepository.findAll(spec, pageable);
+    }
+
+    private static boolean isBlank(String text) {
+        return text == null || text.isBlank();
     }
 
     /** XXE 加固的明文 XML 解析（微信回调报文无 DTD；禁外部实体） */

@@ -1,9 +1,15 @@
 package com.sinomed.controller;
 
+import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
+import com.sinomed.vo.PageResp;
+import com.sinomed.vo.WxMessageLogView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -59,5 +67,34 @@ public class WxOfficialAccountController {
     @GetMapping("/capabilities/{accountId}")
     public Map<String, Object> capabilities(@PathVariable("accountId") long accountId) {
         return wxOfficialAccountService.capabilities(accountId);
+    }
+
+    @Operation(summary = "消息流水只读列表", description = "管理端按粉丝/方向/类型/结果/时间窗过滤收发全量流水（含 reject 审计），"
+            + "默认最新在前；只读不做对话式 UI，不依赖模块开关；需登录")
+    @GetMapping("/message-logs")
+    public PageResp<WxMessageLogView> messageLogs(@RequestParam int current,
+                                                  @RequestParam int pageSize,
+                                                  @RequestParam(required = false) Long accountId,
+                                                  @RequestParam(required = false) String fromUser,
+                                                  @RequestParam(required = false) String direction,
+                                                  @RequestParam(required = false) String msgType,
+                                                  @RequestParam(required = false) String result,
+                                                  @RequestParam(required = false) String startTime,
+                                                  @RequestParam(required = false) String endTime) {
+        // 最新在前：createTime 倒序为主，id 倒序兜底同刻并列（审计毫秒可能同值）
+        PageRequest page = PageRequest.of(current > 0 ? current - 1 : 0, pageSize > 0 ? pageSize : 1,
+                Sort.by(Sort.Direction.DESC, "createTime", "id"));
+        Page<WxMessageLogEntity> logs = wxOfficialAccountService.pageLogs(
+                accountId, fromUser, direction, msgType, result, startTime, endTime, page);
+        List<WxMessageLogView> data = new ArrayList<>();
+        for (WxMessageLogEntity row : logs) {
+            data.add(WxMessageLogView.from(row));
+        }
+        PageResp<WxMessageLogView> resp = new PageResp<>();
+        resp.data = data;
+        resp.pages = logs.getTotalPages();
+        resp.total = logs.getTotalElements();
+        resp.success = true;
+        return resp;
     }
 }
