@@ -153,15 +153,17 @@ public class CommissionController {
     public PageResp<CommissionRecordView> recordPage(
             @Parameter(description = "页码，1 起始") @Validated @NotNull @RequestParam int current,
             @Parameter(description = "每页条数") @Validated @NotNull @RequestParam int pageSize,
-            @Parameter(description = "按订单过滤，可空") @RequestParam(required = false) Long orderId,
-            @Parameter(description = "按员工过滤，可空") @RequestParam(required = false) Long staffId) {
+            @Parameter(description = "按订单过滤，可空，可与 staffId 叠加（AND）") @RequestParam(required = false) Long orderId,
+            @Parameter(description = "按员工过滤，可空，可与 orderId 叠加（AND）") @RequestParam(required = false) Long staffId) {
         PageRequest pageRequest = PageRequest.of(current > 0 ? current - 1 : 0, pageSize > 0 ? pageSize : 10,
                 org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
-        Page<CommissionRecordEntity> result = orderId != null
-                ? recordRepository.findByOrderId(orderId, pageRequest)
-                : staffId != null
-                        ? recordRepository.findByStaffId(staffId, pageRequest)
-                        : recordRepository.findAll(pageRequest);
+        Page<CommissionRecordEntity> result = orderId != null && staffId != null
+                ? recordRepository.findByOrderIdAndStaffId(orderId, staffId, pageRequest)
+                : orderId != null
+                        ? recordRepository.findByOrderId(orderId, pageRequest)
+                        : staffId != null
+                                ? recordRepository.findByStaffId(staffId, pageRequest)
+                                : recordRepository.findAll(pageRequest);
         Map<Long, StaffEntity> staffs = staffRepository.findAllById(
                         result.map(CommissionRecordEntity::getStaffId).toSet()).stream()
                 .collect(Collectors.toMap(StaffEntity::getId, Function.identity()));

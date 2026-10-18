@@ -94,6 +94,7 @@ class CommissionRecordHttpTest {
         ids.put("techId", tech.getId());
         ids.put("techName", tech.getName());
         ids.put("docId", doc.getId());
+        ids.put("docName", doc.getName());
         ids.put("customerId", customer.getId());
         ids.put("itemId", item.getId());
         return ids;
@@ -228,5 +229,43 @@ class CommissionRecordHttpTest {
                 .findFirst().orElseThrow();
         assertEquals(80, ((Number) mine.get("total")).intValue(), "两单合计 40×2=80：" + mine);
         assertTrue(mine.get("staffName") != null, "汇总应联员工名：" + mine);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recordPageFiltersStaffAndCombinedAndAll() {
+        String token = token();
+        Map<String, Object> ids = seed("cm-page-" + System.nanoTime());
+        createRule(token, ids, "技师", 20);
+        createRule(token, ids, "医师", 10); // 同项目另一岗位，凑双员工记录
+
+        long orderA = ((Number) createOrder(token, ids, (Long) ids.get("techId"), 1).get("id")).longValue();
+        long orderB = ((Number) createOrder(token, ids, (Long) ids.get("docId"), 1).get("id")).longValue();
+        settle(token, orderA, 4); // 技师 40
+        settle(token, orderB, 4); // 医师 20
+
+        // staffId 单过滤只看该员工
+        List<Map<String, Object>> byDoc = records(token, "?current=1&pageSize=50&staffId=" + ids.get("docId"));
+        assertEquals(1, byDoc.size(), "staffId 过滤应只含本人记录：" + byDoc);
+        assertEquals(20, ((Number) byDoc.get(0).get("amount")).intValue(), "医师 200×10% = 20：" + byDoc);
+        assertEquals(ids.get("docName"), byDoc.get(0).get("staffName"), "分页应联出员工名：" + byDoc);
+
+        // orderId+staffId 同传应 AND（A 只有技师记录 → 医师条件应为空）
+        List<Map<String, Object>> combined = records(token,
+                "?current=1&pageSize=50&orderId=" + orderA + "&staffId=" + ids.get("docId"));
+        assertTrue(combined.isEmpty(), "orderId+staffId 同传应按 AND 组合，不得静默忽略 staffId：" + combined);
+
+        // 无过滤应含两笔新记录且 id 倒序（本类各测试共享库，只断包含与相对次序）
+        long techRowId = ((Number) records(token, "?current=1&pageSize=50&orderId=" + orderA).get(0).get("id")).longValue();
+        long docRowId = ((Number) records(token, "?current=1&pageSize=50&orderId=" + orderB).get(0).get("id")).longValue();
+        List<Map<String, Object>> all = records(token, "?current=1&pageSize=50");
+        int iTech = -1, iDoc = -1;
+        for (int i = 0; i < all.size(); i++) {
+            long id = ((Number) all.get(i).get("id")).longValue();
+            if (id == techRowId) iTech = i;
+            if (id == docRowId) iDoc = i;
+        }
+        assertTrue(iTech >= 0 && iDoc >= 0, "无过滤应含两笔新记录：" + all);
+        assertTrue(iDoc < iTech, "应按 id 倒序（后结算的在前）：" + all);
     }
 }

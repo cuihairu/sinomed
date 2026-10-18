@@ -193,7 +193,7 @@
 | POST | `/api/v1/commission/rule` | 新建规则：`itemId` + `title`（岗位，`staffs.title` 精确匹配）+ `ratio`（整数百分比 0–100）必填；同项目同岗位唯一（一岗一比例） |
 | PUT | `/api/v1/commission/rule` | 更新规则：`id` 必填，可改 `title`/`ratio`；itemId 建议删了重建 |
 | DELETE | `/api/v1/commission/rule/{id}` | 删除规则（硬删；已生成记录不受影响，快照在记录里） |
-| GET | `/api/v1/commission/record/page` | 记录分页（current、pageSize，`orderId`/`staffId` 可选过滤），按 id 倒序，联出员工名 |
+| GET | `/api/v1/commission/record/page` | 记录分页（current、pageSize，`orderId`/`staffId` 可选过滤、两参同传按 AND 叠加——2026-10-19 收口：此前同传静默忽略 `staffId`），按 id 倒序，联出员工名 |
 | GET | `/api/v1/commission/record/summary` | 按员工合计（工资基数）：`staffId`/`start`（含）/`end`（不含）可空；净额 = 正向 + 冲销 |
 
 ::: tip 提成口径

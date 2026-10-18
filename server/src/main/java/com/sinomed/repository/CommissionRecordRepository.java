@@ -16,6 +16,9 @@ public interface CommissionRecordRepository extends JpaRepository<CommissionReco
 
     Page<CommissionRecordEntity> findByStaffId(Long staffId, Pageable pageable);
 
+    /** 记录分页双过滤（AND）：按订单且按员工 */
+    Page<CommissionRecordEntity> findByOrderIdAndStaffId(Long orderId, Long staffId, Pageable pageable);
+
     /** 冲销：退单时取该结算单生成的全部正向记录 */
     List<CommissionRecordEntity> findBySettlementId(Long settlementId);
 

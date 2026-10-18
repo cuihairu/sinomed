@@ -12,6 +12,7 @@
 > 2026-10-18 巡检 PATROL1018A：两条卡点逐条再实证——微信凭据仍占位（`app/project.config.json:5` touristappid、`application.yml:51-53` 空缺省）、支付商户配置服务端零匹配且付费红线未授权，均未解锁；三条已代决无推翻信号，维持非目标；origin/main 无新提交、无 open PR、CI 全绿，无上游/CI 类新证据。工作区收口：来历不明的 README/README.zh 未提交改动（2026-10-17 19:21:11 同一进程一次写盘，把全部截图宽度 880/300/400 改 64，各会话记录均无写盘痕迹，属劣化）不入库、stash 存档可恢复；同批 .gitignore 防护规则（node_modules/.pnpm-store，带 2026-10-17 禁令注释）经 check-ignore 实证后入库。无合法开工项。
 > 2026-10-19 巡检 sinomed_r1019：两条外部凭据卡点复核未解锁（`app/project.config.json:5` 仍 touristappid、`application.yml:52-53` 空缺省、支付商户配置服务端零匹配）；无 open PR。自找批次=收口 `/api/v1/item/page` 的 name/price 静默忽略（Specification 接线 + ItemFilterHttpTest 5 测试，全量 312 绿），见已完成。
 > 2026-10-19 巡检 R1019B：账面仍仅两条外部凭据卡点，转对账批次——全端点 vs api.md 漂移审计归零（145 端点全有文档行，ads 三条系 POST/PUT 合并行假阳性；/error 为 Spring 内建），api/data-model 中英表行齐平（228/228、226/226）；dependabot 告警 #147（npm react-router SSR hydration 注入，medium）登记为安全态势决策项（见卡点），不代决不强升。
+> 2026-10-19 巡检 R1018：账面无合法开工项（3 条卡点均用户侧），转测试缺口审计批次——新增测试锁死 `/api/v1/commission/record/page` 的 staffId 单过滤/双参 AND/无过滤排序三缝隙，红→绿暴露并修复「orderId+staffId 同传静默忽略 staffId」契约违约（与同日 item/page 修复同类），见已完成。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -46,6 +47,8 @@
 - [x] 采购单据与盘点——已代决（2026-10-14 巡检授权，2026-10-17 用户令收口勾销）：维持非目标。理由：出入库台账口径已够用（供货方随入库流水留痕，FEFO 批次消耗与效期预警已实装），不做采购单据/盘点/报损/多库房（docs/design/dispensing.md 裁定不变）
 
 ## 已完成
+
+- [x] 提成记录分页双过滤收口——巡检 R1018 自找批次（2026-10-19）：`GET /api/v1/commission/record/page` 三目链在 `orderId`+`staffId` 同传时静默忽略 `staffId`（查询契约违约，与同日 item/page 修复同类；且该端点 staffId 单过滤、无过滤分支、分页 staffName 联出均无测试覆盖）。修复：`CommissionRecordRepository` 加 `findByOrderIdAndStaffId`，`CommissionController.recordPage` 双参同传走 AND 分支，swagger 参数描述注明可叠加；api.md:196/api.en.md:196 同步口径｜证据：commit 本轮，TDD 红→绿——`CommissionRecordHttpTest` 新增 `recordPageFiltersStaffAndCombinedAndAll` 先红（同传返回技师记录 1 失败实锚）后绿（staffId 单过滤命中且联名、同传 AND 为空、无过滤含两笔且 id 倒序；共享库内只断包含与相对次序），类内 6/6 + `CommissionRuleHttpTest` 3/3 绿，全量 `./mvnw -B test` 313 测试 0 失败 0 错误（79 类，03:39）
 
 - [x] 卡项分页 name/price 过滤收口——巡检 sinomed_r1019 自找批次（2026-10-19）：`GET /api/v1/item/page` 的 `name`/`price` 参数自端点存在起被静默忽略（QBE 探针只装 category，调用方传了不生效，属查询契约违约）；改 Specification 过滤同 StaffController 口径（`ItemServiceImpl.findAllByPage`：name 包含不区分大小写、price 精确、category 精确可叠加；全空条件走全量分页防全 null 探针陷阱），`ItemRepository` 加 `JpaSpecificationExecutor`，排序 sort 升序 id 倒序不变｜证据：commit 本轮，TDD 红→绿——`ItemFilterHttpTest` 5 新测试先红（name/price 静默忽略 2 失败实锚）后绿（name 包含 / 大小写不敏感 / price 精确 / name+category 叠加 / 不过滤全返回；中文查询参数须 UriComponentsBuilder 单次编码，手拼 %E8 会被 RestTemplate 二次编码致 LIKE 不命中——测试内已注释），全量 `./mvnw -B test` 312 测试 0 失败 0 错误（79 类）；docs/server/api.md:91 与 api.en.md:91 同步改口径
 

@@ -193,7 +193,7 @@ A slot is the start time + duration (minutes); statuses: `0` not yet arrived, `1
 | POST | `/api/v1/commission/rule` | Create a rule: `itemId` + `title` (the position, exact match on `staffs.title`) + `ratio` (integer percent 0–100) all required; one rule per card per position (one ratio per position) |
 | PUT | `/api/v1/commission/rule` | Update a rule: `id` required, may change `title`/`ratio`; delete-and-recreate is preferred for changing `itemId` |
 | DELETE | `/api/v1/commission/rule/{id}` | Delete a rule (hard delete; generated records are unaffected — snapshots live in the records) |
-| GET | `/api/v1/commission/record/page` | Paged records (current, pageSize; optional `orderId`/`staffId` filters), by id descending, joining out the staff name |
+| GET | `/api/v1/commission/record/page` | Paged records (current, pageSize; optional `orderId`/`staffId` filters — passing both combines with AND; 2026-10-19: `staffId` used to be silently ignored when both passed), by id descending, joining out the staff name |
 | GET | `/api/v1/commission/record/summary` | Per-staff totals (the payroll base): optional `staffId`/`start` (inclusive)/`end` (exclusive); net = positive + reversal |
 
 ::: tip Commission conventions
