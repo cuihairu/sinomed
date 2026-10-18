@@ -2,7 +2,10 @@ package com.sinomed.controller;
 
 import com.sinomed.entity.CustomerEntity;
 import com.sinomed.entity.CustomerHistoryEntity;
+import com.sinomed.entity.CustomerTagEntity;
+import com.sinomed.repository.CustomerTagRepository;
 import com.sinomed.service.CustomerService;
+import com.sinomed.service.StaffService;
 import com.sinomed.util.PhoneValidationUtil;
 import com.sinomed.vo.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +18,8 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,9 +31,15 @@ import java.util.*;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final CustomerTagRepository customerTagRepository;
+    private final StaffService staffService;
 
-    public CustomerController(CustomerService customerService) {
+    public CustomerController(CustomerService customerService,
+                              CustomerTagRepository customerTagRepository,
+                              StaffService staffService) {
         this.customerService = customerService;
+        this.customerTagRepository = customerTagRepository;
+        this.staffService = staffService;
     }
 
 
@@ -172,6 +183,83 @@ public class CustomerController {
     public MessageView deleteHistory(@PathVariable("historyId") Long historyId) throws IllegalArgumentException {
         customerService.deleteHistory(historyId);
         return MessageView.builder().message("删除成功").build();
+    }
+
+    // ---------- 客群标签（美容业态 d，docs/design/salon-extension.md §2-d） ----------
+
+    @Operation(summary = "顾客标签列表", description = "肤质/偏好等轻量标签，新加的在前；过敏史不在标签里（走病史 type 0）",
+            responses = @ApiResponse(responseCode = "200", description = "标签数组", content = @Content(
+                    mediaType = "application/json", schema = @Schema(implementation = CustomerTagView.class))))
+    @GetMapping("/{id}/tag")
+    public List<CustomerTagView> listTags(@PathVariable("id") Long id) throws IllegalArgumentException {
+        customerService.findById(id).orElseThrow(() -> new IllegalArgumentException("顾客不存在：" + id));
+        return customerTagRepository.findByCustomerIdOrderByIdDesc(id).stream()
+                .map(CustomerTagView::FromEntity).toList();
+    }
+
+    @Operation(summary = "加顾客标签", description = "body { tag }：≤20 字；同顾客同标签唯一（重复 400）",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "标签", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CustomerTagView.class))),
+                    @ApiResponse(responseCode = "400", description = "参数错误 / 重复", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = MessageView.class)))
+            })
+    @PostMapping("/{id}/tag")
+    public CustomerTagView addTag(@PathVariable("id") Long id, @RequestBody Map<String, Object> body)
+            throws IllegalArgumentException {
+        customerService.findById(id).orElseThrow(() -> new IllegalArgumentException("顾客不存在：" + id));
+        String tag = body.get("tag") == null ? null : body.get("tag").toString().trim();
+        if (tag == null || tag.isEmpty()) {
+            throw new IllegalArgumentException("标签不能为空");
+        }
+        if (tag.length() > 20) {
+            throw new IllegalArgumentException("标签限 20 字内");
+        }
+        customerTagRepository.findByCustomerIdAndTag(id, tag).ifPresent(t -> {
+            throw new IllegalArgumentException("该顾客已有此标签：" + tag);
+        });
+        CustomerTagEntity entity = new CustomerTagEntity();
+        entity.setCustomerId(id);
+        entity.setTag(tag);
+        return CustomerTagView.FromEntity(customerTagRepository.save(entity));
+    }
+
+    @Operation(summary = "删顾客标签", description = "按标签 id 删除",
+            responses = @ApiResponse(responseCode = "200", description = "删除成功", content = @Content(
+                    mediaType = "application/json", schema = @Schema(implementation = MessageView.class))))
+    @DeleteMapping("/tag/{tagId}")
+    public MessageView deleteTag(@PathVariable("tagId") Long tagId) {
+        customerTagRepository.deleteById(tagId);
+        return MessageView.builder().message("删除成功").build();
+    }
+
+    @Operation(summary = "美容敏感信息单独同意", description = "PIPL 口径（docs/design/salon-extension.md §4，随 d 同批）："
+            + "body { consent: 1/0 }；记同意标志 + 时刻 + 经办员工（登录人），档案更新不抹掉",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "顾客", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = CustomerView.class))),
+                    @ApiResponse(responseCode = "400", description = "顾客不存在", content = @Content(
+                            mediaType = "application/json", schema = @Schema(implementation = MessageView.class)))
+            })
+    @PutMapping("/{id}/consent")
+    public CustomerView consent(@PathVariable("id") Long id, @RequestBody Map<String, Object> body)
+            throws IllegalArgumentException {
+        CustomerEntity customer = customerService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("顾客不存在：" + id));
+        int consent = body.get("consent") != null && "1".equals(body.get("consent").toString()) ? 1 : 0;
+        customer.setBeautyConsent(consent);
+        customer.setBeautyConsentTime(new Date());
+        customer.setBeautyConsentStaffId(currentStaffId());
+        return CustomerView.FromCustomerEntity(customerService.save(customer));
+    }
+
+    /** 登录员工 id（同意记录经办人） */
+    private Long currentStaffId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null) {
+            return null;
+        }
+        return staffService.findByAccount(auth.getName()).map(s -> s.getId()).orElse(null);
     }
 
     @Operation(summary = "创建客人",

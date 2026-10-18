@@ -43,6 +43,10 @@ declare namespace API {
     createTime?: string;
     updateTime?: string;
     firstDate?: string;
+    /** 美容敏感信息单独同意（美容业态 d，PIPL 口径）：1 已同意 / 0 未同意（缺省） */
+    beautyConsent?: number;
+    beautyConsentTime?: string;
+    beautyConsentStaffId?: number;
   };
   type Staff = {
     account?: string;

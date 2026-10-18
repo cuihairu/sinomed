@@ -63,13 +63,13 @@
 - [x] 站点标题与 PWA 品牌口径｜证据：commit 66556ed
 - [x] 路线图口径收口｜证据：commit 9c912b6
 - [x] 文档与代码一致性审计｜证据：commit 5ebb8db
-- [ ] 美容业态扩展（2026-10-18 用户令：salon 仓并入本仓，不再单独开发）：
+- [x] 美容业态扩展（2026-10-18 用户令：salon 仓并入本仓，不再单独开发）：
       需求参考见 docs/research/beauty-salon-feature-survey.md（409 行，九类功能 + MVP 建议）。
       定位：美容护肤 + 中医美容，**不含美发**；与现有医馆业态共用建档/卡项/回访核心。
       待分期待办（未排期，先记录方向）：
         a) 项目类型扩展：皮肤管理 / 身体护理 / 中医美容项目库——**已实施**（2026-10-18 已代决开工，用户事后可核）：`items.category` 列（integer default 0，ddl-auto 加列即迁移，存量行=0 医馆服务；同 enabled 不写字段初始化器防 Example 污染）+ 创建/更新带类目 + 分页 `category` 过滤（该端点首个真过滤，name/price 仍如实标注未接）+ 管理端新建/编辑类目下拉与列表行内标注（0 缺省不加噪）｜证据：本轮 commit，`ItemCategoryHttpTest` 4 新测试全绿（保存/回读、缺省 0、更新改类目、分页过滤与不过滤），web `tsc`+`eslint` 0 错、jest 17 全绿，docs check 通过
         b) 预约资源模型：从「诊室/医师」扩展出「工位/技师」排班——**已实施**（2026-10-18 巡检开工，用户事后可核）：`rooms` 工位字典表（name 唯一、enabled 列默认 1、@DynamicInsert；与叫号文本 QueueCallEntity.room 无关）+ `appointments.room_id`（可空=不占工位维，医馆预约旧口径不变）+ `ensureSlotFree` 工位桶计数（技师+工位双维时段互斥，同工位同小时跨技师也拒；Kiosk 自助仍空组）+ 管理端「预约 → 工位管理」页与建约工位下拉（只列在用）、预约列表联出工位名｜证据：本轮 commit，`RoomHttpTest` 3 + `AppointmentRoomConflictHttpTest` 5 新测试全绿（建/改/删工位、roomId 保存回读联表、同工位同小时拒、同工位错时过、异工位同小时过、无工位旧口径不回退），web `tsc`+`eslint` 0 错、jest 17 全绿
         c) 技师提成规则（区别于医师）——**已实施**（2026-10-18 巡检开工，用户事后可核）：`commission_rules`（P0 固定比例「项目×岗位」，岗位=staffs.title 精确匹配、一岗一比例、唯一约束 item_id+title）+ `commission_records`（结算完成自动落账：业绩归属=orders.staff_id、按 order_items 行小计×比例、次卡抵扣实收 0 也记、insert-only 快照；退单写等额负向冲销净额归零；无归属/无岗位/无规则不记）+ 按员工合计报表 + 管理端「结算 → 提成管理」页（规则维护/员工合计/流水）｜证据：本轮 commit，`CommissionRuleHttpTest` 3 + `CommissionRecordHttpTest` 5 新测试全绿（规则建/重/改删、结算落账快照、无规则不记、次卡也记、退单冲销净额零、按员工合计），web `tsc`+`eslint` 0 错、jest 17 全绿
-        d) 美容客群标签：肤质、过敏史、护理方案
+        d) 美容客群标签：肤质、过敏史、护理方案——**已实施**（2026-10-18 巡检开工，用户事后可核）：`customer_tags`（轻量标签，同顾客同标签唯一、重复 400）+ 护理方案复用 `customer_histories` type 2（过敏审方仍只读 type 0，不复用外治处方模板）+ PIPL 单独同意随 d 同批（`customers.beauty_consent` 标志+时刻+经办员工，`/consent` 接口；@DynamicInsert 同 ItemEntity 纪律）+ 管理端顾客档案页标签区/护理方案选项/同意记录入口｜证据：本轮 commit，`CustomerTagHttpTest` 4 新测试全绿（标签增删去重、同意记录且档案更新不抹掉、type 2 落档与白名单外 400），web `tsc`+`eslint` 0 错、jest 17 全绿；行级可见权限收紧留 P1（现状：顾客端不透出）
       实施前先与现有医馆模型核对，避免产生两套并行的实体设计。
-      ｜模型核对已完成（2026-10-18 巡检）：见 docs/design/salon-extension.md（中英双份）——a 复用 `items` 加类目、b 技师/排班复用 `staffs`/`staff_shifts` + 新增工位实体与 `appointments.room_id`（房间现状仅叫号文本 `QueueCallEntity.room`）、c 提成全新增（服务端 grep 零命中）、d 过敏史复用 `customer_histories` + 肤质标签轻量新增；并修正调研两处偏差：积分服务端未实现（调研 §10.1「已实现」不成立）、全仓无资源级房间模型。a、b、c 已实施（见上），d 分期待用户排期。
+      ｜模型核对已完成（2026-10-18 巡检）：见 docs/design/salon-extension.md（中英双份）——a 复用 `items` 加类目、b 技师/排班复用 `staffs`/`staff_shifts` + 新增工位实体与 `appointments.room_id`（房间现状仅叫号文本 `QueueCallEntity.room`）、c 提成全新增（服务端 grep 零命中）、d 过敏史复用 `customer_histories` + 肤质标签轻量新增；并修正调研两处偏差：积分服务端未实现（调研 §10.1「已实现」不成立）、全仓无资源级房间模型。a、b、c、d 全部已实施（2026-10-18 当日完成，逐项 commit 见上）；后续分期（组合支付/小票/日结、P1 规则引擎与营销）另行排期。

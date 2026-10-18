@@ -117,9 +117,9 @@ class CustomerHistoryHttpTest {
         Map<?, ?> customer = createCustomer(token, "守卫顾客", "13900009102");
         Object customerId = customer.get("id");
 
-        // 类型无效 400；内容为空 400；内容过长 400
+        // 类型无效 400（2 护理方案已合法，改用白名单外的 3）；内容为空 400；内容过长 400
         String badType = exchange4xx("POST", "/api/v1/customer/" + customerId + "/history",
-                Map.of("type", 2, "content", "青霉素过敏"), token);
+                Map.of("type", 3, "content", "青霉素过敏"), token);
         assertTrue(badType != null && badType.contains("病史类型无效"), "类型无效应 400：" + badType);
         String blank = exchange4xx("POST", "/api/v1/customer/" + customerId + "/history",
                 Map.of("type", 0, "content", "   "), token);

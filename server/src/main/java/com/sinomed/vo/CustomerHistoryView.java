@@ -25,7 +25,7 @@ public class CustomerHistoryView {
     @Schema(title = "顾客id", example = "3")
     private Long customerId;
 
-    @Schema(title = "类型：0 过敏 / 1 既往", example = "0")
+    @Schema(title = "类型：0 过敏 / 1 既往 / 2 护理方案（美容业态 d 档案扩展）", example = "0")
     private Integer type;
 
     @Schema(title = "病史内容", example = "青霉素过敏")

@@ -120,8 +120,8 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerHistoryEntity addHistory(Long customerId, Integer type, String content) {
         customerRepository.findById(customerId).orElseThrow(() ->
                 new IllegalArgumentException("顾客不存在，无法记录病史"));
-        if (type == null || (type != 0 && type != 1)) {
-            throw new IllegalArgumentException("病史类型无效：0 过敏 / 1 既往");
+        if (type == null || (type != 0 && type != 1 && type != 2)) {
+            throw new IllegalArgumentException("病史类型无效：0 过敏 / 1 既往 / 2 护理方案");
         }
         String text = content == null ? "" : content.trim();
         if (text.isEmpty()) {
@@ -135,7 +135,8 @@ public class CustomerServiceImpl implements CustomerService {
         history.setType(type);
         history.setContent(text);
         CustomerHistoryEntity saved = historyRepository.save(history);
-        log.info("病史记录：customer={} type={}（{}）内容 {} 字", customerId, type, type == 0 ? "过敏" : "既往", text.length());
+        log.info("病史记录：customer={} type={}（{}）内容 {} 字", customerId, type,
+                type == 0 ? "过敏" : type == 1 ? "既往" : "护理方案", text.length());
         return saved;
     }
 

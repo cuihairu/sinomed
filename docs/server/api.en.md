@@ -40,9 +40,13 @@ All business endpoints share the unified prefix `/api/v1`; the paths in the tabl
 | POST | `/api/v1/customer/` | Create a patient record (gender required; phone number optional, unique, mainland China number format) |
 | PUT | `/api/v1/customer/` | Update patient information |
 | DELETE | `/api/v1/customer/{id}` | Delete a patient |
-| GET | `/api/v1/customer/{id}/history` | Medical history list (allergy history / past history recorded entry by entry, newest first; returns 400 if the patient does not exist) |
-| POST | `/api/v1/customer/{id}/history` | Record medical history: body `{ type, content }`; `type` 0 = allergy / 1 = past history; `content` must be non-empty and ≤200 characters (auto-trimmed); returns 400 if the patient does not exist or the type is invalid |
-| DELETE | `/api/v1/customer/history/{historyId}` | Delete one medical history record (returns 400 if it does not exist; demo-environment behavior, no audit trail) |
+| GET | `/api/v1/customer/{id}/history` | Medical-history list (allergy / past history / care plan entries, newest first; 400 when the patient does not exist) |
+| POST | `/api/v1/customer/{id}/history` | Record history: body `{ type, content }`, `type` 0 allergy / 1 past / 2 care plan (beauty phase d archive extension, not the external-treatment template), `content` non-empty and ≤200 chars (trimmed); 400 when the patient does not exist or the type is invalid; the allergy cross-check still reads type=0 only |
+| DELETE | `/api/v1/customer/history/{historyId}` | Delete one history entry (400 when missing; demo-scope, no audit trail) |
+| GET | `/api/v1/customer/{id}/tag` | Customer tag list (beauty phase d): lightweight skin-type/preference tags, newest first; allergies are not tags (history type 0) |
+| POST | `/api/v1/customer/{id}/tag` | Add a tag: body `{ tag }`, ≤20 chars (trimmed); unique per customer (duplicate 400); 400 when the patient does not exist |
+| DELETE | `/api/v1/customer/tag/{tagId}` | Delete a tag |
+| PUT | `/api/v1/customer/{id}/consent` | **Separate consent for beauty sensitive info** (PIPL, docs/design/salon-extension.md §4, ships with phase d): body `{ consent: 1/0 }`, records the `beauty_consent` flag + time + handling staff (the logged-in user); ordinary archive updates do not wipe it (`updateCustomerEntity` never touches these columns) |
 
 ## Treatment Record `/api/v1/treat`
 

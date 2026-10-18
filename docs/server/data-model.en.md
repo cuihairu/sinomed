@@ -19,19 +19,33 @@ Data tables are auto-created by JPA from the entities (`ddl-auto: update`), and 
 | gender | Integer | Gender (0 female, 1 male) |
 | address | String | Address |
 | birthday | Date | Birthday |
+| beauty_consent | Integer | Separate consent for beauty sensitive info: 1 granted / 0 not (default 0; beauty phase d, PIPL) |
+| beauty_consent_time | Date | Consent time (written by the consent endpoint) |
+| beauty_consent_staff_id | Long | Handling staff id (written by the consent endpoint) |
 
 Indexes: name, phone number, level, birthday, openid.
 
-## customer_histories — patient medical history (allergy history / past history)
+## customer_histories — patient medical history (allergy / past history / care plan)
 
 | Field | Type | Meaning |
 | ---- | ---- | ---- |
 | id | Long | Primary key |
 | customer_id | Long | Patient id (not null, business foreign key, indexed) |
-| type | Integer | 0 allergy history / 1 past history (not null) |
-| content | String | History content (not null, free text, ≤200 characters) |
+| type | Integer | 0 allergy history / 1 past history / 2 care plan (beauty phase d archive extension, not null) |
+| content | String | Content (not null, free text, ≤200 characters) |
 
-Records are appended one by one (add/delete only, no editing), and queries return them in reverse id order. The demo seed adds allergy/past-history records for each of the two demo patients — see the patients group in [api](/server/api).
+Records are appended one by one (add/delete only, no editing), and queries return them in reverse id order. The demo seed adds allergy/past-history records for each of the two demo patients — see the patients group in [api](/server/api); the allergy cross-check reads type=0 only, type=2 holds beauty care-plan text.
+
+## customer_tags — customer tags (beauty phase d)
+
+| Field | Type | Meaning |
+| ---- | ---- | ---- |
+| id | Long | Primary key |
+| customer_id | Long | Patient id (not null, indexed) |
+| tag | String | Tag (not null, ≤20 characters, e.g. 「肤质·油性」 oily skin, 「偏好·力度大」 prefers strong pressure) |
+| create_time / update_time | Date | Audit times |
+
+Unique constraint (customer_id, tag): one tag per customer. Lightweight skin-type/preference tags — allergies are not tags (history type 0) and care plans ride history type 2, never a parallel archive; PIPL separate consent is recorded on `customers.beauty_consent`. See the patients group in [api](/server/api).
 
 ## treats — treatment record (core business table)
 

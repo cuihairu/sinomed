@@ -2,6 +2,7 @@ package com.sinomed.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.DynamicInsert;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -10,6 +11,7 @@ import java.util.Date;
 
 @Data
 @Entity
+@DynamicInsert
 @Table(name = "`customers`",indexes = {
         @Index(name = "idx_customer_name",columnList = "name"),
         @Index(name = "idx_customer_phone",columnList = "phone"),
@@ -40,6 +42,21 @@ public class CustomerEntity {
     private String address;
     @Column(name = "birthday")
     private Date birthday;
+
+    // @DynamicInsert：insert 省略 null 列、落库走列默认（beauty_consent→0）。
+    //  同 ItemEntity 纪律：种子路径（测试夹具、直建实体）不必逐字段 set。
+    /** 美容敏感信息单独同意（美容业态 d，PIPL 口径，docs/design/salon-extension.md §4）：
+     *  1 已同意 / 0 未同意（缺省）；随同意接口记录时刻与经办员工 */
+    @Column(name = "beauty_consent", nullable = false, columnDefinition = "integer default 0")
+    private Integer beautyConsent;
+
+    /** 同意时刻（同意接口写入） */
+    @Column(name = "beauty_consent_time")
+    private Date beautyConsentTime;
+
+    /** 经办员工 id（同意接口写入） */
+    @Column(name = "beauty_consent_staff_id")
+    private Long beautyConsentStaffId;
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

@@ -40,9 +40,13 @@
 | POST | `/api/v1/customer/` | 建档（性别必填；手机号可选、唯一、大陆号段格式） |
 | PUT | `/api/v1/customer/` | 更新顾客信息 |
 | DELETE | `/api/v1/customer/{id}` | 删除顾客 |
-| GET | `/api/v1/customer/{id}/history` | 病史列表（过敏史/既往史逐条记录，新记录在前；顾客不存在报 400） |
-| POST | `/api/v1/customer/{id}/history` | 记病史：body `{ type, content }`，`type` 0 过敏 / 1 既往，`content` 非空且 ≤200 字（自动 trim）；顾客不存在/类型无效报 400 |
+| GET | `/api/v1/customer/{id}/history` | 病史列表（过敏史/既往史/护理方案逐条记录，新记录在前；顾客不存在报 400） |
+| POST | `/api/v1/customer/{id}/history` | 记病史：body `{ type, content }`，`type` 0 过敏 / 1 既往 / 2 护理方案（美容业态 d 档案扩展，不复用外治处方模板），`content` 非空且 ≤200 字（自动 trim）；顾客不存在/类型无效报 400；过敏审方仍只读 type=0 |
 | DELETE | `/api/v1/customer/history/{historyId}` | 删除一条病史记录（不存在报 400；演示环境口径，无留痕） |
+| GET | `/api/v1/customer/{id}/tag` | 顾客标签列表（美容业态 d）：肤质/偏好轻量标签，新加的在前；过敏史不在标签里（走病史 type 0） |
+| POST | `/api/v1/customer/{id}/tag` | 加标签：body `{ tag }`，≤20 字（自动 trim）；同顾客同标签唯一（重复 400）；顾客不存在报 400 |
+| DELETE | `/api/v1/customer/tag/{tagId}` | 删除标签 |
+| PUT | `/api/v1/customer/{id}/consent` | **美容敏感信息单独同意**（PIPL 口径，docs/design/salon-extension.md §4，随 d 同批）：body `{ consent: 1/0 }`，记 `beauty_consent` 标志 + 时刻 + 经办员工（登录人）；普通档案更新不抹掉（`updateCustomerEntity` 不触这些列） |
 
 ## 诊疗单 `/api/v1/treat`
 

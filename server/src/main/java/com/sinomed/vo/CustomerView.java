@@ -40,6 +40,12 @@ public class CustomerView implements Serializable {
     Date updateTime;
     @Schema(title = "第一次诊断时间",description = "第一次诊断时间",example = "2023-1-1")
     Date firstDate;
+    @Schema(title = "美容敏感信息单独同意",description = "1 已同意 / 0 未同意（缺省）；美容业态 d，PIPL 口径",example = "0")
+    Integer beautyConsent;
+    @Schema(title = "同意时刻",description = "同意接口写入")
+    Date beautyConsentTime;
+    @Schema(title = "经办员工id",description = "同意接口写入")
+    Long beautyConsentStaffId;
 
     public void updateCustomerEntity(CustomerEntity customerEntity){
         if (name != null && !name.isEmpty() && !name.equals(customerEntity.getName())){
@@ -106,6 +112,9 @@ public class CustomerView implements Serializable {
                 .level(customerEntity.getLevel())
                 .address(customerEntity.getAddress())
                 .birthday(customerEntity.getBirthday())
+                .beautyConsent(customerEntity.getBeautyConsent())
+                .beautyConsentTime(customerEntity.getBeautyConsentTime())
+                .beautyConsentStaffId(customerEntity.getBeautyConsentStaffId())
                 .createTime(customerEntity.getCreateTime())
                 .updateTime(customerEntity.getUpdateTime())
                 .build();

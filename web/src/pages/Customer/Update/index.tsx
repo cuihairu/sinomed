@@ -6,7 +6,12 @@ import {
   listCustomerHistories,
   addCustomerHistory,
   deleteCustomerHistory,
+  listCustomerTags,
+  addCustomerTag,
+  deleteCustomerTag,
+  recordBeautyConsent,
   type CustomerHistory,
+  type CustomerTag,
 } from '@/services/ant-design-pro/customer';
 import { queryTreatByPage } from '@/services/ant-design-pro/treat';
 import { fetchOrderSummary } from '@/services/ant-design-pro/order';
@@ -101,11 +106,15 @@ const Update: React.FC = () => {
   const [adjustsCard, setAdjustsCard] = useState<Card | null>(null);
   const [adjusts, setAdjusts] = useState<CardAdjust[]>([]);
   const [adjustsLoading, setAdjustsLoading] = useState(false);
-  /** 病史（过敏/既往）：档案内逐条增删 */
+  /** 病史（过敏/既往/护理方案）：档案内逐条增删 */
   const [histories, setHistories] = useState<CustomerHistory[]>([]);
   const [hisType, setHisType] = useState<number>(0);
   const [hisText, setHisText] = useState('');
   const [hisBusy, setHisBusy] = useState(false);
+  /** 客群标签（肤质/偏好，美容业态 d）：档案内增删，同标签去重由服务端保证 */
+  const [tags, setTags] = useState<CustomerTag[]>([]);
+  const [tagText, setTagText] = useState('');
+  const [tagBusy, setTagBusy] = useState(false);
   /** 回访计划：按顾客倒序，首条即最近安排 */
   const [reviews, setReviews] = useState<API.ReviewCustomer[]>([]);
 
@@ -114,6 +123,45 @@ const Update: React.FC = () => {
     const list = await listCustomerHistories(customerId);
     setHistories(list || []);
   }, [customerId]);
+
+  const loadTags = useCallback(async () => {
+    if (!customerId) return;
+    const list = await listCustomerTags(customerId);
+    setTags(list || []);
+  }, [customerId]);
+
+  const submitTag = async () => {
+    const text = tagText.trim();
+    if (!text) {
+      message.warning('请输入标签');
+      return;
+    }
+    setTagBusy(true);
+    try {
+      await addCustomerTag(Number(customerId), { tag: text });
+      message.success('已加标签');
+      setTagText('');
+      await loadTags();
+    } finally {
+      setTagBusy(false);
+    }
+  };
+
+  const removeTag = async (tid: number) => {
+    await deleteCustomerTag(tid);
+    message.success('已删除');
+    await loadTags();
+  };
+
+  /** 美容敏感信息单独同意（PIPL）：记标志 + 时刻 + 经办员工（服务端） */
+  const toggleConsent = async () => {
+    const next = customer?.beautyConsent === 1 ? 0 : 1;
+    const saved = await recordBeautyConsent(Number(customerId), { consent: next });
+    if (saved?.id) {
+      setCustomer(saved);
+      message.success(next === 1 ? '已记录单独同意' : '已撤回同意');
+    }
+  };
 
   const activeCardCount = cards.filter((c) => c.status === 1).length;
 
@@ -140,7 +188,8 @@ const Update: React.FC = () => {
     }
     load();
     loadHistories();
-  }, [customerId, load, loadHistories]);
+    loadTags();
+  }, [customerId, load, loadHistories, loadTags]);
 
   const openEdit = () => {
     formRef.current?.setFieldsValue(customer);
@@ -474,6 +523,68 @@ const Update: React.FC = () => {
 
       <section className="cu-panel his-panel">
         <h3>
+          客群标签
+          <span className="his-hint">
+            肤质/偏好轻量标签（美容业态 d）；过敏史走下方病史，不落标签
+          </span>
+        </h3>
+        <div className="his-add">
+          <Input
+            className="his-input"
+            placeholder="如「肤质·油性」「偏好·力度大」，回车加标签"
+            maxLength={20}
+            value={tagText}
+            onChange={(e) => setTagText(e.target.value)}
+            onPressEnter={submitTag}
+          />
+          <Button type="primary" loading={tagBusy} onClick={submitTag}>
+            加标签
+          </Button>
+        </div>
+        {tags.length === 0 ? (
+          <div className="plan-note">暂无标签；先做敏感信息单独同意，再记肤质等标签。</div>
+        ) : (
+          <div className="his-list">
+            {tags.map((t) => (
+              <div className="his-row" key={t.id}>
+                <span className="his-tag t1">{t.tag}</span>
+                <span className="his-content" />
+                <span className="his-time">
+                  {t.createTime ? moment(t.createTime).format('YYYY-MM-DD') : '—'}
+                </span>
+                <Popconfirm title="删除这个标签？" onConfirm={() => t.id && removeTag(t.id)}>
+                  <a className="his-del">删除</a>
+                </Popconfirm>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ marginTop: 12 }}>
+          {customer?.beautyConsent === 1 ? (
+            <>
+              <span style={{ marginRight: 8 }}>
+                已单独同意（{customer.beautyConsentTime
+                  ? moment(customer.beautyConsentTime).format('YYYY-MM-DD HH:mm')
+                  : '—'}
+                ）
+              </span>
+              <Popconfirm title="撤回该顾客的美容敏感信息同意？" onConfirm={toggleConsent}>
+                <a>撤回同意</a>
+              </Popconfirm>
+            </>
+          ) : (
+            <Popconfirm
+              title="记录该顾客对采集肤质/护理信息（PIPL 敏感信息）的单独同意？"
+              onConfirm={toggleConsent}
+            >
+              <a>记录单独同意</a>
+            </Popconfirm>
+          )}
+        </div>
+      </section>
+
+      <section className="cu-panel his-panel">
+        <h3>
           病史
           <span className="his-hint">过敏史与既往史逐条记录，开方/接诊时调阅</span>
         </h3>
@@ -486,6 +597,7 @@ const Update: React.FC = () => {
             options={[
               { label: '过敏', value: 0 },
               { label: '既往', value: 1 },
+              { label: '护理方案', value: 2 },
             ]}
           />
           <Input
@@ -508,7 +620,9 @@ const Update: React.FC = () => {
           <div className="his-list">
             {histories.map((h) => (
               <div className="his-row" key={h.id}>
-                <span className={`his-tag t${h.type ?? 0}`}>{h.type === 0 ? '过敏' : '既往'}</span>
+                <span className={`his-tag t${h.type ?? 0}`}>
+                  {h.type === 0 ? '过敏' : h.type === 2 ? '护理方案' : '既往'}
+                </span>
                 <span className="his-content">{h.content}</span>
                 <span className="his-time">
                   {h.createTime ? moment(h.createTime).format('YYYY-MM-DD') : '—'}

@@ -19,19 +19,33 @@
 | gender | Integer | 性别（0 女、1 男） |
 | address | String | 地址 |
 | birthday | Date | 生日 |
+| beauty_consent | Integer | 美容敏感信息单独同意：1 已同意 / 0 未同意（缺省 0；美容业态 d，PIPL 口径） |
+| beauty_consent_time | Date | 同意时刻（同意接口写入） |
+| beauty_consent_staff_id | Long | 经办员工 id（同意接口写入） |
 
-索引：姓名、手机号、等级、生日、openid。
+索引：姓名、手机号、等级、生日、openid。@DynamicInsert：beauty_consent 缺省落 0。
 
-## customer_histories — 顾客病史（过敏史/既往史）
+## customer_histories — 顾客病史（过敏史/既往史/护理方案）
 
 | 字段 | 类型 | 含义 |
 | ---- | ---- | ---- |
 | id | Long | 主键 |
 | customer_id | Long | 顾客 id（非空，业务外键，索引） |
-| type | Integer | 0 过敏史 / 1 既往史（非空） |
-| content | String | 病史内容（非空，自由文本，≤200 字） |
+| type | Integer | 0 过敏史 / 1 既往史 / 2 护理方案（美容业态 d 档案扩展，非空） |
+| content | String | 内容（非空，自由文本，≤200 字） |
 
-逐条 append 记录（新增/删除，不做编辑），查询按 id 倒序。演示种子给两位演示顾客各补过敏/既往记录，见 [api](/server/api) 顾客组。
+逐条 append 记录（新增/删除，不做编辑），查询按 id 倒序。演示种子给两位演示顾客各补过敏/既往记录，见 [api](/server/api) 顾客组；过敏审方只读 type=0，type=2 为美容护理方案文本。
+
+## customer_tags — 顾客标签（美容业态 d）
+
+| 字段 | 类型 | 含义 |
+| ---- | ---- | ---- |
+| id | Long | 主键 |
+| customer_id | Long | 顾客 id（非空，索引） |
+| tag | String | 标签（非空，≤20 字，如「肤质·油性」「偏好·力度大」） |
+| create_time / update_time | Date | 审计时间 |
+
+唯一约束 (customer_id, tag)：同顾客同标签唯一。肤质/偏好轻量标签——过敏史不落标签（复用 customer_histories type 0）、护理方案走病史 type 2，不建并行档案；PIPL 单独同意记在 `customers.beauty_consent`。见 [api](/server/api) 顾客组。
 
 ## treats — 诊疗单（核心业务表）
 
