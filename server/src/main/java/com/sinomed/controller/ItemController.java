@@ -119,12 +119,8 @@ public class ItemController {
         // 排序字段小者在前（原型 admin-items 口径），同序号 id 倒序稳定分页
         PageRequest page = PageRequest.of(current>0?current-1:0, pageSize>0?pageSize:1,
                 Sort.by(Sort.Direction.ASC, "sort").and(Sort.by(Sort.Direction.DESC, "id")));
-        ItemEntity itemEntity = new ItemEntity();
-        // 类目过滤（美容业态 a）：null 不过滤，传值按 Example 精确匹配（与 name/price 同一 QBE 口径）
-        if (category != null) {
-            itemEntity.setCategory(category);
-        }
-        Page<ItemEntity> allByPage = itemService.finAll(itemEntity,page);
+        // 过滤（Specification，同 StaffController 口径）：name 包含（不区分大小写）、price/category 精确，null 即不过滤
+        Page<ItemEntity> allByPage = itemService.findAllByPage(name, price, category, page);
         List<ItemView> data = new ArrayList<>();
         for (ItemEntity item : allByPage) {
             data.add(ItemView.FromItemEntity(item));

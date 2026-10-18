@@ -10,6 +10,7 @@
 > 2026-10-16 巡检 R1017PATROL：两条卡点与三条已代决复核结论不变（无合法开工项），按条款 6 扫工作区与 git log 接手可做的活——合入当日 4 条 dependabot PR（#6-#9，逐条 CI 绿），但 dependabot 重写 pnpm-lock 时丢 `overrides` 元数据且顺带把 app 的 webpack 解析漂移到 5.111.1（与 Taro 3.6.40 的 ProgressPlugin 传参不兼容），main 的 Frontend Build / Docker Images 双双红；修复 = 重生成两份 lockfile + `pnpm.overrides` 加 `"webpack@5": "5.104.1"` 兼容 pin（`1d6b915`），修复后 main 五工作流全绿。
 > 2026-10-16 巡检 R1020：卡点结论不变（2 卡点 + 3 已代决）；按单自找对账批次——api.md 端点与代码零漂移、controller 测试无缺口，补 deploy.md 配置键表漏列的 `sinomed.ads.url-prefix` / `sinomed.receipt.clinic-name`（中英双份），删零引用的 TokenEntity 注释存根（`741ce57`+`29c0c05`，283 测试全绿，CI 绿）。
 > 2026-10-18 巡检 PATROL1018A：两条卡点逐条再实证——微信凭据仍占位（`app/project.config.json:5` touristappid、`application.yml:51-53` 空缺省）、支付商户配置服务端零匹配且付费红线未授权，均未解锁；三条已代决无推翻信号，维持非目标；origin/main 无新提交、无 open PR、CI 全绿，无上游/CI 类新证据。工作区收口：来历不明的 README/README.zh 未提交改动（2026-10-17 19:21:11 同一进程一次写盘，把全部截图宽度 880/300/400 改 64，各会话记录均无写盘痕迹，属劣化）不入库、stash 存档可恢复；同批 .gitignore 防护规则（node_modules/.pnpm-store，带 2026-10-17 禁令注释）经 check-ignore 实证后入库。无合法开工项。
+> 2026-10-19 巡检 sinomed_r1019：两条外部凭据卡点复核未解锁（`app/project.config.json:5` 仍 touristappid、`application.yml:52-53` 空缺省、支付商户配置服务端零匹配）；无 open PR。自找批次=收口 `/api/v1/item/page` 的 name/price 静默忽略（Specification 接线 + ItemFilterHttpTest 5 测试，全量 312 绿），见已完成。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -43,6 +44,8 @@
 - [x] 采购单据与盘点——已代决（2026-10-14 巡检授权，2026-10-17 用户令收口勾销）：维持非目标。理由：出入库台账口径已够用（供货方随入库流水留痕，FEFO 批次消耗与效期预警已实装），不做采购单据/盘点/报损/多库房（docs/design/dispensing.md 裁定不变）
 
 ## 已完成
+
+- [x] 卡项分页 name/price 过滤收口——巡检 sinomed_r1019 自找批次（2026-10-19）：`GET /api/v1/item/page` 的 `name`/`price` 参数自端点存在起被静默忽略（QBE 探针只装 category，调用方传了不生效，属查询契约违约）；改 Specification 过滤同 StaffController 口径（`ItemServiceImpl.findAllByPage`：name 包含不区分大小写、price 精确、category 精确可叠加；全空条件走全量分页防全 null 探针陷阱），`ItemRepository` 加 `JpaSpecificationExecutor`，排序 sort 升序 id 倒序不变｜证据：commit 本轮，TDD 红→绿——`ItemFilterHttpTest` 5 新测试先红（name/price 静默忽略 2 失败实锚）后绿（name 包含 / 大小写不敏感 / price 精确 / name+category 叠加 / 不过滤全返回；中文查询参数须 UriComponentsBuilder 单次编码，手拼 %E8 会被 RestTemplate 二次编码致 LIKE 不命中——测试内已注释），全量 `./mvnw -B test` 312 测试 0 失败 0 错误（79 类）；docs/server/api.md:91 与 api.en.md:91 同步改口径
 
 - [x] 小程序自助取消预约——已代决（2026-10-16 R2PATROL，用户可推翻）：`app-booking.md` 拍板 2（2026-10-10）裁「顾客侧取消不做」，依据「取消不核验身份，无法阻止恶意取消他人约」；该前提已因 2026-10-14/15 手机号+一次性验证码双因子与 openid 绑定落地而失效，故恢复。服务端新增 `POST /api/v1/kiosk/appointment-cancel`（`{ phone, smsCode, appointmentId }`，仅 `sms_verified` 模式；验证码一次性，查预约用过的码须重新取码、缺 appointmentId 不烧码；只允许取消本人 status=0 且未过期预约 0→9，非本人/已受理或已过号/已取消/已过期/未知均 400 不静默；取消后时段按「每时段限约 1 位」自动释放、当日频控随之解除；每次尝试含拒绝落 `card_lookup_logs`，新增 result `cancel_ok / missing_appointment / not_owner / not_cancelable`）；小程序「我的」页查预约结果行内「取消」按钮（`pages/me/index.tsx` + `services/api.ts`）｜证据：`KioskAppointmentCancelTest` 13 新测试 + 2 模式门禁（`CardLookupOffTest`/`CardLookupOpenidTest`）全绿，全量服务端 283 测试 0 失败 0 错误（72 类），app `tsc --noEmit --skipLibCheck` 源码零报错，weapp/h5 双端构建通过；文档同 commit 闭合（app、alignment、app-booking、kiosk、server/api、data-model 共 12 份中英双份），docs check 与 vitepress build 双绿；证据：本轮 commit
 

@@ -2,11 +2,12 @@ package com.sinomed.repository;
 
 import com.sinomed.entity.ItemEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ItemRepository extends JpaRepository<ItemEntity,Long>{
+public interface ItemRepository extends JpaRepository<ItemEntity,Long>, JpaSpecificationExecutor<ItemEntity> {
 
     /** Kiosk 浏览：上架项按 sort、name 升序 */
     List<ItemEntity> findByEnabledOrderBySortAscNameAsc(Integer enabled);

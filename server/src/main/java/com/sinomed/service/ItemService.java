@@ -12,7 +12,10 @@ public interface ItemService {
      * */
     Optional<ItemEntity> findById(Long id);
 
-    Page<ItemEntity> finAll(ItemEntity itemEntity, Pageable pageable);
+    /**
+     * 分页过滤：name 包含（不区分大小写）、price 精确、category 精确，均可为空（空即不过滤）
+     */
+    Page<ItemEntity> findAllByPage(String name, Integer price, Integer category, Pageable pageable);
 
     Optional<ItemEntity> findByName(String name);
     /**

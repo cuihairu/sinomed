@@ -88,7 +88,7 @@ For field meanings see [Data model · treats table](/server/data-model#treats-�
 | ---- | ---- | ---- |
 | POST | `/api/v1/item/` | Create a service card (unique name, price, description; `durationMinutes` per-session duration in minutes is optional — display-only, not involved in settlement; `category` 0 clinic service (default) / 1 skin care / 2 body care / 3 TCM beauty) |
 | PUT | `/api/v1/item/` | Update a service card |
-| GET | `/api/v1/item/page` | Paged query (`category` filtering is in effect, locked down by ItemCategoryHttpTest; the `name`/`price` parameters are still not wired to filtering — omit `category` to return everything) |
+| GET | `/api/v1/item/page` | Paged query (`name` substring match case-insensitive, `price` exact, `category` exact; combinable, omitted means no filtering. 2026-10-19: `name`/`price` used to be silently ignored. Order: `sort` asc, `id` desc. Locked by ItemFilterHttpTest + ItemCategoryHttpTest) |
 | GET | `/api/v1/item/{id}` | Query by id |
 | GET | `/api/v1/item/name/{name}` | Query by name (`{name}` is a path variable; locked down by PathLookupHttpTest) |
 | DELETE | `/api/v1/item/{id}` | Delete; returns the service card as it was before deletion |
