@@ -97,7 +97,8 @@ export default defineConfig({
             { text: '桌面版设计（Tauri 2 薄壳）', link: '/design/desktop' },
             { text: '平板展示设计（Kiosk）', link: '/design/tablet' },
             { text: '顾客选服务设计（Kiosk）', link: '/design/kiosk' },
-            { text: '小程序自助约期设计', link: '/design/app-booking' }
+            { text: '小程序自助约期设计', link: '/design/app-booking' },
+            { text: '美容业态扩展核对', link: '/design/salon-extension' }
           ]
         }
       ],

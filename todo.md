@@ -72,3 +72,4 @@
         c) 技师提成规则（区别于医师）
         d) 美容客群标签：肤质、过敏史、护理方案
       实施前先与现有医馆模型核对，避免产生两套并行的实体设计。
+      ｜模型核对已完成（2026-10-18 巡检）：见 docs/design/salon-extension.md（中英双份）——a 复用 `items` 加类目、b 技师/排班复用 `staffs`/`staff_shifts` + 新增工位实体与 `appointments.room_id`（房间现状仅叫号文本 `QueueCallEntity.room`）、c 提成全新增（服务端 grep 零命中）、d 过敏史复用 `customer_histories` + 肤质标签轻量新增；并修正调研两处偏差：积分服务端未实现（调研 §10.1「已实现」不成立）、全仓无资源级房间模型。分期待用户排期。
