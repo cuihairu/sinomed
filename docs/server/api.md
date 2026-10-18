@@ -33,7 +33,7 @@
 
 | 方法 | 路径 | 功能 |
 | ---- | ---- | ---- |
-| GET | `/api/v1/customer/page` | 分页查询（`current` / `pageSize` 必填，可选 `name` / `age` / `phone` / `startTime` / `endTime`） |
+| GET | `/api/v1/customer/page` | 分页查询（`current` / `pageSize` 必填，可选 `name` / `age` / `phone` / `startTime` / `endTime`；`name` 按包含不区分大小写，`age` / `phone` 精确，可叠加） |
 | GET | `/api/v1/customer/{id}` | 按 id 查询 |
 | GET | `/api/v1/customer/phone/{phone}` | 按手机号查询 |
 | GET | `/api/v1/customer/name/{name}` | 按姓名查询（可多条） |
@@ -99,7 +99,7 @@
 | ---- | ---- | ---- |
 | POST | `/api/v1/staff/` | 创建员工（账号唯一、密码 2-20 位、手机号查重；`title` 职务可空，排班页医师名册=在职且职务含「医师」；`famousLevel` 名医等级 0-3，0 普通、1-3 名医，非法值 400） |
 | PUT | `/api/v1/staff/` | 更新员工（携带 `password` 则同步改密；`title` 职务同步更新；`famousLevel` 同创建口径，传 null 不改） |
-| GET | `/api/v1/staff/page` | 分页查询员工（按 `famousLevel` 降序、同等级按创建时间升序） |
+| GET | `/api/v1/staff/page` | 分页查询员工（`name` 可选、按包含不区分大小写；按 `famousLevel` 降序、同等级按创建时间升序） |
 | GET | `/api/v1/staff/{id}` | 按 id 查询 |
 | GET | `/api/v1/staff/name/{name}` | 按姓名查询（`{name}` 为路径变量；PathLookupHttpTest 锁死） |
 | GET | `/api/v1/staff/phone/{phone}` | 按手机号查询（`{phone}` 为路径变量，与按姓名查询互不串；StaffLookupTest + PathLookupHttpTest 锁死） |

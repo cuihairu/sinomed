@@ -60,7 +60,9 @@ public class StaffServiceImpl implements StaffService {
         Specification<StaffEntity> specification = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new LinkedList<>();
             if (name != null && !name.isEmpty()){
-                predicates.add(criteriaBuilder.equal(root.get("name").as(String.class),name));
+                // name 按包含不区分大小写（全仓口径同 ItemServiceImpl；web 搜索框与 treat/fuzzy 模糊契约均按包含语义使用）
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name").as(String.class)),
+                        "%" + name.trim().toLowerCase() + "%"));
             }
             if (age != null && age > 0) {
                 predicates.add(criteriaBuilder.equal(root.get("age").as(Integer.class),age));

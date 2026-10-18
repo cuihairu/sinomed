@@ -33,7 +33,7 @@ All business endpoints share the unified prefix `/api/v1`; the paths in the tabl
 
 | Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/customer/page` | Paged query (`current` / `pageSize` required; optional `name` / `age` / `phone` / `startTime` / `endTime`) |
+| GET | `/api/v1/customer/page` | Paged query (`current` / `pageSize` required; optional `name` / `age` / `phone` / `startTime` / `endTime`; `name` matches by case-insensitive contains, `age` / `phone` exact, combinable) |
 | GET | `/api/v1/customer/{id}` | Query by id |
 | GET | `/api/v1/customer/phone/{phone}` | Query by phone number |
 | GET | `/api/v1/customer/name/{name}` | Query by name (may return multiple records) |
@@ -99,7 +99,7 @@ For field meanings see [Data model · treats table](/server/data-model#treats-�
 | ---- | ---- | ---- |
 | POST | `/api/v1/staff/` | Create a staff member (unique account, password 2-20 characters, phone number deduplicated; `title` job title optional — the scheduling page's physician roster = active staff whose title contains "医师" (physician); `famousLevel` famous-doctor level 0-3, where 0 is ordinary and 1-3 are famous doctors; invalid values return 400) |
 | PUT | `/api/v1/staff/` | Update a staff member (including `password` changes the password as well; `title` is updated in sync; `famousLevel` follows the same rules as create, passing null leaves it unchanged) |
-| GET | `/api/v1/staff/page` | Paged query of staff (descending by `famousLevel`, ascending by creation time within the same level) |
+| GET | `/api/v1/staff/page` | Paged query of staff (optional `name`, case-insensitive contains; descending by `famousLevel`, ascending by creation time within the same level) |
 | GET | `/api/v1/staff/{id}` | Query by id |
 | GET | `/api/v1/staff/name/{name}` | Query by name (`{name}` is a path variable; locked down by PathLookupHttpTest) |
 | GET | `/api/v1/staff/phone/{phone}` | Query by phone number (`{phone}` is a path variable and does not interfere with the by-name lookup; locked down by StaffLookupTest + PathLookupHttpTest) |

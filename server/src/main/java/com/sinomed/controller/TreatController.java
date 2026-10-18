@@ -149,17 +149,24 @@ public class TreatController {
         resp.data = new ArrayList<>();
         resp.success = true;
         if (id != null){
-            resp.pages=1;
             Optional<TreatEntity> byId = treatService.findById(id);
             if (!byId.isEmpty()){
                 resp.data.add(toTreatView(byId.get()));
                 resp.total = 1L;
+                resp.pages = 1;
+            } else {
+                // 未命中也回一致响应形（data 空、total=0，不出现 pages=1 却 total=null 的矛盾态）
+                resp.total = 0L;
+                resp.pages = 0;
             }
             return resp;
         }
         PageRequest pageRequest = PageRequest.ofSize(Integer.MAX_VALUE);
         Page<CustomerEntity> customerByPage = customerService.findAllByPage(name, age, phone, null, null, pageRequest);
         if (customerByPage.getTotalElements() == 0){
+            // 空命中也回一致的响应形（其余路径均设 total/pages，此处不可缺省为 null）
+            resp.total = 0L;
+            resp.pages = 0;
             return resp;
         }
         List<Long> customerIds = new ArrayList<>();

@@ -14,6 +14,7 @@
 > 2026-10-19 巡检 R1019B：账面仍仅两条外部凭据卡点，转对账批次——全端点 vs api.md 漂移审计归零（145 端点全有文档行，ads 三条系 POST/PUT 合并行假阳性；/error 为 Spring 内建），api/data-model 中英表行齐平（228/228、226/226）；dependabot 告警 #147（npm react-router SSR hydration 注入，medium）登记为安全态势决策项（见卡点），不代决不强升。
 > 2026-10-19 巡检 R1018：账面无合法开工项（3 条卡点均用户侧），转测试缺口审计批次——新增测试锁死 `/api/v1/commission/record/page` 的 staffId 单过滤/双参 AND/无过滤排序三缝隙，红→绿暴露并修复「orderId+staffId 同传静默忽略 staffId」契约违约（与同日 item/page 修复同类），见已完成。
 > 2026-10-19 巡检 sinomed（open=3 单，含「需拍板的选项直接选推荐方案并标已代决」口径）：react-router #147 告警按推荐方案执行代决——接受风险并关告警（CVE-2026-53666，漏洞路径不可达、修复版 7.18.0 跨大版本会破坏 umi 4 路由，理由全量入注释与账本），见已完成；账本余两条纯外部凭据卡点。
+> 2026-10-19 巡检 sinomed（用户令「open 项再推一轮，能做的做完」）：两条 open 均外部凭据、复核未解锁；控制器「声明未用参数」扫描零命中后转同族语义缺陷批次——顾客/员工分页 name 精确匹配静默空结果（web 搜索框与 /treat/fuzzy「模糊检索」契约均按包含语义使用），改包含不区分大小写对齐 item/page 全仓口径，见已完成。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -47,6 +48,8 @@
 - [x] 采购单据与盘点——已代决（2026-10-14 巡检授权，2026-10-17 用户令收口勾销）：维持非目标。理由：出入库台账口径已够用（供货方随入库流水留痕，FEFO 批次消耗与效期预警已实装），不做采购单据/盘点/报损/多库房（docs/design/dispensing.md 裁定不变）
 
 ## 已完成
+
+- [x] 顾客/员工分页 name 包含匹配收口 + treat/fuzzy 空命中响应形——巡检自找批次（2026-10-19）：双向扫描（控制器「声明未用可选参数」× 20 文件零命中；web 前端 28 个查询参数全部有端点接收）后定位同族语义缺陷：`GET /api/v1/customer/page` 与 `/api/v1/staff/page` 的 `name` 均为精确匹配（`CustomerServiceImpl:43` / `StaffServiceImpl:63`），而 web ProTable 搜索框与 `/api/v1/treat/fuzzy`（api.md:61 白纸黑字「模糊检索」，name 路径直接委托顾客分页）都按包含语义使用——顾客/员工传部分词静默空结果；另 `/treat/fuzzy` 两处提前 return 的响应形不一致（id 未命中 total=null 且 pages=1 与空 data 矛盾、name 空命中 total=null）。修复：两处 name 断言改 `like(lower(name), %…%)` 包含不区分大小写（对齐 2026-10-19 item/page 修复确立的全仓口径，/treat/fuzzy 模糊契约随之端到端成立）；fuzzy id 未命中回 total=0/pages=0、name 空命中补 total=0/pages=0；api.md:36/102 与 api.en.md 同步标注 name 语义｜证据：commit 本轮，TDD 红→绿——新增 `CustomerFilterHttpTest` 5 测试（name 包含 / 大小写不敏感 / phone 精确 / name+phone 叠加 AND / 不过滤全返回）、`StaffFilterHttpTest` 3 测试（name 包含 / 大小写 / 不过滤）、`TreatFuzzyNameHttpTest` 3 测试（部分词圈定 2+1、无命中空形、id 未命中一致空形）先红（包含/大小写/叠加 5 失败实锚 + id 未命中 NPE 实锚），后绿 11/11；全量 `./mvnw -B test` 325 测试 0 失败 0 错误（314→325）
 
 - [x] dependabot 告警 #147 react-router（medium）——**已代决**（2026-10-19 巡检，推荐方案=接受风险并关告警，GHA `CVE-2026-53666`）：npm `react-router` `>=6.4.0,<7.18.0`「SSR hydration deserializeErrors() 任意构造注入」，修复版仅 7.18.0（跨大版本）。暴露面实证：唯一消费方 web（umi max 4.7.23 纯客户端 SPA，`web/pnpm-lock.yaml` manifest `react-router@6.3.0→6.30.6`，scope=development 传递依赖），全仓零 SSR/hydrate/deserialize 引用，官方描述亦注明「Declarative Mode 不受影响」——漏洞路径不可达。修复唯一途径=强升 7.x 会破坏 umi 4 路由（内建路由基于 react-router 6）。处置：`gh api PATCH …/dependabot/alerts/147` `state=dismissed, dismissed_reason=tolerable_risk`（dismissed_at 2026-10-18T21:11:40Z，dismissed_by cuihairu，注释 280 字上限内写明依据与触发条件）；账本同步勾销；重新评估触发条件=下一次 umi/react-router 大版本升级
 
