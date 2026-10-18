@@ -15,6 +15,7 @@
 > 2026-10-19 巡检 R1018：账面无合法开工项（3 条卡点均用户侧），转测试缺口审计批次——新增测试锁死 `/api/v1/commission/record/page` 的 staffId 单过滤/双参 AND/无过滤排序三缝隙，红→绿暴露并修复「orderId+staffId 同传静默忽略 staffId」契约违约（与同日 item/page 修复同类），见已完成。
 > 2026-10-19 巡检 sinomed（open=3 单，含「需拍板的选项直接选推荐方案并标已代决」口径）：react-router #147 告警按推荐方案执行代决——接受风险并关告警（CVE-2026-53666，漏洞路径不可达、修复版 7.18.0 跨大版本会破坏 umi 4 路由，理由全量入注释与账本），见已完成；账本余两条纯外部凭据卡点。
 > 2026-10-19 巡检 sinomed（用户令「open 项再推一轮，能做的做完」）：两条 open 均外部凭据、复核未解锁；控制器「声明未用参数」扫描零命中后转同族语义缺陷批次——顾客/员工分页 name 精确匹配静默空结果（web 搜索框与 /treat/fuzzy「模糊检索」契约均按包含语义使用），改包含不区分大小写对齐 item/page 全仓口径，见已完成。
+> 2026-10-19 巡检 fleet FIRE1019（全仓台账仅 todo.md 一份）：两条外部凭据卡点复核未解锁；按推进单第 5 条从最近 git log 取下一批——并行会话 ae90111 只落了公众号模块 396 行中文设计稿（未排期、无英文对照、无实现、台账未登记），按「先建后激活」先例落地第一期骨架（惰性：enabled 缺省 false 全模块不激活，零凭据依赖可 stub 测试，不引 WxJava），见已完成；设计稿正文承诺的英文版随实施补上。
 > 2026-10-14 起排序依据：**手机端优先**（用户令，见下）。待办按 手机端补完 → 卡点 → 已代决 三档排列；新功能先落手机端，影响手机端的缺陷排在同类桌面问题之前，本阶段不新增桌面功能。
 
 - [x] 手机端优先（来源：用户 2026-10-14 令，**优先级调整**）
@@ -38,6 +39,8 @@
 
 ### 卡点
 
+- [ ] 公众号模块（服务号/订阅号）第一期余项——登记（2026-10-19 FIRE1019；设计稿 docs/design/wechat-official-account.md 状态「未排期」，不勾完成）。选型已裁定：方案 a 引 WxJava SDK 自研薄封装（wx-manage 已归档且 Shiro/MyBatis-Plus 与本仓 Security/JPA 冲突）。**第一期已交付骨架（本轮）**：wx_accounts/wx_fans/wx_auto_replies/wx_message_logs 四表（ddl-auto 建表）、`sinomed.official-account.enabled`（缺省 false=全模块惰性关闭，回调 200 拒处理落审计不静默）+ token 配置、明文回调 `GET/POST /api/v1/wx/callback/{accountId}`（SHA1 验签回 echostr、MsgId/事件三元组排重、全量流水含 reject 审计、subscribe/unsubscribe 粉丝维护、关键词 exact/contains 优先级匹配 + 欢迎语/兜底被动回复、Content-Type 无 charset 按 UTF-8 解码）、`GET /api/v1/wx/capabilities/{accountId}` 能力矩阵（account_type+verified 驱动，服务号/已认证/未认证三档降级）、SecurityConfig 放行 `/api/v1/wx/callback/**`。**未完成（待排期）**：第一期 #4 管理端只读流水列表、#5 粉丝↔顾客绑定（H5 + 手机号/短信双因子 + wx_binding_logs）、`WxCapabilities` 管理端入口隐藏接线；第二期菜单/素材/规则 UI；第三期带参二维码/模板消息/群发；安全模式 AES（WxJava）与 app_secret/aes_key 加密落库；激活仍缺公众号凭据（`WX_OA_ENABLED`/`WX_OA_TOKEN`，用户侧）
+
 - [ ] 微信正式凭据（appid + AppSecret）——挂起：`app/project.config.json:5` 仍为 `touristappid` 占位，服务端 `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置。小程序真机运行与 openid 通道（openid-session 登录换取、openid-bind 自助绑定）的激活都压在这条上；实现已可测试、凭据到位即激活（「先建后激活」先例），无需改码
 - [ ] 在线支付真实通道——挂起：需支付通道商户号与密钥等真实凭据 + 你授权接网关；红线不碰付费通道
 
@@ -48,6 +51,9 @@
 - [x] 采购单据与盘点——已代决（2026-10-14 巡检授权，2026-10-17 用户令收口勾销）：维持非目标。理由：出入库台账口径已够用（供货方随入库流水留痕，FEFO 批次消耗与效期预警已实装），不做采购单据/盘点/报损/多库房（docs/design/dispensing.md 裁定不变）
 
 ## 已完成
+
+- [x] 公众号模块第一期骨架 + 能力矩阵——巡检 fleet FIRE1019（2026-10-19）：并行会话 `ae90111` 只落 396 行中文设计稿（未排期、无实现、台账未登记），本轮按「先建后激活」先例落地第一期惰性骨架——模块开关 `sinomed.official-account.enabled` 缺省 false 全模块不激活，回调拒处理 200 落审计不静默（同 phone-lookup off 口径），明文模式零凭据依赖可 stub 测试，不引 WxJava 新依赖（安全模式 AES 留第二期）。交付：四表（wx_accounts/wx_fans/wx_auto_replies/wx_message_logs，均 @DynamicInsert + columnDefinition 列默认）、`WxSignatureUtil`（SHA1 字典序拼接验签，空参不抛）、`WxOfficialAccountService`（验签/排重/流水/粉丝/规则/能力）、`WxOfficialAccountController`（回调收 byte[] 按 UTF-8 解码——微信 Content-Type 常不带 charset、String 反序列化默认 ISO-8859-1 中文上线前即毁；回复显式 UTF-8；XXE 加固 XML 解析；CDATA 闭合序列转义）、SecurityConfig 放行、api.md/api.en.md 三端点口径、设计稿英文版 wechat-official-account.en.md（兑现页首承诺）｜证据：commit 本轮，TDD 17 新测试——`WxSignatureUtilTest` 3（含独立预计算已知向量 97f7e8cb…，非同源循环）、`WxOfficialAccountHttpTest` 8（echostr 回显/验签拒/关键词命中回复/欢迎语 upsert 粉丝/取关保留行不回复/MsgId 排重/未知账号拒/兜底回复）、`WxCallbackDisabledModuleTest` 1（模块关 GET+POST 拒处理且 2 条 result=disabled 审计）、`WxCapabilitiesHttpTest` 5（三档账号矩阵 + 400 + 401）；中途红锚 2 处（关键词回复因传输层 ISO-8859-1 编码静默失配，服务端改收字节强制 UTF-8 + 测试补 charset 后绿）；全量 `./mvnw -B test` 342 测试 0 失败 0 错误（325→342）
+
 
 - [x] 顾客/员工分页 name 包含匹配收口 + treat/fuzzy 空命中响应形——巡检自找批次（2026-10-19）：双向扫描（控制器「声明未用可选参数」× 20 文件零命中；web 前端 28 个查询参数全部有端点接收）后定位同族语义缺陷：`GET /api/v1/customer/page` 与 `/api/v1/staff/page` 的 `name` 均为精确匹配（`CustomerServiceImpl:43` / `StaffServiceImpl:63`），而 web ProTable 搜索框与 `/api/v1/treat/fuzzy`（api.md:61 白纸黑字「模糊检索」，name 路径直接委托顾客分页）都按包含语义使用——顾客/员工传部分词静默空结果；另 `/treat/fuzzy` 两处提前 return 的响应形不一致（id 未命中 total=null 且 pages=1 与空 data 矛盾、name 空命中 total=null）。修复：两处 name 断言改 `like(lower(name), %…%)` 包含不区分大小写（对齐 2026-10-19 item/page 修复确立的全仓口径，/treat/fuzzy 模糊契约随之端到端成立）；fuzzy id 未命中回 total=0/pages=0、name 空命中补 total=0/pages=0；api.md:36/102 与 api.en.md 同步标注 name 语义｜证据：commit 本轮，TDD 红→绿——新增 `CustomerFilterHttpTest` 5 测试（name 包含 / 大小写不敏感 / phone 精确 / name+phone 叠加 AND / 不过滤全返回）、`StaffFilterHttpTest` 3 测试（name 包含 / 大小写 / 不过滤）、`TreatFuzzyNameHttpTest` 3 测试（部分词圈定 2+1、无命中空形、id 未命中一致空形）先红（包含/大小写/叠加 5 失败实锚 + id 未命中 NPE 实锚），后绿 11/11；全量 `./mvnw -B test` 325 测试 0 失败 0 错误（314→325）
 

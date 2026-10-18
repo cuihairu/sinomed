@@ -149,6 +149,12 @@
 | POST | `/api/v1/kiosk/my-appointments` | 手机自助查预约（跨设备）：body `{ phone, smsCode }`（仅 `sms_verified` 模式可用，与查卡同一套一次性验证码），返回 `{ appointments: [{ appointmentId, startTime, itemName, status }] }`——该手机号**未过期**（今天 0 点起）的待到店预约（status=0），新约在前，无预约返回空数组；每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)（同一身份查询通道） |
 | POST | `/api/v1/kiosk/appointment-cancel` | 手机自助取消预约（2026-10-16 代决，`app-booking.md` 拍板 2 的「取消不核验身份」前提已因双因子落地失效；仅 `sms_verified` 模式可用）：body `{ phone, smsCode, appointmentId }`，验证码一次性（查预约用过的码取消须重新取码，缺预约 id 不烧码）；只允许取消本人 status=0 且未过期的预约（0→9），非本人 / 已受理或已过号 / 已取消 / 已过期 / 未知预约均 400 不静默；取消后该时段按「每时段限约 1 位」自动释放、当日频控随之解除。返回 `{ message }`，每次尝试（含拒绝）落 `card_lookup_logs` 审计（result `cancel_ok` / `missing_appointment` / `not_owner` / `not_cancelable`） |
 
+## 微信公众号 `/api/v1/wx`（第一期骨架，设计稿见 wechat-official-account.md）
+
+| GET | `/api/v1/wx/callback/{accountId}` | 公众号后台服务器配置验证（免登录，`SecurityConfig` 放行；签名 = `SHA1(token,timestamp,nonce 字典序拼接)`）：通过原样返回 `echostr`；验签失败回空 body；模块关闭（`sinomed.official-account.enabled` 缺省 false）/ 账号不存在或停用一律回 `success` 拒处理并落 `wx_message_logs` 拒绝审计（result `disabled` / `account_missing` / `bad_signature`），不静默 |
+| POST | `/api/v1/wx/callback/{accountId}` | 消息推送回调（免登录靠验签，仅明文模式；安全模式 AES 第二期）：验签 → 按 `MsgId`（消息）或 `FromUserName:CreateTime:Event`（事件）排重（微信 5s 超时重试 3 次）→ 全量落 `wx_message_logs`（`direction=in/out/reject`）→ 路由：`subscribe`/`unsubscribe` 维护 `wx_fans` 粉丝行（取关保留行不回复）、`text` 按启用规则 `priority` 升序做关键词匹配（exact 全等 / contains 包含），未命中走 `fallback` 兜底，`image`/`voice` 等仅落流水+兜底；被动回复 `text` XML（中英文内容 UTF-8，CDATA 转义），无回复回 `success`（微信 5s 约束）；请求体收原始字节按 UTF-8 解码（微信 Content-Type 常不带 charset） |
+| GET | `/api/v1/wx/capabilities/{accountId}` | 账号能力矩阵（需登录）：按 `wx_accounts.account_type` + `verified` 返回 `{ accountId, accountName, accountType, verified, callback, materials, webAuth, menuManagement, customerService, massMessaging, templateMessage }`——模板消息仅服务号；菜单/客服/群发 = 服务号或已认证；管理端据此隐藏降级入口，不写死枚举分支；账号不存在 400 |
+
 ## 打印模板 `/api/v1/print`（desktop.md D7）
 
 免登录（空白版式、不含业务数据；桌面工作站壳未登录也要拉模板，见[桌面版设计](/design/desktop)）。

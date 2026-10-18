@@ -51,6 +51,11 @@ sinomed:
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}
+  # 公众号（第一期，设计稿 docs/design/wechat-official-account.md §7）：enabled 缺省 false=模块整体关闭，
+  # 回调 200 拒处理落审计（不静默）；token 第一期走 env，账号能力矩阵走 wx_accounts 表
+  official-account:
+    enabled: ${WX_OA_ENABLED:false}
+    token: ${WX_OA_TOKEN:}
 
 application:
   security:

@@ -58,6 +58,7 @@ public class SecurityConfig {
                         "/api/v1/ads/playlist",  // 平板拉排期（只读 + 屏 code 校验，见 docs/design/tablet.md）
                         "/api/v1/calls/latest",  // 平板拉叫号（只读 + 屏 code 校验）
                         "/api/v1/kiosk/**",  // 顾客选服务 Kiosk：浏览只读 + 下单唯一写入口（见 docs/design/kiosk.md）
+                        "/api/v1/wx/callback/**",  // 公众号消息回调：微信服务器无 JWT，来源可信靠签名验证（见 docs/design/wechat-official-account.md §5.1）
                         "/api/v1/print/templates",  // 打印模板下发：空白版式无业务数据，桌面壳免登录拉取（见 docs/design/desktop.md D7）
                         "/media/**",  // 广告媒体静态资源（Nginx 托管时不受此约束）
                         "/actuator/**",
