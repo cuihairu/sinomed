@@ -3,6 +3,7 @@ package com.sinomed.controller;
 import com.sinomed.entity.WxAccountEntity;
 import com.sinomed.entity.WxAutoReplyEntity;
 import com.sinomed.entity.WxMaterialEntity;
+import com.sinomed.entity.WxMenuEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
 import com.sinomed.vo.MessageView;
@@ -11,6 +12,7 @@ import com.sinomed.vo.WxAccountView;
 import com.sinomed.vo.WxAutoReplyView;
 import com.sinomed.vo.WxBindRequest;
 import com.sinomed.vo.WxMaterialView;
+import com.sinomed.vo.WxMenuView;
 import com.sinomed.vo.WxMessageLogView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -226,6 +228,43 @@ public class WxOfficialAccountController {
     @DeleteMapping("/auto-replies/{id}")
     public MessageView deleteAutoReply(@PathVariable Long id) {
         wxOfficialAccountService.deleteAutoReply(id);
+        return new MessageView("删除成功");
+    }
+
+    // ---------- 菜单编辑/草稿（设计稿 §4.3；本地编辑半边，推送微信半边压凭据；需登录） ----------
+
+    @Operation(summary = "菜单列表", description = "两级菜单平铺返回（parentId 表达层级），sort 升序；"
+            + "accountId 可选过滤；不依赖模块开关，需登录")
+    @GetMapping("/menus")
+    public List<WxMenuView> listMenus(@RequestParam(required = false) Long accountId) {
+        List<WxMenuView> data = new ArrayList<>();
+        for (WxMenuEntity menu : wxOfficialAccountService.listMenus(accountId)) {
+            data.add(WxMenuView.from(menu));
+        }
+        return data;
+    }
+
+    @Operation(summary = "创建菜单", description = "两级结构 + 微信协议校验（一级仅 view/click、名字数加权上限、"
+            + "view/click/view_miniprogram 必填字段、每号 ≤3 一级且每级 ≤5 二级）；非 view 类型的 url 会被清空；需登录")
+    @PostMapping("/menus")
+    public WxMenuView createMenu(@RequestBody WxMenuView view) {
+        view.setId(null);
+        return WxMenuView.from(wxOfficialAccountService.saveMenu(view.toEntity()));
+    }
+
+    @Operation(summary = "更新菜单", description = "按 id 全量更新（enabled=0 即草稿，草稿不推送微信）；需登录")
+    @PutMapping("/menus")
+    public WxMenuView updateMenu(@RequestBody WxMenuView view) {
+        if (view.getId() == null) {
+            throw new IllegalArgumentException("菜单Id不能为空");
+        }
+        return WxMenuView.from(wxOfficialAccountService.saveMenu(view.toEntity()));
+    }
+
+    @Operation(summary = "删除菜单", description = "按 id 删除；有子菜单时拒绝（先删子）；需登录")
+    @DeleteMapping("/menus/{id}")
+    public MessageView deleteMenu(@PathVariable Long id) {
+        wxOfficialAccountService.deleteMenu(id);
         return new MessageView("删除成功");
     }
 

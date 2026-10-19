@@ -169,3 +169,66 @@ export async function fetchMaterialBlob(id: number, options?: { [key: string]: a
     ...(options || {}),
   });
 }
+
+// ---------- 自定义菜单（设计稿 §4.3「编辑/草稿」本地半边；推送微信半边压凭据） ----------
+
+/** 自定义菜单行（/api/v1/wx/menus；两级，parentId 表达层级，平铺返回） */
+export interface WxMenu {
+  id?: number;
+  accountId?: number;
+  /** 父菜单 id；顶级为空 */
+  parentId?: number;
+  /** 一级 ≤4 汉字（8 字母等效）、二级 ≤8 汉字（16 字母等效），服务端加权校验 */
+  name?: string;
+  /** view/click/scancode_push/scancode_waitmsg/pic_sysphoto/pic_photo_or_album/pic_weixin/
+   *  location_select/view_miniprogram；一级仅 view/click */
+  menuType?: string;
+  /** view 型必填（http/https） */
+  url?: string;
+  /** 素材类菜单的 media_id */
+  mediaId?: string;
+  /** view_miniprogram 必填 */
+  miniprogramAppid?: string;
+  miniprogramPagepath?: string;
+  /** click 型必填（回调透传） */
+  eventKey?: string;
+  sort?: number;
+  /** 1 启用 / 0 草稿（草稿不推送微信） */
+  enabled?: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export async function queryMenus(
+  params?: { accountId?: number },
+  options?: { [key: string]: any },
+) {
+  return request<WxMenu[]>('/api/v1/wx/menus', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}
+
+export async function createMenu(body: WxMenu, options?: { [key: string]: any }) {
+  return request<WxMenu>('/api/v1/wx/menus', {
+    method: 'POST',
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function updateMenu(body: WxMenu, options?: { [key: string]: any }) {
+  return request<WxMenu>('/api/v1/wx/menus', {
+    method: 'PUT',
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function deleteMenu(id: number, options?: { [key: string]: any }) {
+  return request<Record<string, any>>(`/api/v1/wx/menus/${id}`, {
+    method: 'DELETE',
+    ...(options || {}),
+  });
+}

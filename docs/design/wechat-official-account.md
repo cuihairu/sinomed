@@ -117,7 +117,7 @@
 
 唯一约束 `(account_id, openid)`；索引 `customer_id`、`unionid`。
 
-### 4.3 wx_menus — 自定义菜单（第一期建表不建 UI）
+### 4.3 wx_menus — 自定义菜单（编辑/草稿已交付；推送微信半边压凭据）
 
 | 字段 | 类型 | 含义 |
 | ---- | ---- | ---- |
@@ -135,6 +135,8 @@
 | create_time / update_time | Date | 审计时间 |
 
 索引 `(account_id, parent_id)`。参考 anchel 的「个性化菜单」设计，**第一期不做**（单店场景无人群差异化菜单需求），表结构不预留。
+
+管理端编辑/草稿已交付（`WxOfficialAccountService.saveMenu`，与规则编辑同款「不再手工改库」口径，不依赖模块开关）：两级结构校验（父必须是同账号顶级菜单、最多两级）、一级仅 view/click（扫码/媒体类只能做二级）、菜单名按微信口径加权校验（非 ASCII 记 2 分、ASCII 记 1 分：一级 ≤8 分即「4 汉字或 8 字母」、二级 ≤16 分）、容量上限（每号 ≤3 一级、每个一级 ≤5 二级）、view/click/view_miniprogram 必填字段、非 view 类型强制清空 url；删除父菜单须先删子。**推送微信半边**（`menus/create` API 调用）仍压真实凭据，属第二期。
 
 ### 4.4 wx_auto_replies — 自动回复规则
 
@@ -418,7 +420,7 @@ sinomed:
 
 ### 第二期：运营工具化 ——「菜单 + 素材」
 
-- 自定义菜单管理页（编辑/草稿/推送微信），`wx_menus` 已在第一期建好；
+- 自定义菜单管理页：编辑/草稿本地半边已交付（管理端树形 CRUD + 协议校验，见 §4.3）；**推送微信半边待做**（调用 `menus/create`，压真实凭据）；
 - 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用；
 - 管理端规则编辑 UI（自动回复不再手工改库）——**已全链交付**（2026-10-20：服务端 `/api/v1/wx/auto-replies` 增删改查 + 枚举校验 + subscribe/fallback 单条启用约束 + 管理端账号列表 `/api/v1/wx/accounts`（脱敏不下发密钥列），契约见 docs/server/api.md；web/ 管理端「公众号」页规则表：选账号过滤 + 类型/状态过滤 + 新建/编辑/停用启用/删除）；
 - 安全/兼容模式消息加解密（回调 AES 信封，§5.3）——**已交付**（2026-10-20：`WxMsgCryptor` 官方规范手写落地，含 `<Encrypt>` 报文走 `msg_signature` 四段验签 + AES 解密进主流程、安全模式回复密封、拒绝审计 `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`；测试 `WxMsgCryptorTest` 6 例 OpenSSL KAT + `WxEncryptModeCallbackHttpTest` 5 例）；

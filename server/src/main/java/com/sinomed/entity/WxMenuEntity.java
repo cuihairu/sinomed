@@ -17,9 +17,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.util.Date;
 
 /**
- * 公众号自定义菜单（wx_menus，设计稿 §4.3，第一期建表不建 UI）：草稿态（enabled=0）不推送微信，
- * 菜单管理与推送属第二期。最多两级（parent_id 指向顶级），menu_type 枚举按微信协议（§4.3）。
- * 菜单名字数限制（一级 ≤4 汉字、二级 ≤8 汉字）与个性化菜单均不做——第一期无菜单服务/入口。
+ * 公众号自定义菜单（wx_menus，设计稿 §4.3）：草稿态（enabled=0）不推送微信。
+ * 最多两级（parent_id 指向顶级），menu_type 枚举按微信协议（§4.3）。
+ * 编辑/草稿管理端 CRUD 已交付（saveMenu：两级结构、一级仅 view/click、名字数加权上限、
+ * 类型必填字段、容量上限）；推送微信半边与个性化菜单均压真实凭据（第二期）。
  */
 @Data
 @Entity

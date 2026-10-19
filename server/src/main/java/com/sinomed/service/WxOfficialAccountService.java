@@ -7,6 +7,7 @@ import com.sinomed.entity.WxAutoReplyEntity;
 import com.sinomed.entity.WxBindingLogEntity;
 import com.sinomed.entity.WxFanEntity;
 import com.sinomed.entity.WxMaterialEntity;
+import com.sinomed.entity.WxMenuEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.SmsCodeRepository;
@@ -15,6 +16,7 @@ import com.sinomed.repository.WxAutoReplyRepository;
 import com.sinomed.repository.WxBindingLogRepository;
 import com.sinomed.repository.WxFanRepository;
 import com.sinomed.repository.WxMaterialRepository;
+import com.sinomed.repository.WxMenuRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import com.sinomed.util.DateUtil;
 import com.sinomed.util.WxSignatureUtil;
@@ -80,6 +82,7 @@ public class WxOfficialAccountService {
     private final SmsCodeRepository smsCodeRepository;
     private final CustomerRepository customerRepository;
     private final WxMaterialRepository materialRepository;
+    private final WxMenuRepository menuRepository;
     private final WxOauthTicketStore ticketStore;
     private final RestTemplate wechatRestTemplate;
     private final WxMsgCryptor msgCryptor;
@@ -93,6 +96,12 @@ public class WxOfficialAccountService {
     /** 规则类型与匹配方式合法值（设计稿 §4.4：subscribe/keyword/fallback × exact/contains） */
     private static final Set<String> RULE_TYPES = Set.of("subscribe", "keyword", "fallback");
     private static final Set<String> MATCH_TYPES = Set.of("exact", "contains");
+
+    /** 菜单类型合法值（设计稿 §4.3，微信自定义菜单协议全集） */
+    private static final Set<String> MENU_TYPES = Set.of("view", "click", "scancode_push", "scancode_waitmsg",
+            "pic_sysphoto", "pic_photo_or_album", "pic_weixin", "location_select", "view_miniprogram");
+    /** 一级菜单仅允许的类型（微信协议：扫码/媒体类只能做二级） */
+    private static final Set<String> TOP_MENU_TYPES = Set.of("view", "click");
 
     /** 模块总开关（env WX_OA_ENABLED）；缺省 false=整体关闭，回调拒处理 */
     @Value("${sinomed.official-account.enabled:false}")
@@ -130,6 +139,7 @@ public class WxOfficialAccountService {
                                     SmsCodeRepository smsCodeRepository,
                                     CustomerRepository customerRepository,
                                     WxMaterialRepository materialRepository,
+                                    WxMenuRepository menuRepository,
                                     WxOauthTicketStore ticketStore,
                                     RestTemplate wechatRestTemplate,
                                     WxMsgCryptor msgCryptor) {
@@ -141,6 +151,7 @@ public class WxOfficialAccountService {
         this.smsCodeRepository = smsCodeRepository;
         this.customerRepository = customerRepository;
         this.materialRepository = materialRepository;
+        this.menuRepository = menuRepository;
         this.ticketStore = ticketStore;
         this.wechatRestTemplate = wechatRestTemplate;
         this.msgCryptor = msgCryptor;
@@ -810,6 +821,137 @@ public class WxOfficialAccountService {
     public void deleteAutoReply(Long id) {
         autoReplyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("规则不存在"));
         autoReplyRepository.deleteById(id);
+    }
+
+    /**
+     * 管理端菜单保存（设计稿 §4.3「编辑/草稿」本地半边，创建与更新共用；推送微信半边压凭据）：
+     * 两级结构（父必须是同账号顶级菜单）、一级仅 view/click、名字数按微信口径加权校验
+     * （汉字/非 ASCII 记 2 分、ASCII 记 1 分；一级 ≤8 分、二级 ≤16 分，即「4/8 汉字或 2 倍字母」）、
+     * view/click/view_miniprogram 必填字段、非 view 类型强制清空 url（微信忽略，本地不留误导数据）、
+     * 容量上限（每号 ≤3 一级、每个一级 ≤5 二级，更新排除自身）。
+     * 与 saveAutoReply 同口径：不依赖模块开关，先建后激活。
+     */
+    public WxMenuEntity saveMenu(WxMenuEntity incoming) {
+        if (incoming.getAccountId() == null || accountRepository.findById(incoming.getAccountId()).isEmpty()) {
+            throw new IllegalArgumentException("公众号账号不存在");
+        }
+        String menuType = incoming.getMenuType() == null ? "" : incoming.getMenuType().trim();
+        if (!MENU_TYPES.contains(menuType)) {
+            throw new IllegalArgumentException("menuType 必须是微信协议枚举（view/click/scancode_push/"
+                    + "scancode_waitmsg/pic_sysphoto/pic_photo_or_album/pic_weixin/location_select/view_miniprogram）");
+        }
+        if (isBlank(incoming.getName())) {
+            throw new IllegalArgumentException("菜单名不能为空");
+        }
+        String name = incoming.getName().trim();
+
+        WxMenuEntity parent = null;
+        if (incoming.getParentId() != null) {
+            parent = menuRepository.findById(incoming.getParentId())
+                    .orElseThrow(() -> new IllegalArgumentException("父菜单不存在"));
+            if (!parent.getAccountId().equals(incoming.getAccountId())) {
+                throw new IllegalArgumentException("父菜单必须是同账号的菜单");
+            }
+            if (parent.getParentId() != null) {
+                throw new IllegalArgumentException("菜单最多两级，不能挂在二级菜单下");
+            }
+        }
+        if (parent == null && !TOP_MENU_TYPES.contains(menuType)) {
+            throw new IllegalArgumentException("一级菜单只能是 view 或 click（扫码/媒体类仅二级）");
+        }
+        int weight = menuNameWeight(name);
+        if (parent == null && weight > 8) {
+            throw new IllegalArgumentException("一级菜单名最长 4 个汉字（8 个字母等效）");
+        }
+        if (parent != null && weight > 16) {
+            throw new IllegalArgumentException("二级菜单名最长 8 个汉字（16 个字母等效）");
+        }
+
+        String url = null;
+        if ("view".equals(menuType)) {
+            if (isBlank(incoming.getUrl())) {
+                throw new IllegalArgumentException("view 菜单必须填写跳转地址");
+            }
+            url = incoming.getUrl().trim();
+            if (!(url.startsWith("http://") || url.startsWith("https://"))) {
+                throw new IllegalArgumentException("view 菜单地址必须以 http:// 或 https:// 开头");
+            }
+        }
+        String eventKey = null;
+        if ("click".equals(menuType)) {
+            if (isBlank(incoming.getEventKey())) {
+                throw new IllegalArgumentException("click 菜单必须填写事件 key");
+            }
+            eventKey = incoming.getEventKey().trim();
+        }
+        String miniprogramAppid = null;
+        String miniprogramPagepath = null;
+        if ("view_miniprogram".equals(menuType)) {
+            if (isBlank(incoming.getMiniprogramAppid()) || isBlank(incoming.getMiniprogramPagepath())) {
+                throw new IllegalArgumentException("view_miniprogram 菜单必须填写小程序 appid 与 pagepath");
+            }
+            miniprogramAppid = incoming.getMiniprogramAppid().trim();
+            miniprogramPagepath = incoming.getMiniprogramPagepath().trim();
+        }
+
+        WxMenuEntity entity;
+        if (incoming.getId() == null) {
+            entity = new WxMenuEntity();
+        } else {
+            entity = menuRepository.findById(incoming.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+            if (!entity.getAccountId().equals(incoming.getAccountId())) {
+                throw new IllegalArgumentException("菜单不能跨账号移动（子菜单会悬空）");
+            }
+        }
+        entity.setAccountId(incoming.getAccountId());
+        entity.setParentId(incoming.getParentId());
+        entity.setName(name);
+        entity.setMenuType(menuType);
+        entity.setUrl(url);
+        entity.setEventKey(eventKey);
+        entity.setMiniprogramAppid(miniprogramAppid);
+        entity.setMiniprogramPagepath(miniprogramPagepath);
+        entity.setMediaId(isBlank(incoming.getMediaId()) ? null : incoming.getMediaId().trim());
+        entity.setSort(incoming.getSort() == null ? 0 : incoming.getSort());
+        entity.setEnabled(incoming.getEnabled() == null ? 1 : incoming.getEnabled());
+
+        if (entity.getParentId() == null) {
+            long tops = menuRepository.findAllByAccountIdAndParentIdIsNull(entity.getAccountId())
+                    .stream().filter(other -> !other.getId().equals(entity.getId())).count();
+            if (tops >= 3) {
+                throw new IllegalArgumentException("每个公众号最多 3 个一级菜单");
+            }
+        } else {
+            long children = menuRepository.findAllByParentId(entity.getParentId())
+                    .stream().filter(other -> !other.getId().equals(entity.getId())).count();
+            if (children >= 5) {
+                throw new IllegalArgumentException("每个一级菜单最多 5 个二级菜单");
+            }
+        }
+        return menuRepository.save(entity);
+    }
+
+    /** 管理端菜单列表：单店量小不分页，平铺返回（parentId 表达层级），sort 升序、id 兜底 */
+    public List<WxMenuEntity> listMenus(Long accountId) {
+        if (accountId == null) {
+            return menuRepository.findAll(Sort.by(Sort.Direction.ASC, "accountId", "sort", "id"));
+        }
+        return menuRepository.findAllByAccountIdOrderBySortAscIdAsc(accountId);
+    }
+
+    public void deleteMenu(Long id) {
+        WxMenuEntity menu = menuRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("菜单不存在"));
+        if (!menuRepository.findAllByParentId(id).isEmpty()) {
+            throw new IllegalArgumentException("该菜单下还有二级菜单，请先删除子菜单");
+        }
+        menuRepository.deleteById(id);
+    }
+
+    /** 菜单名权重：非 ASCII（汉字等）记 2 分、ASCII 记 1 分——对应微信「N 汉字或 2N 字母」口径 */
+    private int menuNameWeight(String name) {
+        return name.codePoints().map(cp -> cp > 127 ? 2 : 1).sum();
     }
 
     /**
