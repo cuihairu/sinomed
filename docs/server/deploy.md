@@ -46,6 +46,8 @@
 | `sinomed.official-account.material-dir` | `data/wxmaterials`（`WX_OA_MATERIAL_DIR` 可覆盖） | 图片消息素材落盘根目录（入库存相对路径）；下载失败/超限只记 warn 不放大回调 |
 | `sinomed.official-account.material-max-bytes` | `10485760`（`WX_OA_MATERIAL_MAX_BYTES` 可覆盖） | 单素材下载上限（字节），超限跳过不落台账 |
 | `sinomed.official-account.credential-key` | 空（`WX_OA_CREDENTIAL_KEY` 可覆盖） | `wx_accounts.app_secret`/`aes_key` 落库加密密钥（AES-GCM，凭据不入库明文）；缺省空=凭据写入拒绝，激活时必配 |
+| `sinomed.official-account.oauth-redirect-base` | 空（`WX_OA_OAUTH_REDIRECT_BASE` 可覆盖） | 网页授权回跳 H5 基址（如 `https://clinic.example.com`，设计稿 §5.6）；缺省空=网页授权拒启动，激活时必配 |
+| `sinomed.official-account.wechat-api-base-url` | `https://api.weixin.qq.com`（`WX_OA_WECHAT_API_BASE_URL` 可覆盖） | 微信 API 出网基址（sns oauth2 换 openid）；测试/联调可指本地桩 |
 | `server.port` | `${SERVER_PORT:2347}` | 部署可用 `SERVER_PORT` 覆盖；本地裸跑默认 2347 |
 
 ### 端口约定

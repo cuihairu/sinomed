@@ -60,6 +60,7 @@ public class SecurityConfig {
                         "/api/v1/kiosk/**",  // 顾客选服务 Kiosk：浏览只读 + 下单唯一写入口（见 docs/design/kiosk.md）
                         "/api/v1/wx/callback/**",  // 公众号消息回调：微信服务器无 JWT，来源可信靠签名验证（见 docs/design/wechat-official-account.md §5.1）
                         "/api/v1/wx/bind/**",  // 公众号粉丝绑定（H5 粉丝侧无 JWT，手机号+短信验证码双因子自证，同 Kiosk 口径；见 docs/design/wechat-official-account.md §4.7）
+                        "/api/v1/wx/oauth/**",  // 公众号网页授权 start/callback（粉丝侧浏览器无 JWT，state HMAC 防伪 + ticket 兑换，见 docs/design/wechat-official-account.md §5.6）
                         "/api/v1/print/templates",  // 打印模板下发：空白版式无业务数据，桌面壳免登录拉取（见 docs/design/desktop.md D7）
                         "/media/**",  // 广告媒体静态资源（Nginx 托管时不受此约束）
                         "/actuator/**",

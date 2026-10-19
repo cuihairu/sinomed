@@ -312,11 +312,11 @@ H5 页 /h5/wx/bind?account=1
 | --- | --- | --- | --- | --- |
 | D-OA1 | state 防 CSRF | 无状态签名 `SHA1(token, accountId|nonce|exp)`，10 分钟有效 | 服务端 challenge 表 / Redis；落 wx_binding_logs 前置行 | 绑定成功仍要短信码双因子，state 泄露不构成攻击面，免存储 |
 | D-OA2 | redirect_uri 来源 | 新配置 `sinomed.official-account.oauth-redirect-base`（env `WX_OA_OAUTH_REDIRECT_BASE`），回调固定 `{base}/api/v1/wx/oauth/{accountId}/callback` | 从请求 Host 反推 | 公众号后台网页授权域名白名单要求精确登记，Host 反推可被头注入污染 |
-| D-OA3 | code→openid 交换 | `java.net.http` 直调（3s 超时，同素材下载口径） | 引 WxJava SDK | 第一期「不引依赖先跑通」口径；SDK 随第二期安全模式 AES 一并评估 |
+| D-OA3 | code→openid 交换 | 复用 `wechatRestTemplate` bean 直调（WechatClient jscode2session 同款 RestTemplate+DTO，不引 SDK） | 引 WxJava SDK | 第一期「不引依赖先跑通」口径；初记 java.net.http，2026-10-20 落地时对齐仓内既有出网 DTO 绑定口径（同等不引新依赖）；SDK 随第二期安全模式 AES 一并评估 |
 | D-OA4 | H5 宿主 | 同域静态单页（web 静态产物或 data/ 同款目录 + Nginx 同域反代），路径 `/h5/wx/bind` | 新建子域 / 引 SSR | 第一期只有一个绑定表单页；子域要在白名单多登记一条 |
 | D-OA5 | openid 交付 H5 | 一次性 ticket（5 分钟、单次兑换） | URL 裸传 openid；长效 cookie | openid 是长期标识不宜作 URL 明文或长效凭证，ticket 兑换即废 |
 
-**端点契约（下轮 TDD 锚）**：`GET /api/v1/wx/oauth/{accountId}/start`（302，permitAll，随 `/api/v1/wx/oauth/**` 放行）、`GET /api/v1/wx/oauth/{accountId}/callback`（permitAll；state 失效/换码失败回明确错误页不静默，全量落 `wx_message_logs` 拒绝审计）、既有 `POST /api/v1/wx/bind/{accountId}` 增 `ticket` 入参；测试出网用 JDK HttpServer 桩（微信 API base URL 测试可配，同 ads/payqrcodes「测试专用注入」先例）。
+**端点契约（2026-10-20 服务端半边已按此落地，`WxOauthHttpTest` 桩测锁定；余 H5 静态单页待前端）**：`GET /api/v1/wx/oauth/{accountId}/start`（302，permitAll，随 `/api/v1/wx/oauth/**` 放行）、`GET /api/v1/wx/oauth/{accountId}/callback`（permitAll；state 失效/换码失败 400 明确错误不静默，全量落 `wx_message_logs` 拒绝审计）、既有 `POST /api/v1/wx/bind/{accountId}` 增 `ticket` 入参；出网基址走 `sinomed.official-account.wechat-api-base-url`（env `WX_OA_WECHAT_API_BASE_URL`，缺省官方域），测试用 JDK HttpServer 桩指该配置（同 ads/payqrcodes「测试专用注入」先例）。
 
 **激活清单（凭据到位后，用户侧）**：公众号后台「网页授权域名」登记 `oauth-redirect-base` 的域名；配 `WX_OA_ENABLED`/`WX_OA_TOKEN`/`WX_OA_CREDENTIAL_KEY`；`wx_accounts` 落 appid + AppSecret（加密落库）。
 

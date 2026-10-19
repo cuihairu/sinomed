@@ -46,6 +46,8 @@ All server-side configuration is centralized in `server/src/main/resources/appli
 | `sinomed.official-account.material-dir` | `data/wxmaterials` (`WX_OA_MATERIAL_DIR` overrides) | Root dir for image-message media downloads (relative paths stored in DB); failures/oversize only log a warn and never break the callback |
 | `sinomed.official-account.material-max-bytes` | `10485760` (`WX_OA_MATERIAL_MAX_BYTES` overrides) | Per-file download cap in bytes; oversize files are skipped with no ledger row |
 | `sinomed.official-account.credential-key` | Empty (`WX_OA_CREDENTIAL_KEY` overrides) | Encryption key for `wx_accounts.app_secret`/`aes_key` at rest (AES-GCM, no plaintext credentials in DB); default empty = credential writes rejected, required at activation |
+| `sinomed.official-account.oauth-redirect-base` | Empty (`WX_OA_OAUTH_REDIRECT_BASE` overrides) | H5 base URL for web-auth redirects (e.g. `https://clinic.example.com`, design §5.6); default empty = web-auth refuses to start, required at activation |
+| `sinomed.official-account.wechat-api-base-url` | `https://api.weixin.qq.com` (`WX_OA_WECHAT_API_BASE_URL` overrides) | Outbound base URL for WeChat APIs (sns oauth2 openid exchange); point at a local stub for tests/integration |
 | `server.port` | `${SERVER_PORT:2347}` | Deployments can override with `SERVER_PORT`; a local bare run defaults to 2347 |
 
 ### Port conventions

@@ -18,25 +18,33 @@ import com.sinomed.repository.WxMaterialRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import com.sinomed.util.DateUtil;
 import com.sinomed.util.WxSignatureUtil;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.criteria.Predicate;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -69,9 +77,14 @@ public class WxOfficialAccountService {
     private final SmsCodeRepository smsCodeRepository;
     private final CustomerRepository customerRepository;
     private final WxMaterialRepository materialRepository;
+    private final WxOauthTicketStore ticketStore;
+    private final RestTemplate wechatRestTemplate;
 
     /** 绑定短信验证码有效期（分钟），与 Kiosk 短信通道同口径 */
     private static final long BIND_SMS_TTL_MINUTES = 5;
+
+    /** OAuth state 有效期（秒，D-OA3：无状态 HMAC，10 分钟内完成授权回跳） */
+    private static final long OAUTH_STATE_TTL_SECONDS = 600;
 
     /** 模块总开关（env WX_OA_ENABLED）；缺省 false=整体关闭，回调拒处理 */
     @Value("${sinomed.official-account.enabled:false}")
@@ -89,6 +102,14 @@ public class WxOfficialAccountService {
     @Value("${sinomed.official-account.material-max-bytes:10485760}")
     private long materialMaxBytes;
 
+    /** OAuth 回跳 H5 基址（env WX_OA_OAUTH_REDIRECT_BASE，如 https://clinic.example.com）；空则网页授权拒启动 */
+    @Value("${sinomed.official-account.oauth-redirect-base:}")
+    private String oauthRedirectBase;
+
+    /** 微信 API 出网基址（默认官方域；测试指向本地桩，D-OA4） */
+    @Value("${sinomed.official-account.wechat-api-base-url:https://api.weixin.qq.com}")
+    private String wechatApiBaseUrl;
+
     /** 素材下载客户端：连接/单请求均 3s 上限，护住微信回调 5s 窗口 */
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3)).build();
@@ -100,7 +121,9 @@ public class WxOfficialAccountService {
                                     WxBindingLogRepository bindingLogRepository,
                                     SmsCodeRepository smsCodeRepository,
                                     CustomerRepository customerRepository,
-                                    WxMaterialRepository materialRepository) {
+                                    WxMaterialRepository materialRepository,
+                                    WxOauthTicketStore ticketStore,
+                                    RestTemplate wechatRestTemplate) {
         this.accountRepository = accountRepository;
         this.fanRepository = fanRepository;
         this.autoReplyRepository = autoReplyRepository;
@@ -109,6 +132,8 @@ public class WxOfficialAccountService {
         this.smsCodeRepository = smsCodeRepository;
         this.customerRepository = customerRepository;
         this.materialRepository = materialRepository;
+        this.ticketStore = ticketStore;
+        this.wechatRestTemplate = wechatRestTemplate;
     }
 
     /** GET URL 验证：通过原样返回 echostr；拒绝路径回 "success"/空并落审计 */
@@ -421,6 +446,148 @@ public class WxOfficialAccountService {
                 .flatMap(customerRepository::findById)
                 .map(CustomerEntity::getName)
                 .orElse(null);
+    }
+
+    /**
+     * 网页授权发起（设计稿 §5.6，D-OA1..D-OA3）：拼 snsapi_base 授权地址，
+     * state=「accountId|nonce|过期秒」+ HMAC-SHA1(token) 无状态防伪（10 分钟）。
+     * 拒绝（模块关/账号停用/缺 redirect 基址）不静默：落 reject 审计并抛 400。
+     */
+    public String oauthAuthorizeUrl(long accountId) {
+        if (!enabled) {
+            logReject(accountId, "disabled", "oauth", null, null);
+            throw new IllegalArgumentException("公众号模块未开启，无法发起网页授权");
+        }
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .filter(a -> a.getEnabled() != null && a.getEnabled() == 1).orElse(null);
+        if (account == null) {
+            logReject(accountId, "account_missing", "oauth", null, null);
+            throw new IllegalArgumentException("公众号账号不存在或已停用，无法发起网页授权");
+        }
+        if (isBlank(oauthRedirectBase)) {
+            logReject(accountId, "missing_redirect_base", "oauth", null, null);
+            throw new IllegalArgumentException("未配置网页授权回跳基址（oauth-redirect-base），无法发起授权");
+        }
+        long exp = System.currentTimeMillis() / 1000 + OAUTH_STATE_TTL_SECONDS;
+        String payload = accountId + "|" + UUID.randomUUID().toString().replace("-", "").substring(0, 8) + "|" + exp;
+        String state = payload + ":" + hmacSha1Hex(token, payload);
+        return "https://open.weixin.qq.com/connect/oauth2/authorize"
+                + "?appid=" + urlEncode(account.getAppId())
+                + "&redirect_uri=" + urlEncode(oauthRedirectBase + "/api/v1/wx/oauth/" + accountId + "/callback")
+                + "&response_type=code&scope=snsapi_base&state=" + urlEncode(state)
+                + "#wechat_redirect";
+    }
+
+    /**
+     * 网页授权回调（设计稿 §5.6）：state 验签 → code 换 openid（出网可配基址）→
+     * 发一次性 ticket → 回跳 H5 绑定页（#ticket=...）。openid 不进前端落地地址，
+     * H5 凭 ticket 兑换；失败路径全部落 reject 审计并明确报错。
+     */
+    public String oauthCallbackRedirectUrl(long accountId, String code, String state) {
+        if (!enabled) {
+            logReject(accountId, "disabled", "oauth", null, null);
+            throw new IllegalArgumentException("公众号模块未开启");
+        }
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .filter(a -> a.getEnabled() != null && a.getEnabled() == 1).orElse(null);
+        if (account == null) {
+            logReject(accountId, "account_missing", "oauth", null, null);
+            throw new IllegalArgumentException("公众号账号不存在或已停用");
+        }
+        if (!verifyOauthState(accountId, state)) {
+            logReject(accountId, "bad_state", "oauth", null, null);
+            throw new IllegalArgumentException("授权 state 校验失败，请重新发起授权");
+        }
+        String openid = exchangeOpenid(account, code);
+        if (openid == null) {
+            logReject(accountId, "bad_exchange", "oauth", null, null);
+            throw new IllegalArgumentException("授权 code 换取 openid 失败，请重新发起授权");
+        }
+        return oauthRedirectBase + "/h5/wx/bind#ticket=" + ticketStore.issue(accountId, openid);
+    }
+
+    /**
+     * H5 凭 ticket 兑换 openid（一次性，D-OA5）：无效/过期/错账号拒绝并落绑定审计，
+     * 兑到的 openid 直接进 bind 主流程（手机号+验证码双因子不变）。
+     */
+    public String redeemTicket(long accountId, String ticket) {
+        return ticketStore.redeem(accountId, ticket).orElseGet(() -> {
+            auditBinding(accountId, null, null, null, "bad_ticket");
+            throw new IllegalArgumentException("授权 ticket 无效或已过期，请重新发起网页授权");
+        });
+    }
+
+    /** state 验签：结构 payload:签名 → 常量时间比对 HMAC → 账号一致 + 未过期 */
+    private boolean verifyOauthState(long accountId, String state) {
+        if (isBlank(state) || isBlank(token)) {
+            return false;
+        }
+        int split = state.lastIndexOf(':');
+        if (split <= 0 || split == state.length() - 1) {
+            return false;
+        }
+        String payload = state.substring(0, split);
+        byte[] expected = hmacSha1Hex(token, payload).getBytes(StandardCharsets.US_ASCII);
+        byte[] actual = state.substring(split + 1).getBytes(StandardCharsets.US_ASCII);
+        if (!MessageDigest.isEqual(expected, actual)) {
+            return false;
+        }
+        String[] parts = payload.split("\\|");
+        if (parts.length != 3) {
+            return false;
+        }
+        try {
+            return Long.parseLong(parts[0]) == accountId
+                    && System.currentTimeMillis() / 1000 <= Long.parseLong(parts[2]);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /** code→openid 换取（D-OA4：可配基址；AppSecret 取自动态解密列；RestTemplate+DTO 同 WechatClient 口径）；失败回 null 不抛 */
+    private String exchangeOpenid(WxAccountEntity account, String code) {
+        if (isBlank(code) || isBlank(account.getAppSecret())) {
+            return null;
+        }
+        try {
+            String url = wechatApiBaseUrl + "/sns/oauth2/access_token?appid=" + urlEncode(account.getAppId())
+                    + "&secret=" + urlEncode(account.getAppSecret())
+                    + "&code=" + urlEncode(code) + "&grant_type=authorization_code";
+            AccessTokenExchange resp = wechatRestTemplate.getForObject(url, AccessTokenExchange.class);
+            if (resp == null || (resp.getErrcode() != null && resp.getErrcode() != 0) || isBlank(resp.getOpenid())) {
+                return null;
+            }
+            return resp.getOpenid();
+        } catch (Exception e) {
+            log.warn("wx oauth exchange failed account={}: {}", account.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /** 微信 sns/oauth2/access_token 响应（snsapi_base 只需 openid）；errcode 非 0 时无 openid */
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class AccessTokenExchange {
+        private String openid;
+        private Integer errcode;
+    }
+
+    private static String hmacSha1Hex(String key, String payload) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA1");
+            mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA1"));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : mac.doFinal(payload.getBytes(StandardCharsets.UTF_8))) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("HMAC 计算失败", e);
+        }
+    }
+
+    private static String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private void consumeBindSmsCode(long accountId, String openid, String phone, String submitted) {

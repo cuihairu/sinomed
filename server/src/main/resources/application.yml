@@ -62,6 +62,10 @@ sinomed:
     material-max-bytes: ${WX_OA_MATERIAL_MAX_BYTES:10485760}
     # wx_accounts.app_secret/aes_key 落库加密密钥（设计稿 §7 凭据不入库明文）；缺省空=凭据写入拒绝，激活时必配
     credential-key: ${WX_OA_CREDENTIAL_KEY:}
+    # 网页授权回跳 H5 基址（设计稿 §5.6，如 https://clinic.example.com）；缺省空=授权拒启动，激活时必配
+    oauth-redirect-base: ${WX_OA_OAUTH_REDIRECT_BASE:}
+    # 微信 API 出网基址（sns oauth2 换 openid；默认官方域，测试指向本地桩）
+    wechat-api-base-url: ${WX_OA_WECHAT_API_BASE_URL:https://api.weixin.qq.com}
 
 application:
   security:

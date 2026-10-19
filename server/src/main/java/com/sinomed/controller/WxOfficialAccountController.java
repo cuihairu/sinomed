@@ -12,7 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -79,14 +82,40 @@ public class WxOfficialAccountController {
         return new MessageView(wxOfficialAccountService.issueBindCode(accountId, request.getPhone()));
     }
 
+    @Operation(summary = "网页授权发起", description = "生成 snsapi_base 授权地址并 302 到 open.weixin.qq.com："
+            + "state 为 HMAC-SHA1 无状态防伪（10 分钟），redirect_uri 取 oauth-redirect-base 配置。"
+            + "模块关/账号停用/未配回跳基址明确 400 并落审计；免登录（粉丝侧）")
+    @GetMapping("/oauth/{accountId}/start")
+    public ResponseEntity<Void> oauthStart(@PathVariable("accountId") long accountId) {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, wxOfficialAccountService.oauthAuthorizeUrl(accountId))
+                .build();
+    }
+
+    @Operation(summary = "网页授权回调", description = "state 验签 → code 换 openid（出网可配基址）→ 发一次性 ticket →"
+            + "302 回 H5 绑定页（#ticket=...，openid 不下发前端）。state 伪造/换取失败明确 400 并落审计；免登录")
+    @GetMapping("/oauth/{accountId}/callback")
+    public ResponseEntity<Void> oauthCallback(@PathVariable("accountId") long accountId,
+                                              @RequestParam(value = "code", required = false) String code,
+                                              @RequestParam(value = "state", required = false) String state) {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION,
+                        wxOfficialAccountService.oauthCallbackRedirectUrl(accountId, code, state))
+                .build();
+    }
+
     @Operation(summary = "粉丝绑定顾客档案", description = "H5 授权拿 openid + 手机号 + 短信验证码双因子（复用 Kiosk /openid-bind 口径）："
-            + "校验通过写 wx_fans.customer_id，每次尝试（含拒绝）落 wx_binding_logs；"
-            + "同档案重复绑定幂等回执；免登录（粉丝侧）")
+            + "openid 也可由网页授权一次性 ticket 兑换代替（§5.6）；校验通过写 wx_fans.customer_id，"
+            + "每次尝试（含拒绝）落 wx_binding_logs；同档案重复绑定幂等回执；免登录（粉丝侧）")
     @PostMapping(value = "/bind/{accountId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public MessageView bind(@PathVariable("accountId") long accountId,
                             @RequestBody WxBindRequest request) {
+        String openid = request.getOpenid();
+        if ((openid == null || openid.isBlank()) && request.getTicket() != null && !request.getTicket().isBlank()) {
+            openid = wxOfficialAccountService.redeemTicket(accountId, request.getTicket());
+        }
         return new MessageView(wxOfficialAccountService.bind(
-                accountId, request.getOpenid(), request.getPhone(), request.getSmsCode()));
+                accountId, openid, request.getPhone(), request.getSmsCode()));
     }
 
     @Operation(summary = "管理端解绑粉丝", description = "清 wx_fans.customer_id 并落审计（设计稿 §4.7）；"
