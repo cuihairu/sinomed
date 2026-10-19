@@ -41,6 +41,11 @@
 | `sinomed.phone-lookup.mode` | `off`（`PHONE_LOOKUP_MODE` 可覆盖） | 手机查卡模式：`off`（默认，关闭）/ `openid_only`（openid 绑定查卡）/ `sms_verified`（手机号 + 验证码双因子）；口径见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
 | `sinomed.wechat.app-id` | 空（`WECHAT_APP_ID` 可覆盖） | 微信小程序 appid：`openid_only` 模式经 jscode2session 换 openid 用；未配置时 openid 换取 400 明确拒绝，不静默 |
 | `sinomed.wechat.app-secret` | 空（`WECHAT_APP_SECRET` 可覆盖） | 微信小程序 AppSecret：只作服务端 jscode2session 出网，不下发前端 |
+| `sinomed.official-account.enabled` | `false`（`WX_OA_ENABLED` 可覆盖） | 公众号模块总开关：缺省 false=回调 200 拒处理落审计不静默；激活需 `WX_OA_TOKEN` 与 `WX_OA_CREDENTIAL_KEY` |
+| `sinomed.official-account.token` | 空（`WX_OA_TOKEN` 可覆盖） | 公众号消息推送 Token（SHA1 验签用） |
+| `sinomed.official-account.material-dir` | `data/wxmaterials`（`WX_OA_MATERIAL_DIR` 可覆盖） | 图片消息素材落盘根目录（入库存相对路径）；下载失败/超限只记 warn 不放大回调 |
+| `sinomed.official-account.material-max-bytes` | `10485760`（`WX_OA_MATERIAL_MAX_BYTES` 可覆盖） | 单素材下载上限（字节），超限跳过不落台账 |
+| `sinomed.official-account.credential-key` | 空（`WX_OA_CREDENTIAL_KEY` 可覆盖） | `wx_accounts.app_secret`/`aes_key` 落库加密密钥（AES-GCM，凭据不入库明文）；缺省空=凭据写入拒绝，激活时必配 |
 | `server.port` | `${SERVER_PORT:2347}` | 部署可用 `SERVER_PORT` 覆盖；本地裸跑默认 2347 |
 
 ### 端口约定

@@ -41,6 +41,11 @@ All server-side configuration is centralized in `server/src/main/resources/appli
 | `sinomed.phone-lookup.mode` | `off` (overridable by `PHONE_LOOKUP_MODE`) | Phone card lookup mode: `off` (default, disabled) / `openid_only` (openid-bound card lookup) / `sms_verified` (phone number + verification code, two-factor); convention in [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
 | `sinomed.wechat.app-id` | Empty (overridable by `WECHAT_APP_ID`) | WeChat mini program appid: used in `openid_only` mode to exchange for an openid via jscode2session; when not configured the openid exchange is explicitly rejected with 400, never silent |
 | `sinomed.wechat.app-secret` | Empty (overridable by `WECHAT_APP_SECRET`) | WeChat mini program AppSecret: used only for server-side jscode2session outbound calls, never sent to the frontend |
+| `sinomed.official-account.enabled` | `false` (`WX_OA_ENABLED` overrides) | WeChat OA module master switch: default false = callback answers 200 refusing to process with an audit row, never silent; activation needs `WX_OA_TOKEN` and `WX_OA_CREDENTIAL_KEY` |
+| `sinomed.official-account.token` | Empty (`WX_OA_TOKEN` overrides) | WeChat message-push token (SHA1 signature check) |
+| `sinomed.official-account.material-dir` | `data/wxmaterials` (`WX_OA_MATERIAL_DIR` overrides) | Root dir for image-message media downloads (relative paths stored in DB); failures/oversize only log a warn and never break the callback |
+| `sinomed.official-account.material-max-bytes` | `10485760` (`WX_OA_MATERIAL_MAX_BYTES` overrides) | Per-file download cap in bytes; oversize files are skipped with no ledger row |
+| `sinomed.official-account.credential-key` | Empty (`WX_OA_CREDENTIAL_KEY` overrides) | Encryption key for `wx_accounts.app_secret`/`aes_key` at rest (AES-GCM, no plaintext credentials in DB); default empty = credential writes rejected, required at activation |
 | `server.port` | `${SERVER_PORT:2347}` | Deployments can override with `SERVER_PORT`; a local bare run defaults to 2347 |
 
 ### Port conventions

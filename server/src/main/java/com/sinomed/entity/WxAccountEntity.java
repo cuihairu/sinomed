@@ -1,6 +1,8 @@
 package com.sinomed.entity;
 
+import com.sinomed.config.WxSecretAttributeConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
@@ -39,6 +41,8 @@ public class WxAccountEntity {
     private String appId;
 
     /** AppSecret（第二期 AES 落库；第一期恒空） */
+    // 加密落库（设计稿 §7 凭据不入库明文，AES-GCM 可逆，密钥 env WX_OA_CREDENTIAL_KEY）
+    @Convert(converter = WxSecretAttributeConverter.class)
     @Column(name = "app_secret")
     private String appSecret;
 
@@ -58,6 +62,7 @@ public class WxAccountEntity {
     private String token;
 
     /** EncodingAESKey（43 字符；第二期加密落库） */
+    @Convert(converter = WxSecretAttributeConverter.class)
     @Column(name = "aes_key")
     private String aesKey;
 
