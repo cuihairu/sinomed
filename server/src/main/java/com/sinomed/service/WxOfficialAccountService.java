@@ -6,6 +6,7 @@ import com.sinomed.entity.WxAccountEntity;
 import com.sinomed.entity.WxAutoReplyEntity;
 import com.sinomed.entity.WxBindingLogEntity;
 import com.sinomed.entity.WxFanEntity;
+import com.sinomed.entity.WxMaterialEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.SmsCodeRepository;
@@ -13,10 +14,12 @@ import com.sinomed.repository.WxAccountRepository;
 import com.sinomed.repository.WxAutoReplyRepository;
 import com.sinomed.repository.WxBindingLogRepository;
 import com.sinomed.repository.WxFanRepository;
+import com.sinomed.repository.WxMaterialRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import com.sinomed.util.DateUtil;
 import com.sinomed.util.WxSignatureUtil;
 import jakarta.persistence.criteria.Predicate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,12 +30,24 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -42,6 +57,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * 「不静默」口径：模块关/账号停用/未知账号一律 200 拒处理（回 "success"，不让微信重试）并落拒绝审计；
  * 验签失败回空 body。安全模式（AES 解密）第二期随 WxJava 接入，本类只实施明文模式。
  */
+@Slf4j
 @Component
 public class WxOfficialAccountService {
 
@@ -52,6 +68,7 @@ public class WxOfficialAccountService {
     private final WxBindingLogRepository bindingLogRepository;
     private final SmsCodeRepository smsCodeRepository;
     private final CustomerRepository customerRepository;
+    private final WxMaterialRepository materialRepository;
 
     /** 绑定短信验证码有效期（分钟），与 Kiosk 短信通道同口径 */
     private static final long BIND_SMS_TTL_MINUTES = 5;
@@ -64,13 +81,26 @@ public class WxOfficialAccountService {
     @Value("${sinomed.official-account.token:}")
     private String token;
 
+    /** 素材落盘根目录（env WX_OA_MATERIAL_DIR），相对路径入库、绝对寻址靠它拼 */
+    @Value("${sinomed.official-account.material-dir:data/wxmaterials}")
+    private String materialDir;
+
+    /** 单素材下载上限（字节，env WX_OA_MATERIAL_MAX_BYTES），超限跳过不放大 */
+    @Value("${sinomed.official-account.material-max-bytes:10485760}")
+    private long materialMaxBytes;
+
+    /** 素材下载客户端：连接/单请求均 3s 上限，护住微信回调 5s 窗口 */
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(3)).build();
+
     public WxOfficialAccountService(WxAccountRepository accountRepository,
                                     WxFanRepository fanRepository,
                                     WxAutoReplyRepository autoReplyRepository,
                                     WxMessageLogRepository messageLogRepository,
                                     WxBindingLogRepository bindingLogRepository,
                                     SmsCodeRepository smsCodeRepository,
-                                    CustomerRepository customerRepository) {
+                                    CustomerRepository customerRepository,
+                                    WxMaterialRepository materialRepository) {
         this.accountRepository = accountRepository;
         this.fanRepository = fanRepository;
         this.autoReplyRepository = autoReplyRepository;
@@ -78,6 +108,7 @@ public class WxOfficialAccountService {
         this.bindingLogRepository = bindingLogRepository;
         this.smsCodeRepository = smsCodeRepository;
         this.customerRepository = customerRepository;
+        this.materialRepository = materialRepository;
     }
 
     /** GET URL 验证：通过原样返回 echostr；拒绝路径回 "success"/空并落审计 */
@@ -142,6 +173,10 @@ public class WxOfficialAccountService {
                 reply = firstRule(accountId, "fallback");
             }
             return replyTo(accountId, fromUser, toUser, reply);
+        }
+        if ("image".equals(msgType)) {
+            // 设计稿 §4.5 第一期：图片消息拉取 PicUrl 落 wx_materials（type=temp，供管理端查看）
+            captureMaterial(accountId, msg.get("MediaId"), msg.get("PicUrl"));
         }
         // image/voice/video/link/location 等：第一期落日志 + 兜底（不做识别处理）
         return replyTo(accountId, fromUser, toUser, firstRule(accountId, "fallback"));
@@ -460,6 +495,83 @@ public class WxOfficialAccountService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
         return messageLogRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * 图片消息素材拉取（设计稿 §4.5 第一期口径：下载 PicUrl 到 local_path 落 wx_materials 台账）。
+     * 同 (account, media_id) 已有台账则跳过重下（微信超时重推同图）；下载失败、非 200、超上限一律
+     * 只记 warn 不落行——回调仍按无素材路径走兜底（微信 5s 约束不得放大异常）。
+     * 下载在回调线程内同步做，单次上限 3s；超时被微信重发时由 MsgId 排重兜底（不重复拉取）。
+     */
+    private void captureMaterial(long accountId, String mediaId, String picUrl) {
+        if (isBlank(picUrl)) {
+            return;
+        }
+        if (!isBlank(mediaId)
+                && materialRepository.findByAccountIdAndMediaId(accountId, mediaId).isPresent()) {
+            return; // 已入台账（含此前成功下载），不重复下载
+        }
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(picUrl))
+                    .timeout(Duration.ofSeconds(3)).GET().build();
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() != 200) {
+                log.warn("wx material download http {} account={} media={}",
+                        response.statusCode(), accountId, mediaId);
+                return;
+            }
+            byte[] body = response.body();
+            if (body.length > materialMaxBytes) {
+                log.warn("wx material exceeds {} bytes, skip account={} media={}",
+                        materialMaxBytes, accountId, mediaId);
+                return;
+            }
+            String mime = response.headers().firstValue("Content-Type").orElse("");
+            String relative = Paths.get(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")),
+                    UUID.randomUUID() + "." + extensionFor(picUrl, mime))
+                    .toString().replace('\\', '/');
+            Path target = Paths.get(materialDir, relative);
+            Files.createDirectories(target.getParent());
+            Files.write(target, body);
+
+            WxMaterialEntity material = new WxMaterialEntity();
+            material.setAccountId(accountId);
+            material.setMediaId(mediaId);
+            material.setMaterialType("temp");
+            material.setUrl(picUrl);
+            material.setLocalPath(relative);
+            material.setSize((long) body.length);
+            material.setMimeType(mime.isBlank() ? null : mime);
+            materialRepository.save(material);
+        } catch (Exception e) {
+            log.warn("wx material download failed account={} media={}: {}", accountId, mediaId, e.getMessage());
+        }
+    }
+
+    /** 落盘扩展名：优先 Content-Type，其次 URL 路径后缀，兜底 bin */
+    private static String extensionFor(String url, String mime) {
+        String lower = mime == null ? "" : mime.toLowerCase(Locale.ROOT);
+        if (lower.contains("jpeg") || lower.contains("jpg")) {
+            return "jpg";
+        }
+        if (lower.contains("png")) {
+            return "png";
+        }
+        if (lower.contains("gif")) {
+            return "gif";
+        }
+        if (lower.contains("webp")) {
+            return "webp";
+        }
+        int slash = url.lastIndexOf('/');
+        int dot = url.lastIndexOf('.');
+        if (dot > slash && dot < url.length() - 1) {
+            String ext = url.substring(dot + 1).toLowerCase(Locale.ROOT);
+            if (ext.matches("[a-z0-9]{1,5}")) {
+                return ext;
+            }
+        }
+        return "bin";
     }
 
     private static boolean isBlank(String text) {
