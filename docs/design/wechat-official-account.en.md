@@ -422,7 +422,7 @@ sinomed:
 
 - Custom menu management page (edit/draft/publish), `wx_menus` table already built;
 - Material upload and management (permanent ledger + local storage), supporting menu and auto-reply references;
-- Admin rule editor UI (auto-replies no longer hand-maintained in DB);
+- Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **server CRUD half delivered** (2026-10-20: `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint, contract in docs/server/api.en.md; web/ editor page pending);
 - Message console upgraded to a conversational view + human customer-service replies (48h window, service/verified subscription).
 
 ### Phase 3: Outreach — "parametric QR + mass/template messages"

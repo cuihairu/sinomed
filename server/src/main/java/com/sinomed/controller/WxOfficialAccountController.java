@@ -1,9 +1,11 @@
 package com.sinomed.controller;
 
+import com.sinomed.entity.WxAutoReplyEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
 import com.sinomed.vo.MessageView;
 import com.sinomed.vo.PageResp;
+import com.sinomed.vo.WxAutoReplyView;
 import com.sinomed.vo.WxBindRequest;
 import com.sinomed.vo.WxMessageLogView;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,9 +18,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -155,5 +159,52 @@ public class WxOfficialAccountController {
         resp.total = logs.getTotalElements();
         resp.success = true;
         return resp;
+    }
+
+    // ---------- 管理端规则 CRUD（设计稿第二期「管理端规则编辑」服务端半边；需登录，不依赖模块开关） ----------
+
+    @Operation(summary = "自动回复规则分页", description = "按账号/类型/启用态过滤，默认 priority 升序（小者先试）；需登录")
+    @GetMapping("/auto-replies/page")
+    public PageResp<WxAutoReplyView> pageAutoReplies(@RequestParam int current,
+                                                     @RequestParam int pageSize,
+                                                     @RequestParam(required = false) Long accountId,
+                                                     @RequestParam(required = false) String ruleType,
+                                                     @RequestParam(required = false) Integer enabled) {
+        PageRequest page = PageRequest.of(current > 0 ? current - 1 : 0, pageSize > 0 ? pageSize : 1,
+                Sort.by(Sort.Direction.ASC, "priority", "id"));
+        Page<WxAutoReplyEntity> rules = wxOfficialAccountService.pageAutoReplies(accountId, ruleType, enabled, page);
+        PageResp<WxAutoReplyView> resp = new PageResp<>();
+        resp.data = new ArrayList<>();
+        for (WxAutoReplyEntity row : rules) {
+            resp.data.add(WxAutoReplyView.from(row));
+        }
+        resp.pages = rules.getTotalPages();
+        resp.total = rules.getTotalElements();
+        resp.success = true;
+        return resp;
+    }
+
+    @Operation(summary = "创建自动回复规则", description = "ruleType=subscribe/keyword/fallback；keyword 型必填关键词，"
+            + "其它型关键词会被清空；subscribe/fallback 同账号同时最多一条启用；需登录")
+    @PostMapping("/auto-replies")
+    public WxAutoReplyView createAutoReply(@RequestBody WxAutoReplyView view) {
+        view.setId(null);
+        return WxAutoReplyView.from(wxOfficialAccountService.saveAutoReply(view.toEntity()));
+    }
+
+    @Operation(summary = "更新自动回复规则", description = "按 id 全量更新；需登录")
+    @PutMapping("/auto-replies")
+    public WxAutoReplyView updateAutoReply(@RequestBody WxAutoReplyView view) {
+        if (view.getId() == null) {
+            throw new IllegalArgumentException("规则Id不能为空");
+        }
+        return WxAutoReplyView.from(wxOfficialAccountService.saveAutoReply(view.toEntity()));
+    }
+
+    @Operation(summary = "删除自动回复规则", description = "按 id 删除；需登录")
+    @DeleteMapping("/auto-replies/{id}")
+    public MessageView deleteAutoReply(@PathVariable Long id) {
+        wxOfficialAccountService.deleteAutoReply(id);
+        return new MessageView("删除成功");
     }
 }
