@@ -348,11 +348,16 @@ sinomed:
     app-secret: ${WECHAT_APP_SECRET:}
   # 公众号（新增；第一期单账号，与小程序凭据分离，不同 appid 体系）
   official-account:
+    # —— 第一期已实现（现状见 application.yml:56-64）——
     enabled: ${WX_OA_ENABLED:false}            # 缺省 false=模块整体关闭，回调入口返回 200 拒处理
-    account-id: ${WX_OA_ACCOUNT_ID:1}          # 第一期恒为 1，多账号预留
     token: ${WX_OA_TOKEN:}                     # 服务器配置 Token
-    aes-key: ${WX_OA_AES_KEY:}                 # EncodingAESKey（43 字符）
-    encrypt-mode: ${WX_OA_ENCRYPT_MODE:plaintext}  # plaintext/compatible/safe
+    material-dir: ${WX_OA_MATERIAL_DIR:data/wxmaterials}      # 图片消息素材落盘根目录（§4.5）
+    material-max-bytes: ${WX_OA_MATERIAL_MAX_BYTES:10485760}  # 单素材下载上限（字节），超限跳过
+    credential-key: ${WX_OA_CREDENTIAL_KEY:}   # wx_accounts.app_secret/aes_key 落库加密密钥；缺省空=凭据写入拒绝
+    # —— 第二期预留（当前代码未读，激活请勿按此段配置）——
+    account-id: ${WX_OA_ACCOUNT_ID:1}          # 多账号预留；现行回调走路径变量 {accountId}
+    aes-key: ${WX_OA_AES_KEY:}                 # EncodingAESKey（43 字符），随安全模式 AES 一并落地
+    encrypt-mode: ${WX_OA_ENCRYPT_MODE:plaintext}  # plaintext/compatible/safe，同上第二期
     # app_id/app_secret 走 wx_accounts 表（加密落库），不走 env——凭据属业务数据，可后台改
 ```
 

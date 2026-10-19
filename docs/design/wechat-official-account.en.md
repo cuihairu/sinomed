@@ -349,11 +349,16 @@ sinomed:
     app-secret: ${WECHAT_APP_SECRET:}
   # Official account (new; phase-1 single account, credentials separate from the mini program, different appid system)
   official-account:
+    # —— phase 1 implemented (current state: application.yml:56-64) ——
     enabled: ${WX_OA_ENABLED:false}            # default false = module fully off; callbacks refuse with 200
-    account-id: ${WX_OA_ACCOUNT_ID:1}          # always 1 in phase 1, reserved for multi-account
     token: ${WX_OA_TOKEN:}                     # server-config Token
-    aes-key: ${WX_OA_AES_KEY:}                 # EncodingAESKey (43 chars)
-    encrypt-mode: ${WX_OA_ENCRYPT_MODE:plaintext}  # plaintext/compatible/safe
+    material-dir: ${WX_OA_MATERIAL_DIR:data/wxmaterials}      # root dir for image-message media downloads (§4.5)
+    material-max-bytes: ${WX_OA_MATERIAL_MAX_BYTES:10485760}  # per-file download cap in bytes; oversize files skipped
+    credential-key: ${WX_OA_CREDENTIAL_KEY:}   # encryption key for wx_accounts.app_secret/aes_key at rest; default empty = credential writes rejected
+    # —— phase 2 reserved (not read by code yet; do not configure activation from this block) ——
+    account-id: ${WX_OA_ACCOUNT_ID:1}          # reserved for multi-account; the current callback rides the path variable {accountId}
+    aes-key: ${WX_OA_AES_KEY:}                 # EncodingAESKey (43 chars), lands together with the AES safe mode
+    encrypt-mode: ${WX_OA_ENCRYPT_MODE:plaintext}  # plaintext/compatible/safe, phase 2 as above
     # app_id/app_secret go into wx_accounts (encrypted at rest), not env — credentials are business data, editable from the console
 ```
 
