@@ -503,7 +503,7 @@ public class WxOfficialAccountService {
             logReject(accountId, "bad_exchange", "oauth", null, null);
             throw new IllegalArgumentException("授权 code 换取 openid 失败，请重新发起授权");
         }
-        return oauthRedirectBase + "/h5/wx/bind#ticket=" + ticketStore.issue(accountId, openid);
+        return oauthRedirectBase + "/h5/wx/bind?account=" + accountId + "#ticket=" + ticketStore.issue(accountId, openid);
     }
 
     /**

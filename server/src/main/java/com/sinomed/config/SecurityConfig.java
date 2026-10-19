@@ -63,6 +63,7 @@ public class SecurityConfig {
                         "/api/v1/wx/oauth/**",  // 公众号网页授权 start/callback（粉丝侧浏览器无 JWT，state HMAC 防伪 + ticket 兑换，见 docs/design/wechat-official-account.md §5.6）
                         "/api/v1/print/templates",  // 打印模板下发：空白版式无业务数据，桌面壳免登录拉取（见 docs/design/desktop.md D7）
                         "/media/**",  // 广告媒体静态资源（Nginx 托管时不受此约束）
+                        "/h5/**",  // 公众号粉丝 H5 绑定静态页（粉丝侧无 JWT；页面只携带一次性 ticket，身份靠手机号+短信码双因子自证，见 docs/design/wechat-official-account.md §5.6）
                         "/actuator/**",
                         LoginAPI).permitAll()
                 .anyRequest().authenticated()

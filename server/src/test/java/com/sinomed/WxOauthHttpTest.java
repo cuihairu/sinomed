@@ -155,15 +155,15 @@ class WxOauthHttpTest {
         return resp.headers().firstValue("Location").orElseThrow();
     }
 
-    /** start → callback(GOOD code) → 返回 H5 落地地址（含 ticket） */
+    /** start → callback(GOOD code) → 返回 H5 落地地址（含 account 与 ticket，页面凭 account 拼 bind 端点） */
     private String fullFlowTicket() throws Exception {
         String startLoc = oauthGetLocation("/api/v1/wx/oauth/" + accountId + "/start");
         String state = queryParam(URI.create(startLoc).getRawQuery(), "state");
         String callbackLoc = oauthGetLocation("/api/v1/wx/oauth/" + accountId + "/callback?code=GOOD&state="
                 + URLEncoder.encode(state, StandardCharsets.UTF_8));
-        assertTrue(callbackLoc.startsWith(REDIRECT_BASE + "/h5/wx/bind#ticket="),
-                "应回 H5 绑定页并带 ticket：" + callbackLoc);
-        return callbackLoc.substring((REDIRECT_BASE + "/h5/wx/bind#ticket=").length());
+        assertTrue(callbackLoc.startsWith(REDIRECT_BASE + "/h5/wx/bind?account=" + accountId + "#ticket="),
+                "应回 H5 绑定页并带 account 与 ticket：" + callbackLoc);
+        return callbackLoc.substring((REDIRECT_BASE + "/h5/wx/bind?account=" + accountId + "#ticket=").length());
     }
 
     private String requestCode(String phone) {
@@ -260,6 +260,20 @@ class WxOauthHttpTest {
         assertEquals(HttpStatus.BAD_REQUEST, reused.getStatusCode(), "同 ticket 二次兑换应拒绝（一次性）");
         assertTrue(bindingLogRepository.findAll().stream().anyMatch(b -> "bad_ticket".equals(b.getResult())),
                 "ticket 复用应落 bad_ticket 绑定审计（绑定流拒绝族，同 missing_openid 口径）");
+    }
+
+    @Test
+    void h5BindPageServedOnSameOrigin() throws Exception {
+        HttpRequest req = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/h5/wx/bind?account=1")).GET().build();
+        HttpResponse<byte[]> resp = noRedirect.send(req, HttpResponse.BodyHandlers.ofByteArray());
+        assertEquals(200, resp.statusCode(), "H5 绑定页应同域免登录可达：" + resp.statusCode()
+                + " body=" + new String(resp.body(), StandardCharsets.UTF_8));
+        String contentType = resp.headers().firstValue("Content-Type").orElse("");
+        assertTrue(contentType.contains("text/html"), "应按 HTML 提供：" + contentType);
+        String html = new String(resp.body(), StandardCharsets.UTF_8);
+        assertTrue(html.contains("ticket"), "页面应读取落地 ticket");
+        assertTrue(html.contains("smsCode"), "页面应含短信验证码输入");
+        assertTrue(html.contains("/api/v1/wx/bind/"), "页面应调用绑定端点");
     }
 
     private java.util.List<String> oauthRejectAudit(String result) {

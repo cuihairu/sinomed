@@ -3,6 +3,7 @@ package com.sinomed.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.nio.file.Paths;
@@ -29,5 +30,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         }
         registry.addResourceHandler(urlPrefix + "/**")
                 .addResourceLocations(absolute);
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // 公众号粉丝 H5 绑定静态页（设计稿 §5.6）：设计稿定的 /h5/wx/bind 指到 classpath 静态文件
+        // （Spring 7 嵌套目录不自动补 index.html，显式 forward；SecurityConfig 放行 /h5/**）
+        registry.addViewController("/h5/wx/bind").setViewName("forward:/h5/wx/bind/index.html");
     }
 }

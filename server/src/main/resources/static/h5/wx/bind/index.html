@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>绑定顾客档案</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 48px;
+    font: 15px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f6f5f1; color: #333;
+  }
+  .card {
+    max-width: 420px; margin: 0 auto; background: #fff;
+    border-radius: 12px; padding: 24px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  .sub { color: #888; font-size: 13px; margin: 0 0 18px; }
+  label { display: block; font-size: 13px; color: #666; margin: 14px 0 6px; }
+  .row { display: flex; gap: 8px; }
+  input {
+    width: 100%; padding: 11px 12px; font-size: 15px;
+    border: 1px solid #ddd; border-radius: 8px; background: #fafafa;
+  }
+  input:focus { outline: none; border-color: #4a7c59; background: #fff; }
+  button {
+    width: 100%; padding: 12px; margin-top: 18px; font-size: 16px;
+    border: 0; border-radius: 8px; background: #4a7c59; color: #fff;
+  }
+  button:disabled { background: #b9c6bd; }
+  button.ghost {
+    width: auto; margin: 0; padding: 0 14px; font-size: 13px;
+    background: #eef3ef; color: #4a7c59; white-space: nowrap;
+  }
+  .msg { margin-top: 14px; font-size: 14px; border-radius: 8px; padding: 10px 12px; display: none; }
+  .msg.ok { display: block; background: #eef6f0; color: #2f6b41; }
+  .msg.err { display: block; background: #fbeeec; color: #a33a2e; }
+  .hint { color: #999; font-size: 12px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>绑定顾客档案</h1>
+  <p class="sub">绑定后，本店可通过公众号为你查询卡项与预约</p>
+
+  <div id="gate">
+    <label for="phone">手机号</label>
+    <input id="phone" type="tel" maxlength="11" inputmode="numeric" placeholder="请输入建档手机号" autocomplete="tel">
+    <label for="smsCode">短信验证码</label>
+    <div class="row">
+      <input id="smsCode" type="text" maxlength="6" inputmode="numeric" placeholder="6 位验证码">
+      <button id="sendBtn" class="ghost" type="button">获取验证码</button>
+    </div>
+    <button id="bindBtn" type="button">绑定</button>
+  </div>
+
+  <div id="msg" class="msg" role="alert"></div>
+
+  <p class="hint">收不到验证码？请到前台出示手机号，由店员协助绑定。</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // 服务端契约（docs/design/wechat-official-account.md §5.6）：
+  //   页面入口 /h5/wx/bind/?account={accountId}#ticket={一次性票据}
+  //   openid 不进前端——票据兑换在服务端完成，兑换即废（5 分钟）
+  var params = new URLSearchParams(location.search);
+  var account = params.get('account');
+  var ticketMatch = location.hash.match(/[?&]ticket=([^&]+)/);
+  var ticket = ticketMatch ? ticketMatch[1] : null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var msg = $('msg');
+  function show(text, ok) {
+    msg.textContent = text;
+    msg.className = 'msg ' + (ok ? 'ok' : 'err');
+  }
+
+  // 缺授权要素时如实说明，不提供绕过授权的手工入口（openid 只能来自服务端授权链）
+  if (!account || !/^\d+$/.test(account) || !ticket) {
+    $('gate').style.display = 'none';
+    show('授权信息缺失或已失效，请从公众号菜单重新进入本页。', false);
+    return;
+  }
+
+  function api(method, path, body) {
+    return fetch('/api/v1/wx/bind/' + account + path, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (resp) {
+      return resp.json().then(function (data) {
+        return { ok: resp.ok, data: data };
+      });
+    });
+  }
+  // 服务端两种回执形：成功 {message}；拒绝 {success:false,errorMessage}
+  function textOf(data) {
+    return data && (data.errorMessage || data.message) || '请求失败，请稍后重试';
+  }
+
+  var sendBtn = $('sendBtn');
+  sendBtn.addEventListener('click', function () {
+    var phone = $('phone').value.trim();
+    if (!/^1\d{10}$/.test(phone)) { show('请输入 1 开头的 11 位手机号', false); return; }
+    sendBtn.disabled = true;
+    sendBtn.textContent = '发送中…';
+    api('POST', '/code', { phone: phone }).then(function (r) {
+      show(textOf(r.data), r.ok);
+      if (!r.ok) { sendBtn.disabled = false; sendBtn.textContent = '获取验证码'; return; }
+      var left = 60;
+      var timer = setInterval(function () {
+        left -= 1;
+        if (left <= 0) {
+          clearInterval(timer);
+          sendBtn.disabled = false;
+          sendBtn.textContent = '重新获取';
+        } else {
+          sendBtn.textContent = left + 's 后重发';
+        }
+      }, 1000);
+    }).catch(function () {
+      sendBtn.disabled = false;
+      sendBtn.textContent = '获取验证码';
+      show('网络异常，请稍后重试', false);
+    });
+  });
+
+  $('bindBtn').addEventListener('click', function () {
+    var phone = $('phone').value.trim();
+    var smsCode = $('smsCode').value.trim();
+    if (!/^1\d{10}$/.test(phone)) { show('请输入 1 开头的 11 位手机号', false); return; }
+    if (!smsCode) { show('请输入短信验证码', false); return; }
+    api('POST', '', { ticket: ticket, phone: phone, smsCode: smsCode }).then(function (r) {
+      show(textOf(r.data), r.ok);
+      if (r.ok) { $('gate').style.display = 'none'; }
+    }).catch(function () {
+      show('网络异常，请稍后重试', false);
+    });
+  });
+})();
+</script>
+</body>
+</html>
