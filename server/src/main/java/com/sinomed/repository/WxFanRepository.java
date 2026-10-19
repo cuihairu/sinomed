@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface WxFanRepository extends JpaRepository<WxFanEntity, Long> {
 
     Optional<WxFanEntity> findByAccountIdAndOpenid(Long accountId, String openid);
+
+    Optional<WxFanEntity> findByAccountIdAndCustomerId(Long accountId, Long customerId);
 }

@@ -1,7 +1,9 @@
 package com.sinomed;
 
 import com.sinomed.entity.WxAccountEntity;
+import com.sinomed.entity.WxBindingLogEntity;
 import com.sinomed.repository.WxAccountRepository;
+import com.sinomed.repository.WxBindingLogRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,12 +40,15 @@ class WxCallbackDisabledModuleTest {
     private WxAccountRepository accountRepository;
     @Autowired
     private WxMessageLogRepository messageLogRepository;
+    @Autowired
+    private WxBindingLogRepository bindingLogRepository;
 
     private Long accountId;
 
     @BeforeEach
     void seed() {
         messageLogRepository.deleteAll();
+        bindingLogRepository.deleteAll();
         accountRepository.deleteAll();
         WxAccountEntity account = new WxAccountEntity();
         account.setAppId("wxOA-DISABLED-1");
@@ -68,5 +75,33 @@ class WxCallbackDisabledModuleTest {
         assertEquals(2, messageLogRepository.findAll().stream()
                 .filter(l -> "reject".equals(l.getDirection()) && "disabled".equals(l.getResult())).count(),
                 "审计行应标 result=disabled");
+    }
+
+    @Test
+    void disabledModuleRefusesBindFlowWithAudit() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        // 预期 400：postForEntity 对 4xx 抛异常，捕获后断言状态码
+        ResponseEntity<String> codeResp;
+        try {
+            codeResp = rest.postForEntity("http://localhost:" + port + "/api/v1/wx/bind/" + accountId + "/code",
+                    new HttpEntity<>("{\"phone\":\"13900000001\"}", headers), String.class);
+        } catch (HttpClientErrorException e) {
+            codeResp = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        }
+        assertEquals(400, codeResp.getStatusCode().value(), "模块关闭取码应明确拒绝：" + codeResp.getBody());
+        ResponseEntity<String> bindResp;
+        try {
+            bindResp = rest.postForEntity("http://localhost:" + port + "/api/v1/wx/bind/" + accountId,
+                    new HttpEntity<>("{\"openid\":\"oFANX\",\"phone\":\"13900000001\",\"smsCode\":\"123456\"}",
+                            headers), String.class);
+        } catch (HttpClientErrorException e) {
+            bindResp = ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        }
+        assertEquals(400, bindResp.getStatusCode().value(), "模块关闭绑定应明确拒绝：" + bindResp.getBody());
+        assertEquals(2, bindingLogRepository.count(), "两次拒绝都应落绑定审计");
+        assertEquals(2, bindingLogRepository.findAll().stream()
+                .filter(a -> "disabled".equals(a.getResult())).count(), "审计行应标 result=disabled");
+        assertEquals(0, messageLogRepository.count(), "模块关闭绑定不应落消息流水（只落绑定审计）");
     }
 }

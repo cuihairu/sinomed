@@ -18,6 +18,8 @@ public class WxMessageLogView {
     public String fromUser;
     public String toUser;
     public String content;
+    /** 该粉丝已绑定顾客的姓名（设计稿第一期验收：已绑定顾客发消息可见对应顾客）；未绑定为 null */
+    public String customerName;
     public Long msgId;
     /** ok / disabled / account_missing / bad_signature / duplicate */
     public String result;

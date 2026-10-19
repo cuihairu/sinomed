@@ -2,7 +2,9 @@ package com.sinomed.controller;
 
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
+import com.sinomed.vo.MessageView;
 import com.sinomed.vo.PageResp;
+import com.sinomed.vo.WxBindRequest;
 import com.sinomed.vo.WxMessageLogView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -69,6 +71,32 @@ public class WxOfficialAccountController {
         return wxOfficialAccountService.capabilities(accountId);
     }
 
+    @Operation(summary = "粉丝绑定取码", description = "粉丝 H5 侧发码：复用 Kiosk 短信通道桩（sms_codes，一次性、5 分钟有效），"
+            + "无真实短信网关、发码只落库与日志；模块关/账号停用拒绝并审计；免登录（粉丝侧，靠手机号+验证码双因子自证）")
+    @PostMapping(value = "/bind/{accountId}/code", produces = MediaType.APPLICATION_JSON_VALUE)
+    public MessageView issueBindCode(@PathVariable("accountId") long accountId,
+                                     @RequestBody WxBindRequest request) {
+        return new MessageView(wxOfficialAccountService.issueBindCode(accountId, request.getPhone()));
+    }
+
+    @Operation(summary = "粉丝绑定顾客档案", description = "H5 授权拿 openid + 手机号 + 短信验证码双因子（复用 Kiosk /openid-bind 口径）："
+            + "校验通过写 wx_fans.customer_id，每次尝试（含拒绝）落 wx_binding_logs；"
+            + "同档案重复绑定幂等回执；免登录（粉丝侧）")
+    @PostMapping(value = "/bind/{accountId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public MessageView bind(@PathVariable("accountId") long accountId,
+                            @RequestBody WxBindRequest request) {
+        return new MessageView(wxOfficialAccountService.bind(
+                accountId, request.getOpenid(), request.getPhone(), request.getSmsCode()));
+    }
+
+    @Operation(summary = "管理端解绑粉丝", description = "清 wx_fans.customer_id 并落审计（设计稿 §4.7）；"
+            + "顾客取关不自动解绑，换人关注属线下场景走管理端；需登录")
+    @PostMapping("/fans/{accountId}/unbind")
+    public MessageView unbind(@PathVariable("accountId") long accountId,
+                              @RequestBody WxBindRequest request) {
+        return new MessageView(wxOfficialAccountService.unbind(accountId, request.getOpenid()));
+    }
+
     @Operation(summary = "消息流水只读列表", description = "管理端按粉丝/方向/类型/结果/时间窗过滤收发全量流水（含 reject 审计），"
             + "默认最新在前；只读不做对话式 UI，不依赖模块开关；需登录")
     @GetMapping("/message-logs")
@@ -88,7 +116,9 @@ public class WxOfficialAccountController {
                 accountId, fromUser, direction, msgType, result, startTime, endTime, page);
         List<WxMessageLogView> data = new ArrayList<>();
         for (WxMessageLogEntity row : logs) {
-            data.add(WxMessageLogView.from(row));
+            WxMessageLogView view = WxMessageLogView.from(row);
+            view.customerName = wxOfficialAccountService.resolveCustomerName(row.getAccountId(), row.getFromUser());
+            data.add(view);
         }
         PageResp<WxMessageLogView> resp = new PageResp<>();
         resp.data = data;
