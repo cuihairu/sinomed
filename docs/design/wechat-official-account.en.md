@@ -167,7 +167,7 @@ Index `(account_id, rule_type, enabled)`. At most one effective `subscribe`/`fal
 | size / mime_type | Long / String | File metadata |
 | create_time / update_time | Date | Audit times |
 
-Unique `(account_id, media_id)`. Phase 1 **only pulls message-embedded temp materials to disk + logs** (downloads PicUrl into `local_path` when an image message arrives, for admin viewing); no upload/manage UI.
+Unique `(account_id, media_id)`. Phase 1 **only pulls message-embedded temp materials to disk + logs** (downloads PicUrl into `local_path` when an image message arrives, for admin viewing); no upload/manage UI. Read-only ledger viewing landed on 2026-10-20: `GET /api/v1/wx/materials/page` (account/type/time-window AND filters) + `GET /api/v1/wx/materials/{id}` serving the local copy (path-traversal guard, `../` always 400), consumed by the web/ WeChat page's "Material ledger" tab (blob preview carrying the JWT); upload and WeChat-side permanent materials remain the phase-2 push half (credential-gated).
 
 ### 4.6 Fan Tags: No New Table, Reuse customer_tags
 
@@ -425,6 +425,7 @@ sinomed:
 - Material upload and management (permanent ledger + local storage), supporting menu and auto-reply references;
 - Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **delivered end to end** (2026-10-20: server `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint + admin account list `/api/v1/wx/accounts` (sanitized, no secret columns), contract in docs/server/api.en.md; web/ admin "WeChat" page rule table: account picker + type/status filters + create/edit/enable-disable/delete);
 - Safe/compatible-mode message crypto (callback AES envelope, §5.3) — **delivered** (2026-10-20: `WxMsgCryptor` hand-written to the official spec; bodies carrying `<Encrypt>` are verified with the 4-part `msg_signature` and AES-decrypted before entering the main flow, safe-mode replies are sealed, with reject audits `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`; tests: `WxMsgCryptorTest` 6 OpenSSL KAT cases + `WxEncryptModeCallbackHttpTest` 5 cases);
+- Admin viewing of the message log and material ledger (the UI half of phase-1 item 4) — **delivered** (2026-10-20: the web/ WeChat page became tabs, adding a "Message log" tab (ProTable server-side pagination, account/fan/direction/type/result/time-window filters, with the customer-name column fulfilling the phase-1 acceptance criterion) and a "Material ledger" tab (with local-copy image blob preview); the server-side material page + file endpoints are noted at the end of §4.5);
 - Message console upgraded to a conversational view + human customer-service replies (48h window, service/verified subscription).
 
 ### Phase 3: Outreach — "parametric QR + mass/template messages"

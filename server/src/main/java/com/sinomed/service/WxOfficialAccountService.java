@@ -812,6 +812,65 @@ public class WxOfficialAccountService {
         autoReplyRepository.deleteById(id);
     }
 
+    /**
+     * 管理端素材台账只读分页（设计稿 §4.5「供管理端查看」，粉丝发图此前落盘后无处可见）：
+     * 按账号/类型/时间窗 AND 过滤（同 pageLogs 口径），排序由 Pageable 携带（默认最新在前）。
+     * 不依赖模块开关——素材是已落库的台账数据，模块关闭期间也要可查（不静默）。
+     */
+    public Page<WxMaterialEntity> pageMaterials(Long accountId, String materialType,
+                                                String startTime, String endTime, Pageable pageable) {
+        if (accountId == null && isBlank(materialType) && isBlank(startTime) && isBlank(endTime)) {
+            return materialRepository.findAll(pageable);
+        }
+        Specification<WxMaterialEntity> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new LinkedList<>();
+            if (accountId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("accountId").as(Long.class), accountId));
+            }
+            if (!isBlank(materialType)) {
+                predicates.add(criteriaBuilder.equal(root.get("materialType").as(String.class), materialType.trim()));
+            }
+            Date start = DateUtil.parseParam(startTime);
+            if (start != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.<Date>get("createTime"), start));
+            }
+            Date end = DateUtil.parseParam(endTime);
+            if (end != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.<Date>get("createTime"), end));
+            }
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+        return materialRepository.findAll(spec, pageable);
+    }
+
+    /** 素材本地副本（管理端取图）：path 已解析并校验落在素材根目录内 */
+    public record MaterialFile(Path path, String mimeType) {
+    }
+
+    /**
+     * 管理端取素材本地文件：localPath 相对素材根目录解析，normalize 后必须仍在根内（防 ../ 穿越），
+     * 无本地副本/文件缺失/非法路径一律 IllegalArgumentException（400 口径，管理端无 404 特例）。
+     */
+    public MaterialFile loadMaterialFile(long id) {
+        WxMaterialEntity material = materialRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("素材不存在"));
+        if (isBlank(material.getLocalPath())) {
+            throw new IllegalArgumentException("该素材无本地副本");
+        }
+        Path root = Paths.get(materialDir).toAbsolutePath().normalize();
+        Path target = root.resolve(material.getLocalPath()).normalize();
+        if (!target.startsWith(root) || !Files.isRegularFile(target)) {
+            throw new IllegalArgumentException("素材文件不存在或路径不合法");
+        }
+        String mime = isBlank(material.getMimeType()) ? "application/octet-stream" : material.getMimeType().trim();
+        try {
+            org.springframework.http.MediaType.parseMediaType(mime);
+        } catch (Exception e) {
+            mime = "application/octet-stream"; // 台账 mime 来自下载响应头，坏值兜底不让取图 500
+        }
+        return new MaterialFile(target, mime);
+    }
+
     /** 管理端账号列表（规则/粉丝页选账号用，单店量小不分页，id 升序）；密钥列绝不读回（见 WxAccountView） */
     public List<WxAccountEntity> listAccounts() {
         return accountRepository.findAll(Sort.by("id"));

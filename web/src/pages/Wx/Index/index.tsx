@@ -1,14 +1,20 @@
-import { PageContainer } from '@ant-design/pro-components';
-import { Button, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Table, Tag } from 'antd';
+import { PageContainer, ProTable } from '@ant-design/pro-components';
+import type { ProColumns } from '@ant-design/pro-components';
+import { Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Table, Tabs, Tag, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createAutoReply,
   deleteAutoReply,
+  fetchMaterialBlob,
   queryAutoRepliesByPage,
+  queryMaterialsByPage,
+  queryMessageLogs,
   queryWxAccounts,
   updateAutoReply,
   type WxAccount,
   type WxAutoReply,
+  type WxMaterial,
+  type WxMessageLog,
 } from '@/services/ant-design-pro/wx';
 import moment from 'moment';
 
@@ -28,8 +34,204 @@ const MATCH_TYPE_LABELS: Record<string, string> = {
   contains: '包含',
 };
 
-const WxPage: React.FC = () => {
+/** 方向 / 类型 / 结果 / 素材类型标签（与 docs/server/api.md 台账口径一致；ENUM 供筛选下拉） */
+const DIRECTION_LABELS: Record<string, string> = { in: '入站', out: '出站', reject: '拒绝' };
+const DIRECTION_ENUM = { in: { text: '入站' }, out: { text: '出站' }, reject: { text: '拒绝' } };
+const MSG_TYPE_LABELS: Record<string, string> = {
+  text: '文本',
+  event: '事件',
+  image: '图片',
+  oauth: '授权',
+  none: '无',
+};
+const MSG_TYPE_ENUM = {
+  text: { text: '文本' },
+  event: { text: '事件' },
+  image: { text: '图片' },
+  oauth: { text: '授权' },
+  none: { text: '无' },
+};
+const RESULT_LABELS: Record<string, string> = {
+  ok: '正常',
+  disabled: '模块关闭',
+  account_missing: '账号缺失',
+  bad_signature: '验签失败',
+  bad_msg_signature: '信封验签失败',
+  bad_encrypt: '解密失败',
+  missing_encrypt: '明文推送被拒',
+  duplicate: '重复推送',
+};
+const RESULT_ENUM = {
+  ok: { text: '正常' },
+  disabled: { text: '模块关闭' },
+  account_missing: { text: '账号缺失' },
+  bad_signature: { text: '验签失败' },
+  bad_msg_signature: { text: '信封验签失败' },
+  bad_encrypt: { text: '解密失败' },
+  missing_encrypt: { text: '明文推送被拒' },
+  duplicate: { text: '重复推送' },
+};
+const MATERIAL_TYPE_LABELS: Record<string, string> = {
+  temp: '临时素材',
+  image: '图片',
+  voice: '语音',
+  video: '视频',
+  news: '图文',
+};
+const MATERIAL_TYPE_ENUM = {
+  temp: { text: '临时素材' },
+  image: { text: '图片' },
+  voice: { text: '语音' },
+  video: { text: '视频' },
+  news: { text: '图文' },
+};
+
+/** 三个 tab 都需要「账号下拉 + 行内显示账号名」，口径统一 */
+const useAccountOptions = () => {
   const [accounts, setAccounts] = useState<WxAccount[]>([]);
+  useEffect(() => {
+    queryWxAccounts().then((list) => setAccounts(list || []));
+  }, []);
+  const options = useMemo(() => accounts.map((a) => ({ value: a.id!, label: a.accountName || a.appId || `#${a.id}` })), [accounts]);
+  const nameOf = (id?: number) =>
+    accounts.find((a) => a.id === id)?.accountName || (id != null ? `#${id}` : '-');
+  return { accounts, options, nameOf };
+};
+
+/** 时间范围列（只进搜索表单，不出现在表格里）→ 服务端 startTime/endTime */
+const timeRangeColumn = (key: string): ProColumns<any> => ({
+  title: '时间范围',
+  dataIndex: key,
+  valueType: 'dateTimeRange',
+  hideInTable: true,
+  search: { transform: (value: any) => ({ startTime: value?.[0], endTime: value?.[1] }) },
+});
+
+const MessageLogsTab: React.FC = () => {
+  const { options, nameOf } = useAccountOptions();
+
+  const columns: ProColumns<WxMessageLog>[] = [
+    { title: '时间', dataIndex: 'createTime', width: 150, hideInSearch: true,
+      render: (_, entity) => (entity.createTime ? moment(entity.createTime).format('YYYY-MM-DD HH:mm:ss') : '-') },
+    { title: '账号', dataIndex: 'accountId', width: 130, valueType: 'select', fieldProps: { options, showSearch: true },
+      render: (_, entity) => nameOf(entity.accountId) },
+    { title: '方向', dataIndex: 'direction', width: 90, valueType: 'select',
+      valueEnum: DIRECTION_ENUM,
+      render: (_, entity) => <Tag>{DIRECTION_LABELS[entity.direction || ''] || entity.direction}</Tag> },
+    { title: '类型', dataIndex: 'msgType', width: 90, valueType: 'select',
+      valueEnum: MSG_TYPE_ENUM,
+      render: (_, entity) => MSG_TYPE_LABELS[entity.msgType || ''] || entity.msgType || '-' },
+    { title: '粉丝', dataIndex: 'fromUser', ellipsis: true },
+    { title: '顾客', dataIndex: 'customerName', width: 110, hideInSearch: true,
+      render: (_, entity) => entity.customerName || <span style={{ color: '#aaa' }}>未绑定</span> },
+    { title: '内容', dataIndex: 'content', ellipsis: true, hideInSearch: true },
+    { title: '结果', dataIndex: 'result', width: 130, valueType: 'select',
+      valueEnum: RESULT_ENUM,
+      render: (_, entity) => <Tag color={entity.result === 'ok' ? 'green' : entity.direction === 'reject' ? 'red' : 'default'}>
+        {RESULT_LABELS[entity.result || ''] || entity.result}
+      </Tag> },
+    timeRangeColumn('createTime'),
+  ];
+
+  return (
+    <ProTable<WxMessageLog>
+      rowKey="id"
+      columns={columns}
+      headerTitle="消息流水（含拒绝审计，最新在前）"
+      dateFormatter="string"
+      search={{ labelWidth: 'auto' }}
+      request={async (params) => {
+        // 时间范围列经 search.transform 已折成 startTime/endTime，其余键与服务端参数同名直传
+        const res = await queryMessageLogs(params as any);
+        return { data: res?.data || [], success: true, total: res?.total || 0 };
+      }}
+      pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条` }}
+      locale={{ emptyText: '暂无消息流水（公众号模块未启用或尚未收到消息）' }}
+    />
+  );
+};
+
+const MaterialsTab: React.FC = () => {
+  const { options, nameOf } = useAccountOptions();
+  const [preview, setPreview] = useState<{ url: string; name: string; mime: string }>();
+
+  const openPreview = async (material: WxMaterial) => {
+    try {
+      const blob = await fetchMaterialBlob(material.id!);
+      setPreview({
+        url: URL.createObjectURL(blob),
+        name: material.name || material.mediaId || `素材 #${material.id}`,
+        mime: material.mimeType || 'application/octet-stream',
+      });
+    } catch {
+      message.error('素材读取失败（本地副本可能已丢失）');
+    }
+  };
+
+  const closePreview = () => {
+    if (preview) URL.revokeObjectURL(preview.url);
+    setPreview(undefined);
+  };
+
+  const columns: ProColumns<WxMaterial>[] = [
+    { title: '时间', dataIndex: 'createTime', width: 150, hideInSearch: true,
+      render: (_, entity) => (entity.createTime ? moment(entity.createTime).format('YYYY-MM-DD HH:mm:ss') : '-') },
+    { title: '账号', dataIndex: 'accountId', width: 130, valueType: 'select', fieldProps: { options, showSearch: true },
+      render: (_, entity) => nameOf(entity.accountId) },
+    { title: '类型', dataIndex: 'materialType', width: 110, valueType: 'select',
+      valueEnum: MATERIAL_TYPE_ENUM,
+      render: (_, entity) => MATERIAL_TYPE_LABELS[entity.materialType || ''] || entity.materialType || '-' },
+    { title: '素材', dataIndex: 'name', ellipsis: true,
+      render: (_, entity) => entity.name || entity.mediaId || '-' },
+    { title: '媒体ID', dataIndex: 'mediaId', width: 180, ellipsis: true, hideInSearch: true,
+      render: (_, entity) => entity.mediaId || '-' },
+    { title: '大小', dataIndex: 'size', width: 100, hideInSearch: true,
+      render: (_, entity) => (entity.size != null ? `${(entity.size / 1024).toFixed(1)} KB` : '-') },
+    { title: '本地副本', dataIndex: 'localPath', width: 110, hideInSearch: true,
+      render: (_, entity) => (entity.localPath ? <Tag color="green">有</Tag> : <Tag>无</Tag>) },
+    { title: '查看', key: 'view', width: 90, hideInSearch: true,
+      render: (_, entity) =>
+        entity.localPath ? (
+          <a onClick={() => openPreview(entity)}>查看</a>
+        ) : (
+          <span style={{ color: '#aaa' }}>—</span>
+        ) },
+    timeRangeColumn('createTime'),
+  ];
+
+  return (
+    <>
+      <ProTable<WxMaterial>
+        rowKey="id"
+        columns={columns}
+        headerTitle="素材台账（粉丝发图落盘副本，最新在前）"
+        dateFormatter="string"
+        search={{ labelWidth: 'auto' }}
+        request={async (params) => {
+          // 同消息流水：时间范围列由 search.transform 折成 startTime/endTime
+          const res = await queryMaterialsByPage(params as any);
+          return { data: res?.data || [], success: true, total: res?.total || 0 };
+        }}
+        pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条` }}
+        locale={{ emptyText: '暂无素材（粉丝发来图片消息后会落到这里）' }}
+      />
+      <Modal title={preview?.name} open={preview != null} onCancel={closePreview} footer={null} width={720} destroyOnClose>
+        {preview &&
+          (preview.mime.startsWith('image/') ? (
+            <img src={preview.url} alt={preview.name} style={{ maxWidth: '100%' }} />
+          ) : (
+            <p>
+              非图片素材，
+              <a href={preview.url} target="_blank" rel="noreferrer">点此打开</a>
+            </p>
+          ))}
+      </Modal>
+    </>
+  );
+};
+
+const RulesTab: React.FC = () => {
+  const { options, accounts } = useAccountOptions();
   const [accountId, setAccountId] = useState<number>();
   const [rules, setRules] = useState<WxAutoReply[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,13 +260,10 @@ const WxPage: React.FC = () => {
   }, [accountId, filterRuleType, filterEnabled]);
 
   useEffect(() => {
-    queryWxAccounts().then((list) => {
-      setAccounts(list || []);
-      // 单店一期通常单账号：默认选中第一个，手工切换
-      const first = (list || [])[0];
-      if (first?.id != null) setAccountId(first.id);
-    });
-  }, []);
+    // 单店一期通常单账号：默认选中第一个，手工切换
+    if (accounts.length === 0) return;
+    if (accountId == null) setAccountId(accounts[0].id!);
+  }, [accounts, accountId]);
 
   useEffect(() => {
     loadRules();
@@ -191,19 +390,14 @@ const WxPage: React.FC = () => {
   );
 
   return (
-    <PageContainer title="公众号管理" content={<span>自动回复规则编辑（第二期：规则不再手工改库；菜单 / 素材页待后续交付）</span>}>
+    <>
       <div style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <Select
           style={{ width: 260 }}
           placeholder="选择公众号账号"
           value={accountId}
           onChange={setAccountId}
-          options={accounts.map((a) => ({
-            value: a.id!,
-            label: `${a.accountName || a.appId}（${a.accountType === 'service' ? '服务号' : '订阅号'}${
-              a.verified === 1 ? '·已认证' : ''
-            }）`,
-          }))}
+          options={options}
         />
         <Select
           style={{ width: 140 }}
@@ -291,8 +485,23 @@ const WxPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </PageContainer>
+    </>
   );
 };
+
+const WxPage: React.FC = () => (
+  <PageContainer
+    title="公众号管理"
+    content={<span>规则不再手工改库；消息流水与素材台账为只读（菜单/群发等能力仍依附公众号凭据）</span>}
+  >
+    <Tabs
+      items={[
+        { key: 'rules', label: '自动回复规则', children: <RulesTab /> },
+        { key: 'logs', label: '消息流水', children: <MessageLogsTab /> },
+        { key: 'materials', label: '素材台账', children: <MaterialsTab /> },
+      ]}
+    />
+  </PageContainer>
+);
 
 export default WxPage;

@@ -88,3 +88,84 @@ export async function deleteAutoReply(id: number, options?: { [key: string]: any
     ...(options || {}),
   });
 }
+
+// ---------- 消息流水 / 素材台账（管理端只读） ----------
+
+/** 消息流水行（docs/server/api.md：/api/v1/wx/message-logs；reject 为拒绝审计） */
+export interface WxMessageLog {
+  id?: number;
+  accountId?: number;
+  /** in 入站 / out 出站回复 / reject 拒绝审计 */
+  direction?: string;
+  msgType?: string;
+  fromUser?: string;
+  toUser?: string;
+  content?: string;
+  /** 该粉丝已绑定顾客的姓名；未绑定为空 */
+  customerName?: string;
+  msgId?: number;
+  result?: string;
+  createTime?: string;
+}
+
+/** 素材台账行（/api/v1/wx/materials/page；localPath 为空 = 仅远端记录，无图可看） */
+export interface WxMaterial {
+  id?: number;
+  accountId?: number;
+  mediaId?: string;
+  materialType?: string;
+  name?: string;
+  url?: string;
+  localPath?: string;
+  size?: number;
+  mimeType?: string;
+  createTime?: string;
+}
+
+export async function queryMessageLogs(
+  params: {
+    current?: number;
+    pageSize?: number;
+    accountId?: number;
+    fromUser?: string;
+    direction?: string;
+    msgType?: string;
+    result?: string;
+    startTime?: string;
+    endTime?: string;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<WxPageResult<WxMessageLog>>('/api/v1/wx/message-logs', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}
+
+export async function queryMaterialsByPage(
+  params: {
+    current?: number;
+    pageSize?: number;
+    accountId?: number;
+    materialType?: string;
+    startTime?: string;
+    endTime?: string;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<WxPageResult<WxMaterial>>('/api/v1/wx/materials/page', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}
+
+/** 取素材本地副本：需带 JWT，故走 request 拿 blob（裸 img src 带不上 Authorization） */
+export async function fetchMaterialBlob(id: number, options?: { [key: string]: any }): Promise<Blob> {
+  return request<Blob>(`/api/v1/wx/materials/${id}`, {
+    method: 'GET',
+    responseType: 'blob',
+    ...(options || {}),
+  });
+}

@@ -2,6 +2,7 @@ package com.sinomed.controller;
 
 import com.sinomed.entity.WxAccountEntity;
 import com.sinomed.entity.WxAutoReplyEntity;
+import com.sinomed.entity.WxMaterialEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
 import com.sinomed.vo.MessageView;
@@ -9,10 +10,12 @@ import com.sinomed.vo.PageResp;
 import com.sinomed.vo.WxAccountView;
 import com.sinomed.vo.WxAutoReplyView;
 import com.sinomed.vo.WxBindRequest;
+import com.sinomed.vo.WxMaterialView;
 import com.sinomed.vo.WxMessageLogView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -31,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -222,5 +227,43 @@ public class WxOfficialAccountController {
     public MessageView deleteAutoReply(@PathVariable Long id) {
         wxOfficialAccountService.deleteAutoReply(id);
         return new MessageView("删除成功");
+    }
+
+    // ---------- 素材台账只读（设计稿 §4.5「供管理端查看」；粉丝发图落盘后此前无处可见；需登录） ----------
+
+    @Operation(summary = "素材台账分页", description = "粉丝消息图片等素材的只读台账（含本地副本标记 localPath），"
+            + "按账号/类型/时间窗 AND 过滤，最新在前；不依赖模块开关；需登录")
+    @GetMapping("/materials/page")
+    public PageResp<WxMaterialView> pageMaterials(@RequestParam int current,
+                                                  @RequestParam int pageSize,
+                                                  @RequestParam(required = false) Long accountId,
+                                                  @RequestParam(required = false) String materialType,
+                                                  @RequestParam(required = false) String startTime,
+                                                  @RequestParam(required = false) String endTime) {
+        PageRequest page = PageRequest.of(current > 0 ? current - 1 : 0, pageSize > 0 ? pageSize : 1,
+                Sort.by(Sort.Direction.DESC, "createTime", "id"));
+        Page<WxMaterialEntity> materials = wxOfficialAccountService.pageMaterials(
+                accountId, materialType, startTime, endTime, page);
+        PageResp<WxMaterialView> resp = new PageResp<>();
+        resp.data = new ArrayList<>();
+        for (WxMaterialEntity row : materials) {
+            resp.data.add(WxMaterialView.from(row));
+        }
+        resp.pages = materials.getTotalPages();
+        resp.total = materials.getTotalElements();
+        resp.success = true;
+        return resp;
+    }
+
+    @Operation(summary = "取素材本地文件", description = "按台账 id 返回本地副本字节（Content-Type 取台账 mimeType，"
+            + "坏值兜底 octet-stream）；无本地副本/文件缺失/路径越界一律 400；需登录")
+    @GetMapping("/materials/{id}")
+    public ResponseEntity<ByteArrayResource> materialFile(@PathVariable long id) throws IOException {
+        WxOfficialAccountService.MaterialFile file = wxOfficialAccountService.loadMaterialFile(id);
+        byte[] bytes = Files.readAllBytes(file.path()); // 落盘时已限单文件上限，读全量有界
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.mimeType()))
+                .contentLength(bytes.length)
+                .body(new ByteArrayResource(bytes));
     }
 }
