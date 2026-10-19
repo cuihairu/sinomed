@@ -53,6 +53,32 @@ export async function queryWxAccounts(options?: { [key: string]: any }) {
   });
 }
 
+/** 账号能力矩阵（/api/v1/wx/capabilities/{accountId}；account_type + verified 驱动，设计稿 §6.1/§6.2） */
+export interface WxCapabilities {
+  accountId?: number;
+  accountName?: string;
+  accountType?: string;
+  verified?: boolean;
+  callback?: boolean;
+  materials?: boolean;
+  webAuth?: boolean;
+  /** 未认证订阅号为 false：菜单工作区隐藏 + 提示（§6.2 降级表） */
+  menuManagement?: boolean;
+  customerService?: boolean;
+  massMessaging?: boolean;
+  templateMessage?: boolean;
+}
+
+export async function queryCapabilities(
+  accountId: number,
+  options?: { [key: string]: any },
+) {
+  return request<WxCapabilities>(`/api/v1/wx/capabilities/${accountId}`, {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
 // ---------- 自动回复规则 ----------
 
 export async function queryAutoRepliesByPage(

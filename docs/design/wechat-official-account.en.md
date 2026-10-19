@@ -360,6 +360,8 @@ Capability detection is not scattered over code branches; a unified **`WxCapabil
 
 Degradation styling matches the existing admin (disabled + tooltip), no confirm dialogs — a missing capability is an **account attribute**, not an operation risk.
 
+**Wiring status** (2026-10-20): the menu page's degraded entry is delivered — the admin menu tab hides its editing workspace per the selected account's `menuManagement` (service or verified) and shows "unverified subscription accounts don't support custom menus"; a capability-fetch failure is treated as not-allowed (no editor flash). Mass/template/customer-service entry degradation awaits those workbenches (no UI yet).
+
 ### 6.3 Admin Operation Permissions (this repo's roles)
 
 Reuse the existing `Role/Permission` system (`security/Role.java:16-38`, `Permission.java:7-15`), **no new permission enums** (only `ADMIN`/`MANAGER` are effectively in use):

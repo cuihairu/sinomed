@@ -1,6 +1,6 @@
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import { Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Table, Tabs, Tag, message } from 'antd';
+import { Alert, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Spin, Table, Tabs, Tag, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createAutoReply,
@@ -9,6 +9,7 @@ import {
   deleteMenu,
   fetchMaterialBlob,
   queryAutoRepliesByPage,
+  queryCapabilities,
   queryMaterialsByPage,
   queryMenus,
   queryMessageLogs,
@@ -17,6 +18,7 @@ import {
   updateMenu,
   type WxAccount,
   type WxAutoReply,
+  type WxCapabilities,
   type WxMaterial,
   type WxMenu,
   type WxMessageLog,
@@ -258,6 +260,7 @@ const MenusTab: React.FC = () => {
   const [menus, setMenus] = useState<WxMenu[]>([]);
   const [loading, setLoading] = useState(false);
   const [menuModal, setMenuModal] = useState<{ open: boolean; editing?: WxMenu }>({ open: false });
+  const [caps, setCaps] = useState<WxCapabilities | 'unknown'>('unknown');
 
   const [menuForm] = Form.useForm();
   const watchMenuType = Form.useWatch('menuType', menuForm) as WxMenu['menuType'] | undefined;
@@ -283,6 +286,29 @@ const MenusTab: React.FC = () => {
   useEffect(() => {
     loadMenus();
   }, [loadMenus]);
+
+  // 能力矩阵（§6.2）：未认证订阅号 menuManagement=false → 隐藏工作区 + 提示；拉取失败按「不允许」处理不闪编辑器
+  useEffect(() => {
+    if (accountId == null) {
+      setCaps('unknown');
+      return;
+    }
+    let alive = true;
+    setCaps('unknown');
+    queryCapabilities(accountId)
+      .then((c) => {
+        if (alive) setCaps(c || {});
+      })
+      .catch(() => {
+        if (alive) setCaps({});
+      });
+    return () => {
+      alive = false;
+    };
+  }, [accountId]);
+
+  const capsLoading = caps === 'unknown' && accountId != null;
+  const menuAllowed = caps !== 'unknown' && caps.menuManagement === true;
 
   /** 平铺转树：顶级行挂 children（antd Table 树形），无子菜单的顶级保持普通行 */
   const treeData = useMemo(() => {
@@ -444,20 +470,38 @@ const MenusTab: React.FC = () => {
           }}
           options={options}
         />
-        <Button type="primary" disabled={accountId == null} onClick={() => openCreate()} style={{ marginLeft: 'auto' }}>
+        <Button
+          type="primary"
+          disabled={accountId == null || !menuAllowed}
+          onClick={() => openCreate()}
+          style={{ marginLeft: 'auto' }}
+        >
           新建一级菜单
         </Button>
       </div>
 
-      <Table<WxMenu>
-        rowKey="id"
-        loading={loading}
-        dataSource={treeData}
-        columns={columns}
-        pagination={false}
-        size="middle"
-        locale={{ emptyText: accountId == null ? '暂无公众号账号（先在 wx_accounts 落账号行）' : '暂无菜单（草稿态随时可编辑，推送微信需凭据）' }}
-      />
+      {capsLoading ? (
+        <div style={{ padding: 48, textAlign: 'center' }}>
+          <Spin tip="正在拉取账号能力矩阵…" />
+        </div>
+      ) : menuAllowed ? (
+        <Table<WxMenu>
+          rowKey="id"
+          loading={loading}
+          dataSource={treeData}
+          columns={columns}
+          pagination={false}
+          size="middle"
+          locale={{ emptyText: accountId == null ? '暂无公众号账号（先在 wx_accounts 落账号行）' : '暂无菜单（草稿态随时可编辑，推送微信需凭据）' }}
+        />
+      ) : (
+        <Alert
+          type="warning"
+          showIcon
+          message="该账号不支持自定义菜单"
+          description="未认证订阅号不支持自定义菜单（能力矩阵由 account_type 与 verified 驱动，见设计稿 §6.1/§6.2）——需服务号或已认证账号；能力缺失是账号属性，可在账号设置里调整后回来。"
+        />
+      )}
 
       <Modal
         title={menuModal.editing ? '编辑菜单' : '新建菜单'}
