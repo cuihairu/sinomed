@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -246,6 +247,24 @@ class WxAutoReplyAdminHttpTest {
     }
 
     @Test
+    void listsAccountsForAdminWithoutSecrets() {
+        // 端点返回数组形（单店账号量小，不分页）
+        @SuppressWarnings("unchecked")
+        java.util.List<Map<String, Object>> list = rest.exchange(url("/api/v1/wx/accounts"),
+                HttpMethod.GET, new HttpEntity<>(auth()), java.util.List.class).getBody();
+        assertEquals(1, list.size(), "应含种子账号：" + list);
+        Map<String, Object> row = list.get(0);
+        assertEquals("wxREPLY1", row.get("appId"));
+        assertEquals("规则管理测试号", row.get("accountName"));
+        assertEquals("service", row.get("accountType"));
+        assertEquals(1, row.get("verified"));
+        assertEquals(1, row.get("enabled"));
+        assertFalse(row.containsKey("appSecret"), "管理端账号列表绝不下发密钥列：" + row.keySet());
+        assertFalse(row.containsKey("token"), "不下发验签 token：" + row.keySet());
+        assertFalse(row.containsKey("aesKey"), "不下发 aesKey：" + row.keySet());
+    }
+
+    @Test
     void requiresLogin() {
         HttpHeaders plain = new HttpHeaders();
         plain.setContentType(MediaType.APPLICATION_JSON);
@@ -258,6 +277,11 @@ class WxAutoReplyAdminHttpTest {
                 () -> rest.postForEntity(url("/api/v1/wx/auto-replies"),
                         new HttpEntity<>(ruleBody(null, "keyword", "x", "exact", "y", 0, 1), plain), Map.class));
         assertEquals(HttpStatus.UNAUTHORIZED, postEx.getStatusCode(), "未登录创建应 401");
+
+        HttpClientErrorException accountsEx = assertThrows(HttpClientErrorException.class,
+                () -> rest.exchange(url("/api/v1/wx/accounts"), HttpMethod.GET,
+                        new HttpEntity<>(plain), java.util.List.class));
+        assertEquals(HttpStatus.UNAUTHORIZED, accountsEx.getStatusCode(), "未登录账号列表应 401");
     }
 
     // ---------- 回调端到端辅助（与 WxOfficialAccountHttpTest 同规格独立实现） ----------

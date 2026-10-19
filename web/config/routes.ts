@@ -302,6 +302,12 @@ export default [
     hideInMenu: true,
   },
   {
+    path: '/wx',
+    icon: 'WechatOutlined',
+    name: 'wx',
+    component: './Wx/Index',
+  },
+  {
     path: '/appearance',
     icon: 'BgColorsOutlined',
     name: 'appearance',

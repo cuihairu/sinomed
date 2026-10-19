@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -756,6 +757,11 @@ public class WxOfficialAccountService {
     public void deleteAutoReply(Long id) {
         autoReplyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("规则不存在"));
         autoReplyRepository.deleteById(id);
+    }
+
+    /** 管理端账号列表（规则/粉丝页选账号用，单店量小不分页，id 升序）；密钥列绝不读回（见 WxAccountView） */
+    public List<WxAccountEntity> listAccounts() {
+        return accountRepository.findAll(Sort.by("id"));
     }
 
     /**

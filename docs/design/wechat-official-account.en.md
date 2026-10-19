@@ -422,7 +422,7 @@ sinomed:
 
 - Custom menu management page (edit/draft/publish), `wx_menus` table already built;
 - Material upload and management (permanent ledger + local storage), supporting menu and auto-reply references;
-- Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **server CRUD half delivered** (2026-10-20: `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint, contract in docs/server/api.en.md; web/ editor page pending);
+- Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **delivered end to end** (2026-10-20: server `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint + admin account list `/api/v1/wx/accounts` (sanitized, no secret columns), contract in docs/server/api.en.md; web/ admin "WeChat" page rule table: account picker + type/status filters + create/edit/enable-disable/delete);
 - Message console upgraded to a conversational view + human customer-service replies (48h window, service/verified subscription).
 
 ### Phase 3: Outreach — "parametric QR + mass/template messages"

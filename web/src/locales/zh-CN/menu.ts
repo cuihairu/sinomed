@@ -11,6 +11,7 @@ export default {
   'menu.staff': '员工',
   'menu.review': '复盘回访',
   'menu.ads': '广告屏',
+  'menu.wx': '公众号',
   'menu.appearance': '外观设置',
   'menu.customer': '顾客',
   'menu.treat': '接诊',

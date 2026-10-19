@@ -49,6 +49,7 @@ export default {
   'menu.review.customer': 'Customer Feedback',
   'menu.review.day': 'Daily Review',
   'menu.ads': 'Ads Display',
+  'menu.wx': 'WeChat Official Account',
   'menu.appearance': 'Appearance',
   'menu.dashboard.analysis': 'Analysis',
   'menu.dashboard.monitor': 'Monitor',

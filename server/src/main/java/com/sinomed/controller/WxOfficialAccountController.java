@@ -1,10 +1,12 @@
 package com.sinomed.controller;
 
+import com.sinomed.entity.WxAccountEntity;
 import com.sinomed.entity.WxAutoReplyEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
 import com.sinomed.vo.MessageView;
 import com.sinomed.vo.PageResp;
+import com.sinomed.vo.WxAccountView;
 import com.sinomed.vo.WxAutoReplyView;
 import com.sinomed.vo.WxBindRequest;
 import com.sinomed.vo.WxMessageLogView;
@@ -162,6 +164,17 @@ public class WxOfficialAccountController {
     }
 
     // ---------- 管理端规则 CRUD（设计稿第二期「管理端规则编辑」服务端半边；需登录，不依赖模块开关） ----------
+
+    @Operation(summary = "账号列表", description = "管理端选账号用（规则/粉丝页），单店量小不分页 id 升序；"
+            + "绝不下发密钥列（appSecret/token/aesKey），要改密钥走部署配置；需登录")
+    @GetMapping("/accounts")
+    public List<WxAccountView> accounts() {
+        List<WxAccountView> data = new ArrayList<>();
+        for (WxAccountEntity account : wxOfficialAccountService.listAccounts()) {
+            data.add(WxAccountView.from(account));
+        }
+        return data;
+    }
 
     @Operation(summary = "自动回复规则分页", description = "按账号/类型/启用态过滤，默认 priority 升序（小者先试）；需登录")
     @GetMapping("/auto-replies/page")
