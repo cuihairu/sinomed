@@ -292,6 +292,39 @@ WxCallbackController
 
 ---
 
+### 5.6 Web authorization (snsapi_base) and the H5 binding flow (patrol decision record 2026-10-19; scheduling status remains "unscheduled")
+
+Phase 1 does **snsapi_base silent authorization for the openid only**; snsapi_userinfo (a user-consent page + scope approval + the unionid decrypt chain) is not in phase 1 — binding needs only the openid. The technical decisions below were made by the patrol under the 2026-10-14 delegation (versioning/releases, license, paid purchases, and asset licensing remain with the user).
+
+**Flow**:
+
+```
+H5 page /h5/wx/bind?account=1
+  → GET /api/v1/wx/oauth/1/start        (302, issues state)
+  → open.weixin.qq.com/connect/oauth2/authorize?appid&redirect_uri&response_type=code&scope=snsapi_base&state#wechat_redirect
+  → WeChat silently redirects back to GET /api/v1/wx/oauth/1/callback?code&state
+  → verify state → call sns/oauth2/access_token for the openid (secret decrypted from wx_accounts; token used once, never stored)
+  → issue a one-time ticket (5 minutes, single redemption)
+  → 302 /h5/wx/bind#ticket=…
+  → the H5 page calls POST /api/v1/wx/bind/1 with the ticket (ticket or openid, either one; phone + SMS two-factor unchanged)
+```
+
+**Decision record**:
+
+| # | Topic | Adopted | Rejected | One-line rationale |
+| --- | --- | --- | --- | --- |
+| D-OA1 | CSRF protection for state | Stateless signature `SHA1(token, accountId|nonce|exp)`, 10-minute validity | Server-side challenge table / Redis; a pre-row in wx_binding_logs | Successful binding still requires the SMS two-factor, so a leaked state is not an attack surface — no storage needed |
+| D-OA2 | redirect_uri source | New config `sinomed.official-account.oauth-redirect-base` (env `WX_OA_OAUTH_REDIRECT_BASE`); the callback is fixed at `{base}/api/v1/wx/oauth/{accountId}/callback` | Deriving it from the request Host | The WeChat console registers the web-auth domain as an exact whitelist entry; Host derivation can be poisoned by header injection |
+| D-OA3 | code→openid exchange | Direct call via `java.net.http` (3s timeout, same as the media download) | Pulling in the WxJava SDK | Phase-1 "no new deps first" policy; the SDK is evaluated with the phase-2 AES safe mode |
+| D-OA4 | H5 host | A same-origin static single page (web static output or a data/-style directory behind the same Nginx origin), path `/h5/wx/bind` | A new subdomain / SSR | Phase 1 is a single binding form; a subdomain adds another whitelist entry |
+| D-OA5 | Handing the openid to H5 | A one-time ticket (5 minutes, single redemption) | Passing the openid in the URL; a long-lived cookie | The openid is a long-term identifier — no plaintext URLs or long-lived credentials; the ticket dies on redemption |
+
+**Endpoint contract (next round's TDD anchors)**: `GET /api/v1/wx/oauth/{accountId}/start` (302, permitAll, whitelisted with `/api/v1/wx/oauth/**`), `GET /api/v1/wx/oauth/{accountId}/callback` (permitAll; an invalid state or failed exchange returns an explicit error page, never silent, with a full rejection audit in `wx_message_logs`), and the existing `POST /api/v1/wx/bind/{accountId}` gains a `ticket` parameter; tests stub the outbound call with a JDK HttpServer (WeChat API base URL configurable in tests, same "test-only injection" precedent as ads/payqrcodes).
+
+**Activation checklist (user side, once credentials arrive)**: register the `oauth-redirect-base` domain under the console's "web authorization domain"; set `WX_OA_ENABLED`/`WX_OA_TOKEN`/`WX_OA_CREDENTIAL_KEY`; store the appid + AppSecret in `wx_accounts` (encrypted at rest).
+
+---
+
 ## 6. Permission Boundaries (account type × capability matrix and degradation)
 
 > Sources: [Service account intro](https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/服务器配置.html), [Custom menus](https://developers.weixin.qq.com/doc/offiaccount/Custom_Menus/自定义菜单介绍.html), [Materials](https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/素材管理.html); account capability differences also reference the vluma MCP's three-type boundary split (§2 table).

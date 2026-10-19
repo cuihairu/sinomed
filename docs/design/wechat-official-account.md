@@ -289,7 +289,39 @@ WxCallbackController
 
 **设计原则**：未识别类型永远「落日志 + 静默/兜底」，不抛异常——微信侧的回调重试会放大错误。
 
+### 5.6 网页授权（snsapi_base）与 H5 绑定流程（2026-10-19 巡检代决定稿，分期状态仍「未排期」）
+
+第一期只做 **snsapi_base 静默授权拿 openid**；snsapi_userinfo（用户确认页 + scope 审批 + unionid 解密链）不进第一期——绑定只需要 openid。以下技术决策按 2026-10-14 授权代决（版本号/发版、License、付费采购、素材授权四类仍归用户）。
+
+**流程**：
+
+```
+H5 页 /h5/wx/bind?account=1
+  → GET /api/v1/wx/oauth/1/start        （302，签发 state）
+  → open.weixin.qq.com/connect/oauth2/authorize?appid&redirect_uri&response_type=code&scope=snsapi_base&state#wechat_redirect
+  → 微信静默回跳 GET /api/v1/wx/oauth/1/callback?code&state
+  → 校验 state → 调 sns/oauth2/access_token 换 openid（secret 自 wx_accounts 解密读；token 即取即弃不落库）
+  → 发一次性 ticket（5 分钟、单次兑换）
+  → 302 /h5/wx/bind#ticket=…
+  → H5 以 ticket 调 POST /api/v1/wx/bind/1（ticket 与 openid 二选一；手机号 + 短信码双因子不变）
+```
+
+**决策记录**：
+
+| # | 议题 | 采纳 | 被否 | 一句理由 |
+| --- | --- | --- | --- | --- |
+| D-OA1 | state 防 CSRF | 无状态签名 `SHA1(token, accountId|nonce|exp)`，10 分钟有效 | 服务端 challenge 表 / Redis；落 wx_binding_logs 前置行 | 绑定成功仍要短信码双因子，state 泄露不构成攻击面，免存储 |
+| D-OA2 | redirect_uri 来源 | 新配置 `sinomed.official-account.oauth-redirect-base`（env `WX_OA_OAUTH_REDIRECT_BASE`），回调固定 `{base}/api/v1/wx/oauth/{accountId}/callback` | 从请求 Host 反推 | 公众号后台网页授权域名白名单要求精确登记，Host 反推可被头注入污染 |
+| D-OA3 | code→openid 交换 | `java.net.http` 直调（3s 超时，同素材下载口径） | 引 WxJava SDK | 第一期「不引依赖先跑通」口径；SDK 随第二期安全模式 AES 一并评估 |
+| D-OA4 | H5 宿主 | 同域静态单页（web 静态产物或 data/ 同款目录 + Nginx 同域反代），路径 `/h5/wx/bind` | 新建子域 / 引 SSR | 第一期只有一个绑定表单页；子域要在白名单多登记一条 |
+| D-OA5 | openid 交付 H5 | 一次性 ticket（5 分钟、单次兑换） | URL 裸传 openid；长效 cookie | openid 是长期标识不宜作 URL 明文或长效凭证，ticket 兑换即废 |
+
+**端点契约（下轮 TDD 锚）**：`GET /api/v1/wx/oauth/{accountId}/start`（302，permitAll，随 `/api/v1/wx/oauth/**` 放行）、`GET /api/v1/wx/oauth/{accountId}/callback`（permitAll；state 失效/换码失败回明确错误页不静默，全量落 `wx_message_logs` 拒绝审计）、既有 `POST /api/v1/wx/bind/{accountId}` 增 `ticket` 入参；测试出网用 JDK HttpServer 桩（微信 API base URL 测试可配，同 ads/payqrcodes「测试专用注入」先例）。
+
+**激活清单（凭据到位后，用户侧）**：公众号后台「网页授权域名」登记 `oauth-redirect-base` 的域名；配 `WX_OA_ENABLED`/`WX_OA_TOKEN`/`WX_OA_CREDENTIAL_KEY`；`wx_accounts` 落 appid + AppSecret（加密落库）。
+
 ---
+
 
 ## 6. 权限边界（账号类型 × 能力矩阵与降级）
 
