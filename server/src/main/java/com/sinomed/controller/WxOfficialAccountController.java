@@ -59,18 +59,21 @@ public class WxOfficialAccountController {
         return wxOfficialAccountService.verifyUrl(accountId, signature, timestamp, nonce, echostr);
     }
 
-    @Operation(summary = "消息推送回调", description = "微信服务器的用户消息/事件推送（明文模式）：验签、按 MsgId 排重、"
-            + "全量落流水、subscribe/unsubscribe 维护粉丝、关键词/欢迎语/兜底被动回复；无回复回 success（微信 5s 约束）")
+    @Operation(summary = "消息推送回调", description = "微信服务器的用户消息/事件推送（明文/兼容/安全模式）："
+            + "明文走三段 signature 验签；含 Encrypt 报文走 msg_signature 四段验签 + AES 解密（设计稿 §5.3），"
+            + "安全模式回复包加密信封。按 MsgId 排重、全量落流水、subscribe/unsubscribe 维护粉丝、"
+            + "关键词/欢迎语/兜底被动回复；无回复回 success（微信 5s 约束）")
     @PostMapping(value = "/callback/{accountId}", produces = MediaType.TEXT_PLAIN_VALUE + ";charset=UTF-8")
     public String onMessage(@PathVariable("accountId") long accountId,
                             @RequestParam(value = "signature", required = false) String signature,
                             @RequestParam(value = "timestamp", required = false) String timestamp,
                             @RequestParam(value = "nonce", required = false) String nonce,
+                            @RequestParam(value = "msg_signature", required = false) String msgSignature,
                             @RequestBody(required = false) byte[] xmlBody) {
         // 微信推送 Content-Type 常不带 charset，String 反序列化默认 ISO-8859-1 会毁中文——
         // 收原始字节后按微信协议固定 UTF-8 解码（明文模式报文即 UTF-8）
         String xml = xmlBody == null ? null : new String(xmlBody, StandardCharsets.UTF_8);
-        return wxOfficialAccountService.onMessage(accountId, signature, timestamp, nonce, xml);
+        return wxOfficialAccountService.onMessage(accountId, signature, timestamp, nonce, msgSignature, xml);
     }
 
     @Operation(summary = "账号能力探测", description = "按 account_type + verified 返回能力矩阵（菜单/客服/群发/模板消息/素材/回调/网页授权），"

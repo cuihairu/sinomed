@@ -244,8 +244,8 @@ customers.openid  ←—— jscode2session   wx_fans.openid   ←—— 消息�
 
 - **明文模式**（`encrypt_mode=plaintext`）：POST body 即明文 XML，验签后直接解析。
 - **兼容/安全模式**（`compatible`/`safe`）：body 是 `<xml><Encrypt>…</Encrypt></xml>`，流程：`msg_signature` 验签 → Base64 解码 → 取 16 字节随机串 + 4 字节 msg_len + 明文 XML + receiveid（`Base64(AES-256-CBC(随机串+XML))`，密钥 = `Base64Decode(EncodingAESKey + "=")`，IV = 密钥前 16 字节）→ PKCS7 反填充得明文 XML。
-- **实现归属**：全套（验签、AES、PKCS7、XML 绑定）由 WxJava `WxMpCryptUtil` / `WxMpXmlMessage` 承担，本模块只做「取 `aes_key` → 调 SDK → 拿到结构化消息」，不手写密码学代码。
-- **被动回复加密**：安全模式下回复体也须加密（同 key），SDK 同一工具类处理。
+- **实现归属（2026-10-20 已落地，已代决）**：按官方规范手写 `WxMsgCryptor`（AES-256-CBC/PKCS7、四段 `msg_signature`、receiveid 绑定），不引 WxJava——沿用 D-OA3「不引 SDK」决策族；正确性以 OpenSSL 独立实现的已知向量（KAT）锚定（`WxMsgCryptorTest`），不与实现同源循环。
+- **被动回复加密**：安全模式下回复体也须加密（同 key），由 `WxOfficialAccountService.sealReply` 统一密封：时间戳取服务器当前时间、Nonce 回带入站值；`success` 与空体保持明文。
 
 ### 5.4 消息接收与分发
 
@@ -312,7 +312,7 @@ H5 页 /h5/wx/bind?account=1
 | --- | --- | --- | --- | --- |
 | D-OA1 | state 防 CSRF | 无状态签名 `SHA1(token, accountId|nonce|exp)`，10 分钟有效 | 服务端 challenge 表 / Redis；落 wx_binding_logs 前置行 | 绑定成功仍要短信码双因子，state 泄露不构成攻击面，免存储 |
 | D-OA2 | redirect_uri 来源 | 新配置 `sinomed.official-account.oauth-redirect-base`（env `WX_OA_OAUTH_REDIRECT_BASE`），回调固定 `{base}/api/v1/wx/oauth/{accountId}/callback` | 从请求 Host 反推 | 公众号后台网页授权域名白名单要求精确登记，Host 反推可被头注入污染 |
-| D-OA3 | code→openid 交换 | 复用 `wechatRestTemplate` bean 直调（WechatClient jscode2session 同款 RestTemplate+DTO，不引 SDK） | 引 WxJava SDK | 第一期「不引依赖先跑通」口径；初记 java.net.http，2026-10-20 落地时对齐仓内既有出网 DTO 绑定口径（同等不引新依赖）；SDK 随第二期安全模式 AES 一并评估 |
+| D-OA3 | code→openid 交换 | 复用 `wechatRestTemplate` bean 直调（WechatClient jscode2session 同款 RestTemplate+DTO，不引 SDK） | 引 WxJava SDK | 第一期「不引依赖先跑通」口径；初记 java.net.http，2026-10-20 落地时对齐仓内既有出网 DTO 绑定口径（同等不引新依赖）；第二期安全模式 AES 已于 2026-10-20 落地且维持不引 SDK（`WxMsgCryptor` 官方规范手写 + OpenSSL KAT 锚定，已代决） |
 | D-OA4 | H5 宿主 | 同域静态单页，路径 `/h5/wx/bind`（已落地：classpath 静态资源 `static/h5/wx/bind/index.html`，服务端自己托管，`WebMvcConfig` view controller forward，`SecurityConfig` 放行 `/h5/**`） | 新建子域 / 引 SSR | 第一期只有一个绑定表单页；子域要在白名单多登记一条 |
 | D-OA5 | openid 交付 H5 | 一次性 ticket（5 分钟、单次兑换） | URL 裸传 openid；长效 cookie | openid 是长期标识不宜作 URL 明文或长效凭证，ticket 兑换即废 |
 
@@ -388,13 +388,13 @@ sinomed:
     credential-key: ${WX_OA_CREDENTIAL_KEY:}   # wx_accounts.app_secret/aes_key 落库加密密钥；缺省空=凭据写入拒绝
     # —— 第二期预留（当前代码未读，激活请勿按此段配置）——
     account-id: ${WX_OA_ACCOUNT_ID:1}          # 多账号预留；现行回调走路径变量 {accountId}
-    aes-key: ${WX_OA_AES_KEY:}                 # EncodingAESKey（43 字符），随安全模式 AES 一并落地
-    encrypt-mode: ${WX_OA_ENCRYPT_MODE:plaintext}  # plaintext/compatible/safe，同上第二期
+    # aes_key/encrypt_mode 没有 env 入口：安全模式（2026-10-20 已交付）按 wx_accounts.aes_key
+    # 加密列 + encrypt_mode 列（缺省 plaintext）取，属账号业务数据，凭据可后台改
     # app_id/app_secret 走 wx_accounts 表（加密落库），不走 env——凭据属业务数据，可后台改
 ```
 
 - **`enabled=false` 是默认值**：与 `sinomed.phone-lookup.mode` 默认 `off`（`application.yml:49`）同款「不静默」口径——模块未启用时回调返回 200 `"success"` 并落审计，不让微信侧无限重试；
-- **token/aes_key 走 env 是第一期妥协**：单店部署时免建库配置；第二期管理端表单落库后，env 退化为仅开发/演示用；
+- **token 走 env 是第一期妥协**：单店部署免建库配置；aes_key/encrypt_mode 属账号业务数据走 wx_accounts 列（安全模式已按此落地），env 退化为仅开发/演示用；
 - **凭据不入库明文**：`wx_accounts.app_secret`/`aes_key` 用 AES 可逆加密（密钥走 env `WX_OA_CREDENTIAL_KEY`），BCrypt 单向不可用（凭据需回读调用 API）。
 
 ---
@@ -421,6 +421,7 @@ sinomed:
 - 自定义菜单管理页（编辑/草稿/推送微信），`wx_menus` 已在第一期建好；
 - 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用；
 - 管理端规则编辑 UI（自动回复不再手工改库）——**已全链交付**（2026-10-20：服务端 `/api/v1/wx/auto-replies` 增删改查 + 枚举校验 + subscribe/fallback 单条启用约束 + 管理端账号列表 `/api/v1/wx/accounts`（脱敏不下发密钥列），契约见 docs/server/api.md；web/ 管理端「公众号」页规则表：选账号过滤 + 类型/状态过滤 + 新建/编辑/停用启用/删除）；
+- 安全/兼容模式消息加解密（回调 AES 信封，§5.3）——**已交付**（2026-10-20：`WxMsgCryptor` 官方规范手写落地，含 `<Encrypt>` 报文走 `msg_signature` 四段验签 + AES 解密进主流程、安全模式回复密封、拒绝审计 `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`；测试 `WxMsgCryptorTest` 6 例 OpenSSL KAT + `WxEncryptModeCallbackHttpTest` 5 例）；
 - 消息工作台升级为对话式视图 + 人工客服回复（48h 窗口，服务号/认证订阅号）。
 
 ### 第三期：触达 ——「带参二维码 + 群发/模板消息」

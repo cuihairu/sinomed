@@ -6,8 +6,8 @@ import java.util.Arrays;
 
 /**
  * 微信回调验签（协议口径：SHA1(sort(token, timestamp, nonce) 字典序拼接)）。
- * URL 验证（GET）与明文消息推送（POST）共用；安全模式的 msg_signature（含密文）第二期随
- * WxJava 接入，本类不承担解密。
+ * URL 验证（GET）与明文消息推送（POST）共用；安全模式的 msg_signature（含密文段）由 WxMsgCryptor
+ * 按四段同款拼接复用（sortJoin/sha1Hex），解密不在此类。
  */
 public final class WxSignatureUtil {
 
@@ -22,12 +22,12 @@ public final class WxSignatureUtil {
         return sha1Hex(sortJoin(token, timestamp, nonce)).equalsIgnoreCase(signature);
     }
 
-    /** 字典序排序后拼接（协议规定） */
-    static String sortJoin(String... parts) {
+    /** 字典序排序后拼接（协议规定）；安全模式 msg_signature 四段同款拼接（WxMsgCryptor 复用） */
+    public static String sortJoin(String... parts) {
         return Arrays.stream(parts).sorted().reduce("", String::concat);
     }
 
-    static String sha1Hex(String input) {
+    public static String sha1Hex(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");
             StringBuilder sb = new StringBuilder();

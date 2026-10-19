@@ -245,8 +245,8 @@ Signature failures always return 200 + empty body (WeChat requires no 5xx, else 
 
 - **Plaintext mode** (`encrypt_mode=plaintext`): the POST body is plaintext XML, parse after verification.
 - **Compatible/safe** (`compatible`/`safe`): body is `<xml><Encrypt>…</Encrypt></xml>`; flow: `msg_signature` verify → Base64 decode → 16-byte random + 4-byte msg_len + plaintext XML + receiveid (`Base64(AES-256-CBC(random+XML))`, key = `Base64Decode(EncodingAESKey + "=")`, IV = first 16 key bytes) → PKCS7 unpad.
-- **Implementation home**: all of it (verify, AES, PKCS7, XML binding) belongs to WxJava's `WxMpCryptUtil` / `WxMpXmlMessage`; this module only does "take `aes_key` → call SDK → get a structured message" — no hand-written crypto.
-- **Encrypted replies**: in safe mode replies are encrypted with the same key; the SDK's same utility handles it.
+- **Implementation home (landed 2026-10-20, decided)**: hand-written `WxMsgCryptor` to the official spec (AES-256-CBC/PKCS7, 4-part `msg_signature`, receiveid binding), no WxJava — the D-OA3 "no SDK" decision family; correctness is anchored by known-answer vectors (KAT) computed by an independent OpenSSL implementation (`WxMsgCryptorTest`), not by the implementation itself.
+- **Encrypted replies**: in safe mode replies are encrypted with the same key and sealed by `WxOfficialAccountService.sealReply`: server-side timestamp, nonce echoed from the inbound push; `success` and empty bodies stay plaintext.
 
 ### 5.4 Message Reception and Dispatch
 
@@ -315,7 +315,7 @@ H5 page /h5/wx/bind?account=1
 | --- | --- | --- | --- | --- |
 | D-OA1 | CSRF protection for state | Stateless signature `SHA1(token, accountId|nonce|exp)`, 10-minute validity | Server-side challenge table / Redis; a pre-row in wx_binding_logs | Successful binding still requires the SMS two-factor, so a leaked state is not an attack surface — no storage needed |
 | D-OA2 | redirect_uri source | New config `sinomed.official-account.oauth-redirect-base` (env `WX_OA_OAUTH_REDIRECT_BASE`); the callback is fixed at `{base}/api/v1/wx/oauth/{accountId}/callback` | Deriving it from the request Host | The WeChat console registers the web-auth domain as an exact whitelist entry; Host derivation can be poisoned by header injection |
-| D-OA3 | code→openid exchange | Direct call reusing the `wechatRestTemplate` bean (RestTemplate+DTO, same as the WechatClient jscode2session path; no SDK) | Pulling in the WxJava SDK | Phase-1 "no new deps first" policy; originally sketched as java.net.http, aligned to the repo's existing outbound DTO-binding idiom at implementation time on 2026-10-20 (equally dependency-free); the SDK is evaluated with the phase-2 AES safe mode |
+| D-OA3 | code→openid exchange | Direct call reusing the `wechatRestTemplate` bean (RestTemplate+DTO, same as the WechatClient jscode2session path; no SDK) | Pulling in the WxJava SDK | Phase-1 "no new deps first" policy; originally sketched as java.net.http, aligned to the repo's existing outbound DTO-binding idiom at implementation time on 2026-10-20 (equally dependency-free); the phase-2 AES safe mode landed on 2026-10-20 and stays dependency-free (`WxMsgCryptor`, hand-written to the official spec and anchored by OpenSSL KAT vectors; decided) |
 | D-OA4 | H5 host | A same-origin static single page at `/h5/wx/bind` (delivered: a classpath static resource `static/h5/wx/bind/index.html` hosted by the server itself, forwarded by a `WebMvcConfig` view controller, permitted by `SecurityConfig` `/h5/**`) | A new subdomain / SSR | Phase 1 is a single binding form; a subdomain adds another whitelist entry |
 | D-OA5 | Handing the openid to H5 | A one-time ticket (5 minutes, single redemption) | Passing the openid in the URL; a long-lived cookie | The openid is a long-term identifier — no plaintext URLs or long-lived credentials; the ticket dies on redemption |
 
@@ -390,8 +390,9 @@ sinomed:
     credential-key: ${WX_OA_CREDENTIAL_KEY:}   # encryption key for wx_accounts.app_secret/aes_key at rest; default empty = credential writes rejected
     # —— phase 2 reserved (not read by code yet; do not configure activation from this block) ——
     account-id: ${WX_OA_ACCOUNT_ID:1}          # reserved for multi-account; the current callback rides the path variable {accountId}
-    aes-key: ${WX_OA_AES_KEY:}                 # EncodingAESKey (43 chars), lands together with the AES safe mode
-    encrypt-mode: ${WX_OA_ENCRYPT_MODE:plaintext}  # plaintext/compatible/safe, phase 2 as above
+    # aes_key/encrypt_mode have no env entries: the safe mode (delivered 2026-10-20) reads the
+    # encrypted wx_accounts.aes_key column plus the encrypt_mode column (default plaintext) —
+    # per-account business data, editable from the console
     # app_id/app_secret go into wx_accounts (encrypted at rest), not env — credentials are business data, editable from the console
 ```
 
@@ -423,6 +424,7 @@ sinomed:
 - Custom menu management page (edit/draft/publish), `wx_menus` table already built;
 - Material upload and management (permanent ledger + local storage), supporting menu and auto-reply references;
 - Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **delivered end to end** (2026-10-20: server `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint + admin account list `/api/v1/wx/accounts` (sanitized, no secret columns), contract in docs/server/api.en.md; web/ admin "WeChat" page rule table: account picker + type/status filters + create/edit/enable-disable/delete);
+- Safe/compatible-mode message crypto (callback AES envelope, §5.3) — **delivered** (2026-10-20: `WxMsgCryptor` hand-written to the official spec; bodies carrying `<Encrypt>` are verified with the 4-part `msg_signature` and AES-decrypted before entering the main flow, safe-mode replies are sealed, with reject audits `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`; tests: `WxMsgCryptorTest` 6 OpenSSL KAT cases + `WxEncryptModeCallbackHttpTest` 5 cases);
 - Message console upgraded to a conversational view + human customer-service replies (48h window, service/verified subscription).
 
 ### Phase 3: Outreach — "parametric QR + mass/template messages"

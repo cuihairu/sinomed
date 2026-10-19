@@ -65,7 +65,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * URL 验签、明文消息验签+排重+全量落流水、subscribe/unsubscribe 粉丝维护、
  * 关键词/欢迎语/兜底被动回复、能力矩阵探测。
  * 「不静默」口径：模块关/账号停用/未知账号一律 200 拒处理（回 "success"，不让微信重试）并落拒绝审计；
- * 验签失败回空 body。安全模式（AES 解密）第二期随 WxJava 接入，本类只实施明文模式。
+ * 验签失败回空 body。安全/兼容模式（AES-256-CBC 信封，设计稿 §5.3）由 WxMsgCryptor 承担：
+ * msg_signature 四段验签 + 解密进主流程，安全模式回复密封（官方规范手写实现，不引 SDK）。
  */
 @Slf4j
 @Component
@@ -81,6 +82,7 @@ public class WxOfficialAccountService {
     private final WxMaterialRepository materialRepository;
     private final WxOauthTicketStore ticketStore;
     private final RestTemplate wechatRestTemplate;
+    private final WxMsgCryptor msgCryptor;
 
     /** 绑定短信验证码有效期（分钟），与 Kiosk 短信通道同口径 */
     private static final long BIND_SMS_TTL_MINUTES = 5;
@@ -129,7 +131,8 @@ public class WxOfficialAccountService {
                                     CustomerRepository customerRepository,
                                     WxMaterialRepository materialRepository,
                                     WxOauthTicketStore ticketStore,
-                                    RestTemplate wechatRestTemplate) {
+                                    RestTemplate wechatRestTemplate,
+                                    WxMsgCryptor msgCryptor) {
         this.accountRepository = accountRepository;
         this.fanRepository = fanRepository;
         this.autoReplyRepository = autoReplyRepository;
@@ -140,6 +143,7 @@ public class WxOfficialAccountService {
         this.materialRepository = materialRepository;
         this.ticketStore = ticketStore;
         this.wechatRestTemplate = wechatRestTemplate;
+        this.msgCryptor = msgCryptor;
     }
 
     /** GET URL 验证：通过原样返回 echostr；拒绝路径回 "success"/空并落审计 */
@@ -161,8 +165,14 @@ public class WxOfficialAccountService {
         return echostr;
     }
 
-    /** POST 消息推送：明文验签 → 排重 → 落流水 → 路由（事件/文本）→ 被动回复或 "success" */
-    public String onMessage(long accountId, String signature, String timestamp, String nonce, String xmlBody) {
+    /**
+     * POST 消息推送：验签 → （加密信封则解密）→ 排重 → 落流水 → 路由（事件/文本）→ 被动回复或 "success"。
+     * 验签双轨（设计稿 §5.3）：报文含 Encrypt 元素（安全/兼容模式）按官方口径走 msg_signature
+     * 四段验签 + AES 解密，不再做三段 signature；明文报文沿用三段 signature。安全模式账号
+     * 收到明文推送按伪造拒绝（真实微信不会这样发）；安全模式回复包加密信封，success 保持明文。
+     */
+    public String onMessage(long accountId, String signature, String timestamp, String nonce,
+                            String msgSignature, String xmlBody) {
         if (!enabled) {
             logReject(accountId, "disabled", "none", null, null);
             return "success";
@@ -172,12 +182,34 @@ public class WxOfficialAccountService {
             logReject(accountId, "account_missing", "none", null, null);
             return "success";
         }
-        if (!WxSignatureUtil.check(token, timestamp, nonce, signature)) {
-            logReject(accountId, "bad_signature", "none", null, null);
-            return "";
+
+        Map<String, String> envelope = parseXml(xmlBody);
+        String encrypt = envelope.get("Encrypt");
+        String innerXml = xmlBody;
+        boolean encrypted = encrypt != null && !encrypt.isBlank();
+        if (encrypted) {
+            if (!msgCryptor.checkMsgSignature(token, timestamp, nonce, encrypt, msgSignature)) {
+                logReject(accountId, "bad_msg_signature", "none", null, null);
+                return "";
+            }
+            try {
+                innerXml = msgCryptor.decrypt(account.get().getAesKey(), account.get().getAppId(), encrypt);
+            } catch (IllegalArgumentException e) {
+                logReject(accountId, "bad_encrypt", "none", null, null);
+                return "";
+            }
+        } else {
+            if ("safe".equals(account.get().getEncryptMode())) {
+                logReject(accountId, "missing_encrypt", "none", null, null);
+                return "";
+            }
+            if (!WxSignatureUtil.check(token, timestamp, nonce, signature)) {
+                logReject(accountId, "bad_signature", "none", null, null);
+                return "";
+            }
         }
 
-        Map<String, String> msg = parseXml(xmlBody);
+        Map<String, String> msg = parseXml(innerXml);
         String msgType = msg.getOrDefault("MsgType", "none");
         String fromUser = msg.get("FromUserName");
         String toUser = msg.get("ToUserName");
@@ -195,22 +227,43 @@ public class WxOfficialAccountService {
 
         logMessage(accountId, "in", msgType, fromUser, toUser, event != null ? event : content, msgId, dedupeKey);
 
+        String reply;
         if ("event".equals(msgType)) {
-            return routeEvent(accountId, event, fromUser, toUser);
-        }
-        if ("text".equals(msgType)) {
-            String reply = matchKeywordReply(accountId, content);
-            if (reply == null) {
-                reply = firstRule(accountId, "fallback");
+            reply = routeEvent(accountId, event, fromUser, toUser);
+        } else if ("text".equals(msgType)) {
+            String matched = matchKeywordReply(accountId, content);
+            if (matched == null) {
+                matched = firstRule(accountId, "fallback");
             }
-            return replyTo(accountId, fromUser, toUser, reply);
+            reply = replyTo(accountId, fromUser, toUser, matched);
+        } else {
+            if ("image".equals(msgType)) {
+                // 设计稿 §4.5 第一期：图片消息拉取 PicUrl 落 wx_materials（type=temp，供管理端查看）
+                captureMaterial(accountId, msg.get("MediaId"), msg.get("PicUrl"));
+            }
+            // image/voice/video/link/location 等：第一期落日志 + 兜底（不做识别处理）
+            reply = replyTo(accountId, fromUser, toUser, firstRule(accountId, "fallback"));
         }
-        if ("image".equals(msgType)) {
-            // 设计稿 §4.5 第一期：图片消息拉取 PicUrl 落 wx_materials（type=temp，供管理端查看）
-            captureMaterial(accountId, msg.get("MediaId"), msg.get("PicUrl"));
+        return sealReply(account.get(), encrypted, nonce, reply);
+    }
+
+    /**
+     * 安全模式出站密封（设计稿 §5.3）：入站为加密信封且账号 encrypt_mode=safe 且确有回复 XML 时，
+     * 包成官方信封（Encrypt + MsgSignature + TimeStamp + Nonce）；"success"/空体/兼容模式保持明文。
+     * TimeStamp/签名用服务器当前时间（官方示例同款），Nonce 回带入站值。
+     */
+    private String sealReply(WxAccountEntity account, boolean encryptedInbound, String nonce, String reply) {
+        if (!encryptedInbound || reply == null || !reply.startsWith("<xml>")
+                || !"safe".equals(account.getEncryptMode())) {
+            return reply;
         }
-        // image/voice/video/link/location 等：第一期落日志 + 兜底（不做识别处理）
-        return replyTo(accountId, fromUser, toUser, firstRule(accountId, "fallback"));
+        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
+        String cipher = msgCryptor.encrypt(account.getAesKey(), account.getAppId(), reply);
+        String sign = msgCryptor.signMsg(token, timestamp, nonce, cipher);
+        return "<xml><Encrypt><![CDATA[" + cipher + "]]></Encrypt>"
+                + "<MsgSignature><![CDATA[" + sign + "]]></MsgSignature>"
+                + "<TimeStamp>" + timestamp + "</TimeStamp>"
+                + "<Nonce><![CDATA[" + (nonce == null ? "" : nonce) + "]]></Nonce></xml>";
     }
 
     /** 能力矩阵（设计稿 §6.1/§6.2）：account_type + verified 两字段驱动，不写死枚举分支 */
