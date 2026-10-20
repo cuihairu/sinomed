@@ -258,3 +258,15 @@ export async function deleteMenu(id: number, options?: { [key: string]: any }) {
     ...(options || {}),
   });
 }
+
+/**
+ * 推送启用菜单到微信（设计稿 §4.3「推送」半边；真实出网压凭据）：
+ * 只推 enabled=1（草稿不推送），成功回推送一级菜单数；缺 AppSecret/无启用菜单/微信 errcode
+ * 非 0 服务端 400 并透传 errcode，由调用方 message.error 透出。
+ */
+export async function pushMenus(accountId: number, options?: { [key: string]: any }) {
+  return request<{ message: string }>(`/api/v1/wx/menus/push/${accountId}`, {
+    method: 'POST',
+    ...(options || {}),
+  });
+}

@@ -8,6 +8,7 @@ import {
   deleteAutoReply,
   deleteMenu,
   fetchMaterialBlob,
+  pushMenus,
   queryAutoRepliesByPage,
   queryCapabilities,
   queryMaterialsByPage,
@@ -261,6 +262,7 @@ const MenusTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [menuModal, setMenuModal] = useState<{ open: boolean; editing?: WxMenu }>({ open: false });
   const [caps, setCaps] = useState<WxCapabilities | 'unknown'>('unknown');
+  const [pushing, setPushing] = useState(false);
 
   const [menuForm] = Form.useForm();
   const watchMenuType = Form.useWatch('menuType', menuForm) as WxMenu['menuType'] | undefined;
@@ -335,6 +337,23 @@ const MenusTab: React.FC = () => {
   const openEdit = (entity: WxMenu) => {
     setMenuModal({ open: true, editing: entity });
     menuForm.setFieldsValue(entity);
+  };
+
+  /** 推送启用菜单到微信（设计稿 §4.3「推送」半边）：服务端只推 enabled=1 并透传微信 errcode，这里原样提示 */
+  const pushToWechat = async () => {
+    if (accountId == null) {
+      message.error('请先选择公众号账号');
+      return;
+    }
+    setPushing(true);
+    try {
+      const res = await pushMenus(accountId);
+      if (res?.message) message.success(res.message);
+    } catch (e: any) {
+      message.error(e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '推送失败');
+    } finally {
+      setPushing(false);
+    }
   };
 
   const saveMenuRow = async () => {
@@ -478,6 +497,17 @@ const MenusTab: React.FC = () => {
         >
           新建一级菜单
         </Button>
+        <Popconfirm
+          title="推送启用菜单到微信？"
+          description="只推送启用的一级菜单（草稿不推送）；未配 AppSecret 或微信侧报错会在提示里原样透出"
+          onConfirm={pushToWechat}
+          okText="推送"
+          cancelText="取消"
+        >
+          <Button type="primary" disabled={accountId == null || !menuAllowed} loading={pushing}>
+            推送微信
+          </Button>
+        </Popconfirm>
       </div>
 
       {capsLoading ? (
