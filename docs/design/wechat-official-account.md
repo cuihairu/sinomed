@@ -200,7 +200,7 @@ customers.openid  ←—— jscode2session   wx_fans.openid   ←—— 消息�
 - **不合并**：`customers.openid` 保持小程序语义不动（`CustomerEntity.java:36-38`、`docs/server/data-model.md:18`），公众号 openid 存 `wx_fans.openid`。
 - **绑定路径（第一期，显式）**：公众号侧引导顾客绑定 → 复用 Kiosk 已验证的「手机号 + 一次性短信验证码双因子」口径（`KioskController.java:352-397` 的 `/openid-bind` 模式）：粉丝点菜单/回复关键词进入 H5 → 输入手机号 + 短信码 → 服务端校验后写 `wx_fans.customer_id` → 每次尝试（含拒绝）落 `wx_binding_logs`（§4.8）。
 - **自动关联路径（后续，需开放平台）**：若公众号与小程序绑定同一微信开放平台账号，消息回调携带的 openid 可换 unionid，与 `wx_fans.unionid` 或小程序侧 unionid 比对自动关联——**第一期不做**（单店通常不为此单独开开放平台主体），设计只保留 `unionid` 字段。
-- **解除绑定**：管理端可解绑（清 `customer_id` + 审计）；顾客取关不自动解绑（保留行、`subscribe=0`，再关注后 `customer_id` 仍在——换人关注同一 openid 属线下场景，走管理端人工处理）。
+- **解除绑定**：管理端可解绑（清 `customer_id` + 审计）；顾客取关不自动解绑（保留行、`subscribe=0`，再关注后 `customer_id` 仍在——换人关注同一 openid 属线下场景，走管理端人工处理）。web 接线已交付（2026-10-20：公众号页「消息流水」行内「解绑」按钮——`in` 行取 `fromUser`、`out` 行取 `toUser` 为粉丝 openid，成功刷新顾客列回「未绑定」，`no_fan`/`not_bound` 的 400 原样透出；服务端端点见 docs/server/api.md，纯本地库操作不触微信）。
 
 ### 4.8 wx_binding_logs — 粉丝绑定审计
 
