@@ -89,17 +89,7 @@ sinomed/
 
 For details on each component, see the README in each directory and the [documentation site](https://cuihairu.github.io/sinomed/).
 
-## 本地测试口径
+## Local test instructions
 
-CI 与本地开发按改动面三路分流——改一行文档不该全量编译。
-
-1. **文档改动**（`*.md`、`docs/**`、图片）：不编译。maven.yml 的 `paths-ignore`
-   已跳过这些路径（docs.yml 本就只认 `docs/**`；docker.yml 只认 `server/**`、`web/**`）。
-2. **代码改动**：按语言各跑一侧，不交叉全量。本仓后端单模块（`server/pom.xml`，
-   无聚合父 pom，reactor 为空），`-pl` 不可用（报 "Could not find the selected
-   project in the reactor"）：
-   - 后端：`cd server && ./mvnw -B test`
-   - 前端：`pnpm -C web lint && pnpm -C web test`（CI 已跑 lint:js + tsc + jest，见 `.github/workflows/frontend.yml`；本地多一层 prettier 检查）
-3. **全量**（`cd server && ./mvnw -B package`）：仅以下情形触发——pom.xml、
-   `.github/**`、Docker/Compose 配置、发布前。
+See [README.zh.md](README.zh.md#本地测试口径) for the Chinese version.
 
