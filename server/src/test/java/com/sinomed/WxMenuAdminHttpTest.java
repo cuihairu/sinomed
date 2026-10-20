@@ -193,9 +193,18 @@ class WxMenuAdminHttpTest {
         postExpect400(Map.of("accountId", accountId, "name", "无key", "menuType", "click",
                 "parentId", parentId));
         postExpect400(Map.of("accountId", accountId, "name", "缺appid", "menuType", "view_miniprogram",
-                "parentId", parentId, "miniprogramPagepath", "pages/index/index"));
+                "parentId", parentId, "url", "https://x.cn/mp", "miniprogramPagepath", "pages/index/index"));
         postExpect400(Map.of("accountId", accountId, "name", "缺page", "menuType", "view_miniprogram",
-                "parentId", parentId, "miniprogramAppid", "wx123"));
+                "parentId", parentId, "url", "https://x.cn/mp", "miniprogramAppid", "wx123"));
+        postExpect400(Map.of("accountId", accountId, "name", "缺备用页", "menuType", "view_miniprogram",
+                "parentId", parentId, "miniprogramAppid", "wx123", "miniprogramPagepath", "pages/index/index"));
+
+        // 扫码/媒体/位置类同样需要事件 key（微信协议：除 view 系外都要 key），缺失拒绝、补齐放行
+        postExpect400(Map.of("accountId", accountId, "name", "无key2", "menuType", "scancode_push",
+                "parentId", parentId));
+        Map<String, Object> scan = post(Map.of("accountId", accountId, "name", "扫码", "menuType", "scancode_push",
+                "parentId", parentId, "eventKey", "SCAN_1"));
+        assertEquals("SCAN_1", scan.get("eventKey"));
 
         // 视图类型之外的 url 不生效（微信忽略），保存时强制清空避免误导
         Map<String, Object> click = Map.of("accountId", accountId, "name", "活动", "menuType", "click",

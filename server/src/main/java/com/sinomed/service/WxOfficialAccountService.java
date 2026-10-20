@@ -25,6 +25,9 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -51,6 +54,7 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -102,6 +106,9 @@ public class WxOfficialAccountService {
             "pic_sysphoto", "pic_photo_or_album", "pic_weixin", "location_select", "view_miniprogram");
     /** 一级菜单仅允许的类型（微信协议：扫码/媒体类只能做二级） */
     private static final Set<String> TOP_MENU_TYPES = Set.of("view", "click");
+    /** 需要事件 key 的菜单类型（微信协议：除 view 系外回调都要带 key 路由） */
+    private static final Set<String> KEY_MENU_TYPES = Set.of("click", "scancode_push", "scancode_waitmsg",
+            "pic_sysphoto", "pic_photo_or_album", "pic_weixin", "location_select");
 
     /** 模块总开关（env WX_OA_ENABLED）；缺省 false=整体关闭，回调拒处理 */
     @Value("${sinomed.official-account.enabled:false}")
@@ -869,18 +876,12 @@ public class WxOfficialAccountService {
 
         String url = null;
         if ("view".equals(menuType)) {
-            if (isBlank(incoming.getUrl())) {
-                throw new IllegalArgumentException("view 菜单必须填写跳转地址");
-            }
-            url = incoming.getUrl().trim();
-            if (!(url.startsWith("http://") || url.startsWith("https://"))) {
-                throw new IllegalArgumentException("view 菜单地址必须以 http:// 或 https:// 开头");
-            }
+            url = requireMenuUrl(incoming.getUrl(), "view 菜单必须填写跳转地址");
         }
         String eventKey = null;
-        if ("click".equals(menuType)) {
+        if (KEY_MENU_TYPES.contains(menuType)) {
             if (isBlank(incoming.getEventKey())) {
-                throw new IllegalArgumentException("click 菜单必须填写事件 key");
+                throw new IllegalArgumentException(menuType + " 菜单必须填写事件 key");
             }
             eventKey = incoming.getEventKey().trim();
         }
@@ -890,6 +891,8 @@ public class WxOfficialAccountService {
             if (isBlank(incoming.getMiniprogramAppid()) || isBlank(incoming.getMiniprogramPagepath())) {
                 throw new IllegalArgumentException("view_miniprogram 菜单必须填写小程序 appid 与 pagepath");
             }
+            // 备用网页是微信协议必填（低版本客户端兜底），建菜单时就要求，避免推送时才失败
+            url = requireMenuUrl(incoming.getUrl(), "view_miniprogram 菜单必须填写备用网页地址");
             miniprogramAppid = incoming.getMiniprogramAppid().trim();
             miniprogramPagepath = incoming.getMiniprogramPagepath().trim();
         }
@@ -952,6 +955,109 @@ public class WxOfficialAccountService {
     /** 菜单名权重：非 ASCII（汉字等）记 2 分、ASCII 记 1 分——对应微信「N 汉字或 2N 字母」口径 */
     private int menuNameWeight(String name) {
         return name.codePoints().map(cp -> cp > 127 ? 2 : 1).sum();
+    }
+
+    /** 菜单 URL 必填 + http(s) 前缀校验（view 与 view_miniprogram 备用网页共用） */
+    private String requireMenuUrl(String raw, String requiredMessage) {
+        if (isBlank(raw)) {
+            throw new IllegalArgumentException(requiredMessage);
+        }
+        String url = raw.trim();
+        if (!(url.startsWith("http://") || url.startsWith("https://"))) {
+            throw new IllegalArgumentException("菜单地址必须以 http:// 或 https:// 开头");
+        }
+        return url;
+    }
+
+    /**
+     * 菜单推送微信（设计稿 §4.3「推送」半边；出网走可配基址 wechat-api-base-url，测试指本地桩——D-OA4 先例）：
+     * 取 token（cgi-bin/token, client_credential）→ POST cgi-bin/menu/create；只推 enabled=1（草稿不推送），
+     * 父菜单带子菜单时只带 name+sub_button（微信忽略父级动作），无子菜单带自身类型字段。
+     * 错误不静默：缺 AppSecret/无启用菜单/微信 errcode 非 0 一律拒绝并带 errcode 透传给管理端。
+     * 已代决：不做 token 缓存——管理端手工触发、单店低频，先把出网与错误映射做对。
+     */
+    public long pushMenus(long accountId) {
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("公众号账号不存在"));
+        if (isBlank(account.getAppSecret())) {
+            throw new IllegalArgumentException("该账号未配置 AppSecret，无法推送微信");
+        }
+        List<Map<String, Object>> buttons = new ArrayList<>();
+        for (WxMenuEntity top : menuRepository.findAllByAccountIdAndParentIdIsNullOrderBySortAscIdAsc(accountId)) {
+            if (top.getEnabled() == null || top.getEnabled() != 1) {
+                continue;
+            }
+            Map<String, Object> node = new LinkedHashMap<>();
+            node.put("name", top.getName());
+            List<WxMenuEntity> children = menuRepository
+                    .findAllByParentIdAndAccountIdOrderBySortAscIdAsc(top.getId(), accountId).stream()
+                    .filter(child -> child.getEnabled() != null && child.getEnabled() == 1)
+                    .toList();
+            if (children.isEmpty()) {
+                putMenuActionFields(node, top);
+            } else {
+                List<Map<String, Object>> subButtons = new ArrayList<>();
+                for (WxMenuEntity child : children) {
+                    Map<String, Object> sub = new LinkedHashMap<>();
+                    sub.put("name", child.getName());
+                    putMenuActionFields(sub, child);
+                    subButtons.add(sub);
+                }
+                node.put("sub_button", subButtons);
+            }
+            buttons.add(node);
+        }
+        if (buttons.isEmpty()) {
+            throw new IllegalArgumentException("没有启用的一级菜单可推送（草稿不推送微信）");
+        }
+
+        String tokenUrl = wechatApiBaseUrl + "/cgi-bin/token?grant_type=client_credential"
+                + "&appid=" + urlEncode(account.getAppId())
+                + "&secret=" + urlEncode(account.getAppSecret());
+        AccessTokenGrant grant = wechatRestTemplate.getForObject(URI.create(tokenUrl), AccessTokenGrant.class);
+        if (grant == null || isBlank(grant.getAccessToken())) {
+            throw new IllegalArgumentException("微信 access_token 获取失败（errcode=" + (grant == null ? null : grant.getErrcode())
+                    + " errmsg=" + (grant == null ? null : grant.getErrmsg()) + "）");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String createUrl = wechatApiBaseUrl + "/cgi-bin/menu/create?access_token=" + urlEncode(grant.getAccessToken());
+        Map<String, Object> resp = wechatRestTemplate
+                .postForEntity(URI.create(createUrl), new HttpEntity<>(Map.of("button", buttons), headers), Map.class)
+                .getBody();
+        Object errcode = resp == null ? null : resp.get("errcode");
+        if (!(errcode instanceof Number code) || code.intValue() != 0) {
+            throw new IllegalArgumentException("微信菜单推送失败（errcode=" + errcode
+                    + " errmsg=" + (resp == null ? null : resp.get("errmsg")) + "）");
+        }
+        return buttons.size();
+    }
+
+    /** 菜单动作字段：view 系带 url（小程序加 appid/pagepath），其余带 key */
+    private void putMenuActionFields(Map<String, Object> node, WxMenuEntity menu) {
+        node.put("type", menu.getMenuType());
+        if ("view".equals(menu.getMenuType())) {
+            node.put("url", menu.getUrl());
+        } else if ("view_miniprogram".equals(menu.getMenuType())) {
+            node.put("url", menu.getUrl());
+            node.put("appid", menu.getMiniprogramAppid());
+            node.put("pagepath", menu.getMiniprogramPagepath());
+        } else {
+            node.put("key", menu.getEventKey());
+        }
+    }
+
+    /** 微信 cgi-bin/token 响应（client_credential 换取；errcode 非 0 时无 token） */
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class AccessTokenGrant {
+        @com.fasterxml.jackson.annotation.JsonProperty("access_token")
+        private String accessToken;
+        @com.fasterxml.jackson.annotation.JsonProperty("expires_in")
+        private Integer expiresIn;
+        private Integer errcode;
+        private String errmsg;
     }
 
     /**

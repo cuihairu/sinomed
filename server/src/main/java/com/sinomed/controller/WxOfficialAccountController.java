@@ -268,6 +268,14 @@ public class WxOfficialAccountController {
         return new MessageView("删除成功");
     }
 
+    @Operation(summary = "推送菜单到微信", description = "取 access_token 后调 cgi-bin/menu/create；只推启用菜单"
+            + "（草稿不推送）；缺 AppSecret/无启用菜单/微信 errcode 非 0 一律 400 并透传 errcode；需登录")
+    @PostMapping("/menus/push/{accountId}")
+    public MessageView pushMenus(@PathVariable("accountId") long accountId) {
+        long pushed = wxOfficialAccountService.pushMenus(accountId);
+        return new MessageView("已推送 " + pushed + " 个一级菜单到微信");
+    }
+
     // ---------- 素材台账只读（设计稿 §4.5「供管理端查看」；粉丝发图落盘后此前无处可见；需登录） ----------
 
     @Operation(summary = "素材台账分页", description = "粉丝消息图片等素材的只读台账（含本地副本标记 localPath），"

@@ -15,5 +15,11 @@ public interface WxMenuRepository extends JpaRepository<WxMenuEntity, Long> {
 
     List<WxMenuEntity> findAllByParentId(Long parentId);
 
+    /** 推送微信时按展示序取某顶级下的启用子菜单 */
+    List<WxMenuEntity> findAllByParentIdAndAccountIdOrderBySortAscIdAsc(Long parentId, Long accountId);
+
     List<WxMenuEntity> findAllByAccountIdAndParentIdIsNull(Long accountId);
+
+    /** 推送微信时按展示序（sort 升、id 兜底）只取顶级菜单，子菜单经 parentId 另取，避免把子项当一级 */
+    List<WxMenuEntity> findAllByAccountIdAndParentIdIsNullOrderBySortAscIdAsc(Long accountId);
 }
