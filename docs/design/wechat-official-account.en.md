@@ -117,7 +117,7 @@ Unique on `app_id`; index on `enabled`. Phase-1 **configuration entry**: write t
 
 Unique `(account_id, openid)`; indexes on `customer_id`, `unionid`.
 
-### 4.3 wx_menus — Custom Menus (edit/draft delivered; pushing to WeChat stays credential-gated)
+### 4.3 wx_menus — Custom Menus (edit/draft and the push server side delivered; real outbound stays credential-gated)
 
 | Column | Type | Meaning |
 | ------ | ---- | ------- |
@@ -136,7 +136,7 @@ Unique `(account_id, openid)`; indexes on `customer_id`, `unionid`.
 
 Index `(account_id, parent_id)`. Anchel's "personalized menus" are **not in phase 1** (single store has no audience-differentiated menu need); no table reservation.
 
-Admin-side edit/draft is delivered (`WxOfficialAccountService.saveMenu`, same "no more hand-edited SQL" convention as rule editing, independent of the module switch): two-level structure validation (parent must be a same-account top-level menu, two levels max), view/click only at level 1 (scan/media types are sub-menu only), WeChat-convention weighted name check (non-ASCII counts 2, ASCII counts 1: level-1 ≤8 i.e. "4 CJK chars or 8 letters", level-2 ≤16), capacity caps (≤3 top menus per account, ≤5 sub-menus per top), required fields for view/click/view_miniprogram, URLs on non-view types cleared server-side; a parent must be child-free before deletion. **Pushing to WeChat** (the `menus/create` API call) stays gated on real credentials, phase 2.
+Admin-side edit/draft is delivered (`WxOfficialAccountService.saveMenu`, same "no more hand-edited SQL" convention as rule editing, independent of the module switch): two-level structure validation (parent must be a same-account top-level menu, two levels max), view/click only at level 1 (scan/media types are sub-menu only), WeChat-convention weighted name check (non-ASCII counts 2, ASCII counts 1: level-1 ≤8 i.e. "4 CJK chars or 8 letters", level-2 ≤16), capacity caps (≤3 top menus per account, ≤5 sub-menus per top), required fields for view/click/view_miniprogram, URLs on non-view types cleared server-side; a parent must be child-free before deletion. **The push-to-WeChat server side is delivered** (2026-10-20: `POST /api/v1/wx/menus/push/{accountId}` fetching a token then calling `cgi-bin/menu/create`, enabled menus only, WeChat errcode passed through never silent; outbound base configurable via `wechat-api-base-url`, tests hit a local stub with zero external calls — the D-OA4 precedent; real outbound stays credential-gated and the web admin push button is not wired yet); a same-day validation tightening: click/scan/media/location types require an event key, and view_miniprogram requires the fallback web url at save time (required by the WeChat protocol, so failures surface at menu build rather than at push).
 
 ### 4.4 wx_auto_replies — Auto-reply Rules
 
@@ -425,7 +425,7 @@ sinomed:
 
 ### Phase 2: Operations Tooling — "menus + materials"
 
-- Custom menu management page: the local edit/draft half is delivered (admin tree CRUD + protocol validation, see §4.3); **the push-to-WeChat half is pending** (`menus/create` call, credential-gated);
+- Custom menu management page: the local edit/draft half is delivered (admin tree CRUD + protocol validation, see §4.3); **the push-to-WeChat server side is delivered** (2026-10-20: `POST /api/v1/wx/menus/push/{accountId}` fetching a token then calling `menus/create`, enabled menus only, errcode passed through, zero-external-call local-stub tests in `WxMenuPushHttpTest` (5 cases); real outbound stays credential-gated, web push button not wired yet);
 - Material upload and management (permanent ledger + local storage), supporting menu and auto-reply references;
 - Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **delivered end to end** (2026-10-20: server `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint + admin account list `/api/v1/wx/accounts` (sanitized, no secret columns), contract in docs/server/api.en.md; web/ admin "WeChat" page rule table: account picker + type/status filters + create/edit/enable-disable/delete);
 - Safe/compatible-mode message crypto (callback AES envelope, §5.3) — **delivered** (2026-10-20: `WxMsgCryptor` hand-written to the official spec; bodies carrying `<Encrypt>` are verified with the 4-part `msg_signature` and AES-decrypted before entering the main flow, safe-mode replies are sealed, with reject audits `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`; tests: `WxMsgCryptorTest` 6 OpenSSL KAT cases + `WxEncryptModeCallbackHttpTest` 5 cases);
