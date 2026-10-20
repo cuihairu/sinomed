@@ -259,6 +259,25 @@ export async function deleteMenu(id: number, options?: { [key: string]: any }) {
   });
 }
 
+// ---------- 粉丝绑定（管理端） ----------
+
+/**
+ * 管理端解绑粉丝（设计稿 §4.7「换人关注属线下场景走管理端」；纯本地库操作不触微信）：
+ * 清 wx_fans.customer_id（保留粉丝行）并落审计 unbind；无粉丝行/未绑定服务端 400
+ * （no_fan/not_bound），errorMessage 由调用方 message.error 透出。
+ */
+export async function unbindFan(
+  accountId: number,
+  openid: string,
+  options?: { [key: string]: any },
+) {
+  return request<{ message: string }>(`/api/v1/wx/fans/${accountId}/unbind`, {
+    method: 'POST',
+    data: { openid },
+    ...(options || {}),
+  });
+}
+
 /**
  * 推送启用菜单到微信（设计稿 §4.3「推送」半边；真实出网压凭据）：
  * 只推 enabled=1（草稿不推送），成功回推送一级菜单数；缺 AppSecret/无启用菜单/微信 errcode
