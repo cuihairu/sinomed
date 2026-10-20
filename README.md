@@ -99,7 +99,7 @@ CI 与本地开发按改动面三路分流——改一行文档不该全量编�
    无聚合父 pom，reactor 为空），`-pl` 不可用（报 "Could not find the selected
    project in the reactor"）：
    - 后端：`cd server && ./mvnw -B test`
-   - 前端：`pnpm -C web lint && pnpm -C web test`（web 测试不接 CI，仅本地门禁）
+   - 前端：`pnpm -C web lint && pnpm -C web test`（CI 已跑 lint:js + tsc + jest，见 `.github/workflows/frontend.yml`；本地多一层 prettier 检查）
 3. **全量**（`cd server && ./mvnw -B package`）：仅以下情形触发——pom.xml、
    `.github/**`、Docker/Compose 配置、发布前。
 
