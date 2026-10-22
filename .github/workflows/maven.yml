@@ -29,13 +29,13 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
         with:
           java-version: '21'
           distribution: 'temurin'
       - name: Cache maven repo
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('server/pom.xml') }}

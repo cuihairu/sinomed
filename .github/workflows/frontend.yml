@@ -26,11 +26,11 @@ jobs:
     name: kiosk 自助机
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
         with:
           version: 10
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -46,11 +46,11 @@ jobs:
     name: tablet 平板展示
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
         with:
           version: 10
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -66,11 +66,11 @@ jobs:
     name: app 小程序 + H5
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
         with:
           version: 10
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
@@ -93,11 +93,11 @@ jobs:
     name: web 管理端
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
         with:
           version: 10
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: pnpm
