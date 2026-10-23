@@ -31,7 +31,7 @@ concurrency:
 jobs:
   build:
     name: Build & test (linux-x64)
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - name: Validate tag format (vX.Y.Z, 可带 -rc1 类后缀)
         run: |
@@ -74,7 +74,7 @@ jobs:
   release:
     name: Publish GitHub Release
     needs: build # 质量门禁：构建或测试失败时本 job 直接跳过，不创建 Release
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     permissions:
       contents: write
     steps:

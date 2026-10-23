@@ -80,7 +80,7 @@ jobs:
   # frontendDist 指向入库的 desktop/ui 静态资源，故无需前端构建即可编译。
   test:
     name: rust unit tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: dtolnay/rust-toolchain@stable
@@ -100,7 +100,7 @@ jobs:
   # 产出：nightly 预发布 + NSIS 包 + .sig 签名 + latest.json（updater 清单），壳内查更新即命中该地址。
   release:
     name: nightly Release（手动点火）
-    runs-on: windows-2022
+    runs-on: ${{ vars.CI_RUNNER || 'windows-2022' }}
     if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
