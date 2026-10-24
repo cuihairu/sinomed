@@ -1,24 +1,22 @@
-# 小程序换马甲构建指南
+# Mini program white-label build guide
 
-> 🌐 [English](./app-white-label.en.md) · **本页为中文**
+Build packages for multiple brands from the same `app/` codebase: brand name, theme color, backend domain, appid and icons all come from **build parameters** — switching merchants means passing different parameters, with no code changes and no extra branches.
 
-同一套 `app/` 代码出多个品牌的包：品牌名、主题色、后端域名、appid、图标全部走**构建参数**，换商家只传参数，不改代码、不建分支。
+## Collect these parameters from the merchant first
 
-## 先向商家收齐这些参数
-
-| 参数 | 命令行参数 | 说明 | 示例 |
+| Parameter | CLI flag | Notes | Example |
 | ---- | ---- | ---- | ---- |
-| 品牌名 | `--name` | 小程序名称、导航栏标题、H5 页面标题 | 和济堂 |
-| 后端域名 | `--domain` | 服务端地址，须 https | `https://api.hejitang.example.com` |
-| 主题色 | `--theme` | `#RGB` 或 `#RRGGBB`，导航栏/按钮/自检页主色 | `#8C1F28` |
-| 小程序 appid | `--appid` | 微信公众平台注册的 appid，wx 开头 16 位 | `wx1a2b3c4d5e6f7a8b` |
-| 图标 | `--icon` | **只收商家自己提供的文件**，不用任何代餐 | `/path/hejitang-icon.png` |
-| 描述文案 | `--desc` | 仅 H5 页面 description | 和济堂中医馆线上服务 |
-| 构建目标 | `--target` | `weapp`（默认）或 `h5` | weapp |
+| Brand name | `--name` | Mini program name, navigation bar title, H5 page title | 和济堂 |
+| Backend domain | `--domain` | Server address, must be https | `https://api.hejitang.example.com` |
+| Theme color | `--theme` | `#RGB` or `#RRGGBB`; primary color for nav bar / buttons / self-check page | `#8C1F28` |
+| Mini program appid | `--appid` | The appid registered on the WeChat platform, 16 characters starting with `wx` | `wx1a2b3c4d5e6f7a8b` |
+| Icon | `--icon` | **Only files supplied by the merchant are accepted** — no stand-ins of any kind | `/path/hejitang-icon.png` |
+| Description text | `--desc` | H5 page `description` only | 和济堂中医馆线上服务 |
+| Build target | `--target` | `weapp` (default) or `h5` | weapp |
 
-不传参数即出**默认包**（Sinomed / `#C7A674` / `https://sinomed.cuihairu.site` / `touristappid`）。
+With no parameters you get the **default package** (Sinomed / `#C7A674` / `https://sinomed.cuihairu.site` / `touristappid`).
 
-## 一键出包
+## One-command build
 
 ```bash
 cd app
@@ -31,25 +29,25 @@ node scripts/build-brand.mjs \
   --target weapp
 ```
 
-产物在 `app/dist/`，导入微信开发者工具即可预览。
+Output goes to `app/dist/`; import it into the WeChat DevTools to preview.
 
-脚本做的事：参数校验（主题色格式、appid 格式、域名协议、图标文件存在）→ 注入环境变量 → `taro build` → 把根目录 `project.config.json` 的 appid 改回原样。参数有错当场报错退出，不会出一个装着错参数的包。
+What the script does: parameter validation (theme-color format, appid format, domain scheme, icon file existence) → inject environment variables → `taro build` → restore the appid in the repo-root `project.config.json`. Invalid parameters fail loudly and exit; you never get a package built with wrong parameters.
 
-H5 包把 `--target` 换成 `h5`，品牌名/图标/主题色会进页面标题、favicon 和 meta。
+For an H5 package, change `--target` to `h5`; the brand name / icon / theme color then go into the page title, favicon and meta tags.
 
-## 两套参数实证
+## Two verified parameter sets
 
-以下两组命令都实际跑通，产物核验过：
+Both command sets below were actually run and the output verified:
 
-**默认包**
+**Default package**
 
 ```bash
 node scripts/build-brand.mjs
 ```
 
-核验：`dist/project.config.json` appid 为 `touristappid`；`dist/app.json` 导航栏 `Sinomed` / `#C7A674`；产物内无商家残留。
+Verified: `dist/project.config.json` appid is `touristappid`; `dist/app.json` navigation bar is `Sinomed` / `#C7A674`; no merchant residue anywhere in the output.
 
-**示例商家包（和济堂）**
+**Sample merchant package (和济堂)**
 
 ```bash
 node scripts/build-brand.mjs \
@@ -60,21 +58,21 @@ node scripts/build-brand.mjs \
   --icon /tmp/hejitang/icon.png
 ```
 
-核验：`dist/project.config.json` appid 为 `wx1a2b3c4d5e6f7a8b`；`dist/app.json` 导航栏 `和济堂` / `#8C1F28`；图标以 base64 注入自检页；构建后根 `project.config.json` 恢复为 `touristappid`，git 工作区干净。
+Verified: `dist/project.config.json` appid is `wx1a2b3c4d5e6f7a8b`; `dist/app.json` navigation bar is `和济堂` / `#8C1F28`; the icon is injected into the in-page self-check area as base64; after the build the repo-root `project.config.json` is restored to `touristappid` and the git worktree is clean.
 
-包内自检：打开首页即「白标构建参数自检页」，品牌名、主题色、后端域名、页内图标四项直接可见——出包后先看这页，参数对不对一眼确认。
+In-package self check: the first page you open after the build is the "white-label build parameter self-check page", where all four values — brand name, theme color, backend domain and in-page icon — are visible directly. Check that page first after every build; the parameters are right or wrong at a glance.
 
-## 图标口径
+## Icon policy
 
-- **只用商家提供的文件。** 仓库里 `app/brand-assets/` 只放默认资产，商家图标不会被拷进去，也不会被改名、转色、做任何"处理"。
-- 传 png/jpg 位图：同时注入 H5 favicon 和小程序页内图标。
-- 传 svg：只注入 H5 favicon；小程序页内图标位留空并在构建时提示（小程序 `<Image>` 不吃 svg，不代餐换别的图）。
-- **微信里的小程序头像**在微信公众平台后台上传，与本脚本无关——脚本改不了微信平台上的资料。
+- **Only files supplied by the merchant.** `app/brand-assets/` in the repo holds only the default assets; a merchant icon is never copied in, renamed, recolored or otherwise "processed".
+- Pass a png/jpg bitmap: injected into both the H5 favicon and the in-page mini-program icon.
+- Pass an svg: only the H5 favicon is injected; the in-page mini-program icon is left empty and the build prints a note (the mini-program `<Image>` component does not accept svg, and no substitute image is swapped in).
+- **The mini-program avatar inside WeChat** is uploaded in the WeChat platform console and has nothing to do with this script — the script cannot change what the WeChat platform stores.
 
-## 常见问题
+## Troubleshooting
 
-**主题色/品牌没生效？** 打开自检页看四项参数。还不对，多半是参数格式没过校验（构建会直接报错退出），或手工 `pnpm build:weapp` 绕过了脚本——换包统一走 `build-brand.mjs`。
+**Theme color / brand did not take effect?** Open the self-check page and look at the four values. If they are still wrong, the parameter most likely failed validation (the build fails loudly in that case), or you ran a bare `pnpm build:weapp` and bypassed the script — always build merchant packages through `build-brand.mjs`.
 
-**换域名后请求 404？** 确认服务端部署在该域名且带 `/api/v1` 前缀；本地调试域名可用 `http://localhost:8080`。
+**404s after changing the domain?** Confirm the server is actually deployed at that domain and exposes the `/api/v1` prefix; for local debugging the domain can be `http://localhost:8080`.
 
-**appid 写错了？** 构建时 appid 会写进 `dist/project.config.json`，微信开发者工具导入 dist 时会校验。改对参数重跑即可，仓库里的 `project.config.json` 每次构建后自动恢复原样，不会残留商家 appid。
+**Wrong appid?** The appid is written into `dist/project.config.json` at build time and validated when the WeChat DevTools imports `dist`. Fix the parameter and rebuild; the repo's `project.config.json` is restored automatically after every build, so no merchant appid ever lingers.

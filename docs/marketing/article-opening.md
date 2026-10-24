@@ -1,19 +1,17 @@
-# 模板一：开业介绍
+# Template 1: Grand-Opening Introduction
 
-> 🌐 [English](./article-opening.en.md) · **本页为中文**
-
-> 适用：新馆开业前后一周。发在公众号，转发朋友圈配 3–6 张店内实拍图。
-> 用法：替换【】占位符，删掉不合实际的段落，保留的结构别大改。
+> When to use: the week before or after a new clinic opens. Publish on the official account, then repost to WeChat Moments with 3–6 real photos of the premises.
+> How to use: replace the 【】 placeholders, delete the paragraphs that do not fit your situation, and do not heavily restructure what you keep.
 
 ---
 
-**标题备选**
+**Title options**
 
 - 【商家名】开业了：先认识一下我们，再决定来不来
 - 【商家名】明日起接诊，这份到店指南请收好
 - 开业不用锣鼓喧天，【商家名】想先把这几件事说清楚
 
-**正文**
+**Body copy**
 
 各位街坊好，【商家名】从今天起正式接诊了。
 
@@ -24,7 +22,7 @@
 - 【医生姓名】，擅长【擅长方向】，出诊时间为【出诊时间】；
 - 【医生姓名】，擅长【擅长方向】，出诊时间为【出诊时间】。
 
-（医生超过三位就继续列，少就删。每位医生一行，写清楚方向和时间就够了，不需要履历长文。）
+(If you have more than three doctors, keep adding lines; if fewer, delete lines. One line per doctor — specialty and consulting hours are enough, no long CVs.)
 
 到店之后会发生什么，提前说一下：先由前台登记，医生问诊后按情况给出调理方案和疗程建议，做不做、做多久由您决定，不会有人在旁边反复推销。诊室和理疗区每次使用后都会消毒整理，这点欢迎监督。
 
@@ -38,8 +36,8 @@
 
 ---
 
-**改写提示**
+**Rewriting tips**
 
-- 医生介绍一行一人，别堆头衔名词，患者关心的是"擅长什么、什么时候在"。
-- "不会有反复推销"这段如果做不到，就删掉，别承诺做不到的事。
-- 头图文建议用店内实拍，不用网上找的中医元素图。
+- One doctor per line in the introductions; do not stack titles and credentials — what patients care about is "what you are good at, and when you are in".
+- If you cannot keep the "no repeated upselling" paragraph, delete it — never promise what you cannot deliver.
+- Use real photos of the premises for the header image, not TCM-themed pictures found on the web.

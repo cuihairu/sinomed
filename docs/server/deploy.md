@@ -1,76 +1,74 @@
-# 配置与部署
+# Configuration and deployment
 
-> 🌐 [English](./deploy.en.md) · **本页为中文**
+All server-side configuration is centralized in `server/src/main/resources/application.yml` and can be overridden by runtime environment variables. There are three deployment shapes: Docker Compose orchestration, bare-metal systemd, and a development/debug orchestration.
 
-服务端的全部配置集中在 `server/src/main/resources/application.yml`，运行时环境变量可覆盖；部署形态有三种：Docker Compose 编排、裸机 systemd、以及开发调试编排。
+## Configuration
 
-## 配置项
+### Environment variables (must-read for deployment)
 
-### 环境变量（部署必读）
-
-| 变量 | 说明 | 示例 |
+| Variable | Description | Example |
 | ---- | ---- | ---- |
-| `DB_HOST` / `DB_PORT` | MySQL 地址与端口 | `db` / `3306` |
-| `DB_NAME` | 库名 | `sinomed` |
-| `DB_USERNAME` / `DB_PASSWORD` | 数据库账号 | `sinomed` |
-| `DB_URL` / `DB_DRIVER` / `DB_DIALECT` | 整串覆盖数据源（演示环境换 SQLite 用） | `jdbc:sqlite:/app/data/sinomed.db?journal_mode=WAL&busy_timeout=5000` / `org.sqlite.JDBC` / `org.hibernate.community.dialect.SQLiteDialect` |
-| `DEMO_SEED` | 演示种子数据开关（幂等，重复启动跳过） | `true` |
-| `SERVER_PORT` | 服务端口 | `2347` |
-| `JAVA_OPTS` | JVM 参数（Dockerfile 注入） | `-Xms256m -Xmx2048m` |
+| `DB_HOST` / `DB_PORT` | MySQL address and port | `db` / `3306` |
+| `DB_NAME` | Database name | `sinomed` |
+| `DB_USERNAME` / `DB_PASSWORD` | Database credentials | `sinomed` |
+| `DB_URL` / `DB_DRIVER` / `DB_DIALECT` | Full override of the datasource (used to switch to SQLite in demo environments) | `jdbc:sqlite:/app/data/sinomed.db?journal_mode=WAL&busy_timeout=5000` / `org.sqlite.JDBC` / `org.hibernate.community.dialect.SQLiteDialect` |
+| `DEMO_SEED` | Demo seed data switch (idempotent; repeats skip seeding) | `true` |
+| `SERVER_PORT` | Service port | `2347` |
+| `JAVA_OPTS` | JVM arguments (injected by the Dockerfile) | `-Xms256m -Xmx2048m` |
 
-### application.yml 关键配置
+### Key settings in application.yml
 
-| 配置键 | 值 | 说明 |
+| Config key | Value | Description |
 | ---- | ---- | ---- |
-| `spring.jpa.hibernate.ddl-auto` | `update` | 自动建表 / 加列，无需手工 DDL |
-| `spring.datasource.dbcp2.*` | 心跳检测 | 连接校验（`SELECT 1`） |
-| `application.security.jwt.secret-key` | 内置默认值 | **生产必须替换**，Base64 HMAC 密钥 |
-| `application.security.jwt.expiration` | `86400000` | access token 1 天 |
-| `application.security.jwt.refresh-token.expiration` | `604800000` | refresh token 7 天 |
-| `server.servlet.session.timeout` | `24h` | 会话超时 |
-| `springdoc` / `knife4j` | 开启 | 接口文档 `/doc.html`，中文界面 |
-| `logging.level.*` | debug/trace | Hibernate SQL 与 Security 日志，生产建议调低 |
-| `spring.servlet.multipart.max-file-size` / `max-request-size` | 100MB | 素材上传体积上限 |
-| `sinomed.ads.upload-dir` | `data/ads`（`ADS_UPLOAD_DIR` 可覆盖） | 广告素材目录，`/media/**` 静态映射 |
-| `sinomed.ads.url-prefix` | 仅 `@Value` 默认值 `/media`（yml 未落键） | 广告媒体静态映射前缀，`WebMvcConfig` 与 playlist 下发 URL 共用 |
-| `sinomed.print.templates-dir` | `data/printtemplates`（`PRINT_TEMPLATES_DIR` 可覆盖） | 打印模板覆盖目录 |
-| `sinomed.receipt.clinic-name` | 仅 `@Value` 默认值 `示例医馆`（yml 未落键） | 结算小票机构名（`{{clinicName}}` 占位替换） |
-| `sinomed.pay.qrcodes-dir` | 仅 `PayQrCodeController` 的 `@Value` 默认值（yml 未落键） | 收款码图片目录 |
-| `demo.seed` | `false`（`DEMO_SEED` 可覆盖） | 演示数据幂等播种开关 |
-| `sinomed.famous-doctor-surge-cap-percent` | `20`（`FAMOUS_DOCTOR_SURGE_CAP_PERCENT` 可覆盖） | 名医挂号费溢价上限百分比；溢价值单列展示，不做阶梯/时段差异，不做定价引擎 |
-| `sinomed.phone-lookup.mode` | `off`（`PHONE_LOOKUP_MODE` 可覆盖） | 手机查卡模式：`off`（默认，关闭）/ `openid_only`（openid 绑定查卡）/ `sms_verified`（手机号 + 验证码双因子）；口径见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
-| `sinomed.wechat.app-id` | 空（`WECHAT_APP_ID` 可覆盖） | 微信小程序 appid：`openid_only` 模式经 jscode2session 换 openid 用；未配置时 openid 换取 400 明确拒绝，不静默 |
-| `sinomed.wechat.app-secret` | 空（`WECHAT_APP_SECRET` 可覆盖） | 微信小程序 AppSecret：只作服务端 jscode2session 出网，不下发前端 |
-| `sinomed.official-account.enabled` | `false`（`WX_OA_ENABLED` 可覆盖） | 公众号模块总开关：缺省 false=回调 200 拒处理落审计不静默；激活需 `WX_OA_TOKEN` 与 `WX_OA_CREDENTIAL_KEY` |
-| `sinomed.official-account.token` | 空（`WX_OA_TOKEN` 可覆盖） | 公众号消息推送 Token（SHA1 验签用） |
-| `sinomed.official-account.material-dir` | `data/wxmaterials`（`WX_OA_MATERIAL_DIR` 可覆盖） | 图片消息素材落盘根目录（入库存相对路径）；下载失败/超限只记 warn 不放大回调 |
-| `sinomed.official-account.material-max-bytes` | `10485760`（`WX_OA_MATERIAL_MAX_BYTES` 可覆盖） | 单素材下载上限（字节），超限跳过不落台账 |
-| `sinomed.official-account.credential-key` | 空（`WX_OA_CREDENTIAL_KEY` 可覆盖） | `wx_accounts.app_secret`/`aes_key` 落库加密密钥（AES-GCM，凭据不入库明文）；缺省空=凭据写入拒绝，激活时必配 |
-| `sinomed.official-account.oauth-redirect-base` | 空（`WX_OA_OAUTH_REDIRECT_BASE` 可覆盖） | 网页授权回跳 H5 基址（如 `https://clinic.example.com`，设计稿 §5.6）；缺省空=网页授权拒启动，激活时必配 |
-| `sinomed.official-account.wechat-api-base-url` | `https://api.weixin.qq.com`（`WX_OA_WECHAT_API_BASE_URL` 可覆盖） | 微信 API 出网基址（sns oauth2 换 openid）；测试/联调可指本地桩 |
-| `server.port` | `${SERVER_PORT:2347}` | 部署可用 `SERVER_PORT` 覆盖；本地裸跑默认 2347 |
+| `spring.jpa.hibernate.ddl-auto` | `update` | Auto-creates tables / adds columns; no manual DDL needed |
+| `spring.datasource.dbcp2.*` | heartbeat detection | Connection validation (`SELECT 1`) |
+| `application.security.jwt.secret-key` | Built-in default | **Must be replaced in production**, Base64 HMAC key |
+| `application.security.jwt.expiration` | `86400000` | access token lives 1 day |
+| `application.security.jwt.refresh-token.expiration` | `604800000` | refresh token lives 7 days |
+| `server.servlet.session.timeout` | `24h` | Session timeout |
+| `springdoc` / `knife4j` | enabled | API documentation at `/doc.html`, Chinese interface |
+| `logging.level.*` | debug/trace | Hibernate SQL and Security logging; recommended to be lowered in production |
+| `spring.servlet.multipart.max-file-size` / `max-request-size` | 100MB | Upload size cap for materials |
+| `sinomed.ads.upload-dir` | `data/ads` (overridable by `ADS_UPLOAD_DIR`) | Advertising materials directory, statically mapped at `/media/**` |
+| `sinomed.ads.url-prefix` | Only the `@Value` default `/media` (no key in the yml) | Static mapping prefix for ad media, shared by `WebMvcConfig` and the playlist URLs |
+| `sinomed.print.templates-dir` | `data/printtemplates` (overridable by `PRINT_TEMPLATES_DIR`) | Print template override directory |
+| `sinomed.receipt.clinic-name` | Only the `@Value` default `示例医馆` (no key in the yml) | Clinic name on the settlement receipt (`{{clinicName}}` placeholder replacement) |
+| `sinomed.pay.qrcodes-dir` | Only the `@Value` default on `PayQrCodeController` (no key in the yml) | Payment QR code image directory |
+| `demo.seed` | `false` (overridable by `DEMO_SEED`) | Idempotent demo-data seeding switch |
+| `sinomed.famous-doctor-surge-cap-percent` | `20` (overridable by `FAMOUS_DOCTOR_SURGE_CAP_PERCENT`) | Cap percentage for the famous-doctor registration fee surcharge; the surcharge is shown as a separate line, with no tiered / time-slot differential and no pricing engine |
+| `sinomed.phone-lookup.mode` | `off` (overridable by `PHONE_LOOKUP_MODE`) | Phone card lookup mode: `off` (default, disabled) / `openid_only` (openid-bound card lookup) / `sms_verified` (phone number + verification code, two-factor); convention in [kiosk.md](/design/kiosk#phone-card-lookup-mini-program-my-cards-2026-10-14-ruling) |
+| `sinomed.wechat.app-id` | Empty (overridable by `WECHAT_APP_ID`) | WeChat mini program appid: used in `openid_only` mode to exchange for an openid via jscode2session; when not configured the openid exchange is explicitly rejected with 400, never silent |
+| `sinomed.wechat.app-secret` | Empty (overridable by `WECHAT_APP_SECRET`) | WeChat mini program AppSecret: used only for server-side jscode2session outbound calls, never sent to the frontend |
+| `sinomed.official-account.enabled` | `false` (`WX_OA_ENABLED` overrides) | WeChat OA module master switch: default false = callback answers 200 refusing to process with an audit row, never silent; activation needs `WX_OA_TOKEN` and `WX_OA_CREDENTIAL_KEY` |
+| `sinomed.official-account.token` | Empty (`WX_OA_TOKEN` overrides) | WeChat message-push token (SHA1 signature check) |
+| `sinomed.official-account.material-dir` | `data/wxmaterials` (`WX_OA_MATERIAL_DIR` overrides) | Root dir for image-message media downloads (relative paths stored in DB); failures/oversize only log a warn and never break the callback |
+| `sinomed.official-account.material-max-bytes` | `10485760` (`WX_OA_MATERIAL_MAX_BYTES` overrides) | Per-file download cap in bytes; oversize files are skipped with no ledger row |
+| `sinomed.official-account.credential-key` | Empty (`WX_OA_CREDENTIAL_KEY` overrides) | Encryption key for `wx_accounts.app_secret`/`aes_key` at rest (AES-GCM, no plaintext credentials in DB); default empty = credential writes rejected, required at activation |
+| `sinomed.official-account.oauth-redirect-base` | Empty (`WX_OA_OAUTH_REDIRECT_BASE` overrides) | H5 base URL for web-auth redirects (e.g. `https://clinic.example.com`, design §5.6); default empty = web-auth refuses to start, required at activation |
+| `sinomed.official-account.wechat-api-base-url` | `https://api.weixin.qq.com` (`WX_OA_WECHAT_API_BASE_URL` overrides) | Outbound base URL for WeChat APIs (sns oauth2 openid exchange); point at a local stub for tests/integration |
+| `server.port` | `${SERVER_PORT:2347}` | Deployments can override with `SERVER_PORT`; a local bare run defaults to 2347 |
 
-### 端口约定
+### Port conventions
 
-| 端口 | 用途 |
+| Port | Purpose |
 | ---- | ---- |
-| 2347 | 服务端（对外由 Nginx 反代 `/api`） |
+| 2347 | Server (exposed through the Nginx reverse proxy `/api`) |
 | 3306 | MySQL |
-| 80 / 443 | Nginx（管理端静态站） |
-| 5008 | 远程调试（仅 dev 编排） |
+| 80 / 443 | Nginx (admin console static site) |
+| 5008 | Remote debugging (dev orchestration only) |
 
-## 构建产物
+## Build artifact
 
 ```bash
 cd server
 ./mvnw -B package -DskipTests   # 产物 target/sinomed-server.jar
 ```
 
-Dockerfile 基于 `eclipse-temurin:21-jre-alpine`，把 jar 复制为 `/app/server.jar`，`JAVA_OPTS` 可注入 JVM 参数，日志目录 `/app/logs`。
+The Dockerfile is based on `eclipse-temurin:21-jre-alpine`, copies the jar to `/app/server.jar`, allows JVM arguments to be injected via `JAVA_OPTS`, and uses `/app/logs` as the log directory.
 
-## 演示编排（根目录 `compose.yml`，SQLite 一键起）
+## Demo orchestration (root `compose.yml`, one-click SQLite)
 
-在线演示与本地体验用根目录 `compose.yml`：两个服务（server + web，web 的 nginx 把 `/api` 反代到 server）、SQLite 数据库文件落 `sinomed-data` 持久卷、`DEMO_SEED=true` 幂等播种虚构演示数据：
+Online demos and local trial use the root `compose.yml`: two services (server + web, where web's nginx reverse-proxies `/api` to server), the SQLite database file lands on the `sinomed-data` persistent volume, and `DEMO_SEED=true` idempotently seeds fabricated demo data:
 
 ```bash
 docker compose up -d
@@ -78,34 +76,34 @@ docker compose up -d
 # 接口文档 http://localhost:2347/doc.html
 ```
 
-空卷首启自动建表；`admin/123` 在首次以 admin 登录时自动创建（内置 bcrypt 密码）；重复启动按账号/手机号/卡项名等自然键判重，不会产生重复数据。接回 MySQL 时替换 compose 里 `DB_*` 五个环境变量即可（构建层另有 `MVN_DIST_MIRROR` / `MAVEN_MIRROR_URL` 可选国内源参数，出境受限也能构建）。
+An empty volume triggers automatic table creation on first start; `admin/123` is auto-created the first time anyone logs in as admin (built-in bcrypt password); restarts de-duplicate on natural keys such as account, phone number, and service-card name, so no duplicate data is produced. To switch back to MySQL, just replace the five `DB_*` environment variables in the compose file (the build layer also has optional domestic-mirror parameters `MVN_DIST_MIRROR` / `MAVEN_MIRROR_URL`, so it can still build where outbound access is restricted).
 
-## 方式一：Docker Compose（MySQL 整套）
+## Option 1: Docker Compose (full MySQL stack)
 
-`server/docker-compose.yml` 编排三个服务：MySQL（自动执行 `init/init.sql` 建库建账号）+ 服务端镜像 + Nginx（挂载 `web/dist` 静态站与 `init/nginx_http.conf`）：
+`server/docker-compose.yml` orchestrates three services: MySQL (runs `init/init.sql` automatically to create the database and account) + the server image + Nginx (mounts the `web/dist` static site and `init/nginx_http.conf`):
 
 ```bash
 cd server
 docker compose up -d
 ```
 
-> 注意：`server/docker-compose.yml` 的 server 服务已注入 `DB_HOST`（与 db 同处默认网络，按服务名 db 解析）/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD`/`SERVER_PORT` 全套，直接 `up` 即可起。要改端口或数据库名照 `server/dev.yml` 的 environment 段覆盖；仓库根 `compose.yml` 是演示编排（注入全套 + SQLite）。
+> Note: the server service in `server/docker-compose.yml` already has the full set injected — `DB_HOST` (on the same default network as db, resolved by the service name db) / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` / `SERVER_PORT` — so `up` just works. To change the port or database name, override the environment section as shown in `server/dev.yml`; the root `compose.yml` is the demo orchestration (full set injected + SQLite).
 
-## 方式二：开发调试编排
+## Option 2: development/debug orchestration
 
-`server/dev.yml` 与上者的区别：服务端从本地 Dockerfile 构建、注入 `DB_*` 环境变量、开放 5008 远程调试端口（另映射 3000:3000，供管理端 dev server 联调）、MySQL 数据目录与日志落在仓库相对路径：
+What differs in `server/dev.yml`: the server is built from the local Dockerfile, `DB_*` environment variables are injected, port 5008 is opened for remote debugging (plus a 3000:3000 mapping for the admin console dev server to integrate with), and the MySQL data directory and logs land on paths relative to the repo:
 
 ```bash
 cd server
 docker compose -f dev.yml up -d
 ```
 
-## 方式三：裸机 + systemd
+## Option 3: bare metal + systemd
 
-1. 安装 MySQL 8，执行 `server/init/init.sql` 建库；
-2. 安装 JDK 21，放置 `sinomed-server.jar`（如 `/data/sinomed/`）；
-3. Nginx 配置静态站并把 `/api` 反代到 `127.0.0.1:2347`（`server/init/` 内含 http / https 示例配置，SPA 路由 fallback 到 `index.html`）；
-4. 参照 `server/init/sinomed.service` 安装 systemd 服务并自启：
+1. Install MySQL 8 and run `server/init/init.sql` to create the database;
+2. Install JDK 21 and place `sinomed-server.jar` (e.g. under `/data/sinomed/`);
+3. Configure Nginx for the static site and reverse-proxy `/api` to `127.0.0.1:2347` (`server/init/` contains http / https example configs, with SPA routing falling back to `index.html`);
+4. Install the systemd service from `server/init/sinomed.service` and enable it on boot:
 
 ```bash
 sudo cp server/init/sinomed.service /lib/systemd/system/
@@ -113,14 +111,14 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now sinomed
 ```
 
-## 在线演示预案
+## Online demo plan
 
-- **CI 出镜像**：`Docker Images` 工作流（`.github/workflows/docker.yml`）在 push main 且 `server/`、`web/` 变更时构建并推送 ghcr.io，tag 为 `latest`（main 滚动）与 `sha-<短提交>`（可回溯、可回滚）；首次发布后在 GitHub Package 设置把 `sinomed-server` / `sinomed-web` 改为 **Public**，演示机才能匿名拉取。
-- **演示机**：runner-Docker（内网 `192.168.5.5`），部署目录 `/data/deploy/sinomed`；放一份仓库的 `compose.yml`，`IMAGE_TAG=sha-<短提交>` 固定版本拉起，回滚即把 tag 改回上一短提交号后 `up -d`。
-- **域名与隧道**：`*.cuihairu.site` 走 Cloudflare Tunnel（域名待定，先占位 `sinomed.cuihairu.site`），隧道指向演示机 web 服务的 `8080` 端口，无需公网 IP 与备案端口暴露。
-- **数据重置**：演示数据全部为种子脚本虚构内容，`docker compose down -v && docker compose up -d` 即回到全新演示态。
+- **CI builds images**: the `Docker Images` workflow (`.github/workflows/docker.yml`) builds and pushes to ghcr.io when main is pushed with changes under `server/` or `web/`, tagged `latest` (rolling main) and `sha-<short commit>` (traceable, rollbackable); after the first publish, set `sinomed-server` / `sinomed-web` to **Public** in GitHub Package settings so the demo machine can pull anonymously.
+- **Demo machine**: runner-Docker (intranet `192.168.5.5`), deployment directory `/data/deploy/sinomed`; place the repo's `compose.yml`, pin the version with `IMAGE_TAG=sha-<short commit>` and bring it up; rollback = change the tag back to the previous short commit hash and `up -d` again.
+- **Domain and tunnel**: `*.cuihairu.site` goes through a Cloudflare Tunnel (domain TBD, placeholder `sinomed.cuihairu.site` for now), pointing at port `8080` of the demo machine's web service, with no public IP or registered-port exposure needed.
+- **Data reset**: all demo data is fabricated by the seed script; `docker compose down -v && docker compose up -d` returns to a brand-new demo state.
 
-## Nginx 转发关系
+## Nginx routing
 
 ```text
 浏览器 → Nginx(80/443)
@@ -128,16 +126,16 @@ sudo systemctl enable --now sinomed
   └── /api/**      → http://<server>:2347（应用接口 /api/v1/**，含 ads 下发与叫号拉取）
 ```
 
-仓库内 `web/nginx.conf` 与 `server/init/nginx_http.conf` 只有上述两个 location。平板/Kiosk 部署要点：`tablet/dist`、`kiosk/dist` 构建产物放 Nginx 可达路径后，需**自行添加** `location /tablet/`、`location /kiosk/`（kiosk 构建内 base 为 `/kiosk/`）；素材上传目录默认在服务端工作目录 `data/ads`，`/media/**` 当前由应用层静态映射兜底（`WebMvcConfig`），如需 Nginx 直托管再加 `location /media/` 指到该目录（或用 `ADS_UPLOAD_DIR` 统一挪到独立盘后指向新路径）。上传体积已在 `application.yml` 放开到 100MB，Nginx 侧如有 `client_max_body_size` 需同步放开。
+In the repo, `web/nginx.conf` and `server/init/nginx_http.conf` contain only the two locations above. Tablet / Kiosk deployment notes: after placing the `tablet/dist` and `kiosk/dist` build outputs on paths reachable by Nginx, you must **add** `location /tablet/` and `location /kiosk/` yourself (the kiosk build's base is `/kiosk/`); the material upload directory defaults to `data/ads` under the server's working directory, and `/media/**` is currently covered by an application-layer static mapping (`WebMvcConfig`) — if Nginx should serve it directly, add `location /media/` pointing at that directory (or move it to a dedicated disk with `ADS_UPLOAD_DIR` and point at the new path). Upload size is already relaxed to 100MB in `application.yml`; if Nginx has a `client_max_body_size`, relax it in sync.
 
-## 日志
+## Logs
 
-应用日志输出到 `logs/`（容器内 `/app/logs`）：`info.log` 按天与 100MB 滚动、`error.log` 按天与 10MB 滚动；另有登录（`login.log`）、签到（`sign.log`）等业务日志文件，级别由 `log4j2-spring.xml` 定义。
+Application logs go to `logs/` (`/app/logs` inside the container): `info.log` rolls by day and at 100MB, `error.log` rolls by day and at 10MB; there are also business log files such as login (`login.log`) and clock-in (`sign.log`), with levels defined in `log4j2-spring.xml`.
 
-## 安全待加固清单（如实记录源码现状）
+## Security hardening checklist (honest record of the current source state)
 
-- JWT 签名密钥为源码内置默认值，生产必须更换；
-- `admin / 123` 在首次以 admin 登录时自动创建，上线前先改密；
-- Compose 文件内含示例数据库口令，需替换；
-- 方法级权限仅覆盖员工管理写接口（`@PreAuthorize("hasRole('ADMIN')")`），其余接口登录即可用；
-- Caffeine 缓存约 50 分钟过期，卡项/诊疗单更新已加 `@CacheEvict` 失效，仍存短窗口脏读。
+- The JWT signing key is a built-in default in the source and must be changed in production;
+- `admin / 123` is auto-created on the first admin login — change the password before going live;
+- The compose files contain example database passwords and must be replaced;
+- Method-level permissions cover only the staff-management write endpoints (`@PreAuthorize("hasRole('ADMIN')")`); all other endpoints are usable with any login;
+- The Caffeine cache expires after about 50 minutes; `@CacheEvict` invalidation has been added for service-card and treatment-record updates, but a short dirty-read window remains.

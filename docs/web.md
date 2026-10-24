@@ -1,195 +1,193 @@
-# 管理端（web）
+# Admin console (web)
 
-> 🌐 [English](./web.en.md) · **本页为中文**
+`web/` is the main workbench for the clinic's daily operation: an Ant Design Pro + Umi (@umijs/max) project on Node.js 24 / pnpm, with a Chinese UI.
 
-`web/` 是医馆日常运转的主工作台：Ant Design Pro + Umi（@umijs/max）工程，Node.js 24 / pnpm，中文界面。
+Screenshots of implemented pages (data is fictional demo data; the graphite × antique-gold theme is taken from the brand logo, with three further switchable theme colors — pine smoke green / cinnabar / indigo):
 
-已实装界面截图（数据为虚构演示，石墨×古金主题取自品牌 logo，另有松烟绿 / 朱砂 / 黛蓝三套可切换主题色）：
+![Admin console · patient records (implemented screenshot)](/screenshots/admin-customer.png)
 
-![管理后台 · 顾客档案（已实装界面截图）](/screenshots/admin-customer.png)
+More page prototypes (treatment record / daily report / service cards / orders / advertising screens / appearance settings) are in the [docs-site product preview](./index.md#product-preview) and `docs/design/mockups/` in the repository.
 
-更多分页原型（接诊诊疗单 / 每日报表 / 卡项 / 订单 / 广告屏 / 外观设置）见[文档站首页产品预览](./index.md#产品预览)与仓库 `docs/design/mockups/`。
-
-## 运行方式
+## Running
 
 ```bash
 cd web
 pnpm install
-pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
+pnpm dev     # dev mode: MOCK=none, proxied to the local server
 ```
 
-- 开发地址 `http://localhost:8000`，`/api` 代理到 `http://127.0.0.1:2347`（`config/proxy.ts`）。
-- `pnpm build` 产出 `dist/`，交由 Nginx 托管；`pnpm lint` 代码检查、`pnpm jest` 单测。
+- Dev URL `http://localhost:8000`; `/api` is proxied to `http://127.0.0.1:2347` (`config/proxy.ts`).
+- `pnpm build` produces `dist/`, served by Nginx; `pnpm lint` runs code checks, `pnpm jest` runs unit tests.
 
-## 工程结构
+## Project structure
 
-| 位置 | 内容 |
+| Location | Contents |
 | ---- | ---- |
-| `config/config.ts` | 站点标题、布局（side）、国际化（zh-CN 默认）、插件与 openAPI 配置 |
-| `config/routes.ts` | 路由表（页面注册） |
-| `config/proxy.ts` | dev / test / pre 环境代理 |
-| `src/pages/` | 页面组件，按业务域分目录 |
-| `src/services/ant-design-pro/` | 接口定义（与服务端 `/api/v1/**` 一一对应） |
-| `src/access.ts` | 运行时权限：`canAdmin`（管理层）、`canUser`（已登录） |
-| `src/app.tsx` | 启动时拉取当前用户、未登录重定向 |
-| `src/requestErrorConfig.ts` | 从 `localStorage.jwt` 注入 `Authorization: Bearer`，统一错误提示 |
-| `src/locales/` | 菜单等文案多语言 |
+| `config/config.ts` | Site title, layout (side), i18n (zh-CN default), plugins and openAPI configuration |
+| `config/routes.ts` | Route table (page registration) |
+| `config/proxy.ts` | dev / test / pre environment proxies |
+| `src/pages/` | Page components, grouped by business domain |
+| `src/services/ant-design-pro/` | API definitions (one-to-one with the server's `/api/v1/**`) |
+| `src/access.ts` | Runtime permissions: `canAdmin` (management), `canUser` (logged in) |
+| `src/app.tsx` | Fetches the current user at startup; redirects when unauthenticated |
+| `src/requestErrorConfig.ts` | Injects `Authorization: Bearer` from `localStorage.jwt`; unified error toasts |
+| `src/locales/` | Multi-language strings for menus and other UI text |
 
-## 页面与任务对照
+## Pages by task
 
-登录后默认落地 **每日报表**（`/dash/day`）。医馆主流程沿「顾客建档 → 接诊（诊断） → 卡项 → 复盘回访」展开，按任务找页面：
+After login the default landing page is the **daily report** (`/dash/day`). The clinic's main flow runs "patient record → treatment (diagnosis) → service cards → retrospective & follow-up"; find pages by task:
 
-### 预约系统（/appointment）
+### Appointments (/appointment)
 
-主流程「预约 → 到店接待 → 发起接诊」的第一环。列表工作台 + 按日时段网格两种视图（对齐 `docs/design/mockups/admin-booking.html`）。
+The first link of the main flow "appointment → check-in at the desk → start a treatment record". Two views: a list workbench and a per-day time-slot grid (aligned with `docs/design/mockups/admin-booking.html`).
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/appointment/schedule` | 排班视图 | 按日看医师×时段占用（9:00–18:00 整点网格，列按**医师名册**（`staffs.title` 职务语义：在职且职务含「医师」；名册空回退当日有约；名册按**名医等级降序** `famousLevel` 高者在前、同等级按创建时间升序，接口 `GET /api/v1/staff/page`）并**班表联动**——当日（`staff_shifts` 按星期）在班医师列在前、无班次名册医师列头弱化标注「今日无班次」）：空格虚线「可预约」，有约显示顾客/项目与状态标（待到店/已到店/过号/已取消），待到店格内一键「接待」（0→1）；右栏「今日预约」四格统计（总数/已到店/待到店/过号）+「待到店」列表（时段·顾客·项目·医师 + 接待）+「小程序联动」规划说明，日期前后翻页与「今天」；格位与待到店行带**就诊标记**：疗程卡标记优先（同项目第 N 张卡按购入先后=第 N 疗程，`GET /card/customers` 按顾客批量拉齐）；无卡项按就诊记录标**复诊/首诊**（`GET /treat/visited?ids=` 批量查 treats 聚合计数，有记录=复诊、无=首诊；treats 无项目维度，按顾客口径） |
-| `/appointment/query` | 预约排班 | 今日/全部切换 + 状态 tab（待到店/已接待/过号/已取消带计数）；行操作：到店接待（0→1）、过号（0→8）、取消（0→9）、已接待后「发起接诊」跳 `/treat/create?customerId=`、已取消可删 |
-| `/appointment/create` | 新建预约 | 按手机号定位顾客（未建档提示先建档）→ 时段（日期时间 + 时长 30/60/90 分钟）→ 项目/员工/备注选填；提交发带时区偏移的时间串（服务端 Jackson 默认 UTC，无偏移会平移 8 小时） |
+| `/appointment/schedule` | Scheduling view | Per-day view of doctor × time-slot occupancy (9:00–18:00 hourly grid; columns follow the **doctor roster** (`staffs.title` semantics: employed and title containing "医师/doctor"; if the roster is empty, falls back to doctors with bookings that day; roster sorted by **famous-doctor level descending** — higher `famousLevel` first, ties by creation time ascending, via `GET /api/v1/staff/page`) and is **linked to the shift table** — doctors on duty that day (`staff_shifts` keyed by weekday) come first, roster doctors without a shift get a dimmed "no shift today" header): empty cells show a dashed "bookable"; booked cells show patient / item and a status tag (not yet arrived / arrived / skipped / cancelled), with one-tap "check-in" inside not-yet-arrived cells (0→1); the right rail has "today's appointments" four-tile stats (total / arrived / not yet arrived / skipped) plus the "not yet arrived" list (slot · patient · item · doctor + check-in) and a "mini-program integration" planning note, with date paging and "today"; cells and list rows carry **visit markers**: the treatment-course-card marker wins (the Nth card of the same item = the Nth course, by purchase order; `GET /card/customers` batches all cards per patient); patients without cards get a **follow-up / first-visit** marker from visit history (`GET /treat/visited?ids=` batch-counts treats; any record = follow-up, none = first visit; treats have no item dimension, so this is per-patient) |
+| `/appointment/query` | Appointment list | Today / all toggle + status tabs (not yet arrived / checked in / skipped / cancelled, with counts); row actions: check-in (0→1), skip (0→8), cancel (0→9), "start treatment record" after check-in jumps to `/treat/create?customerId=`, cancelled rows can be deleted |
+| `/appointment/create` | Create appointment | Locate the patient by phone number (prompts to create the record first if none) → time slot (date & time + duration 30/60/90 minutes) → item / staff / remarks optional; submission sends a time string with timezone offset (the server's Jackson defaults to UTC; without the offset the time shifts by 8 hours) |
 
-排班口径：同一时段不冲突校验（演示边界），一格落多条时取第一条并标 `+N`；时段网格只覆盖 9:00–18:00 整点，非整点开始的预约会归到所在小时格。
+Scheduling policy: no same-slot conflict check (demo boundary); when a cell holds multiple bookings the first is shown with an `+N` tag; the slot grid covers only 9:00–18:00 on the hour — appointments starting off the hour fall into the containing hour cell.
 
-### 顾客系统（/customer）
+### Patients (/customer)
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/customer/create` | 顾客建案 | 建档：姓名/年龄/性别/手机/住址/会员等级/生日 |
-| `/customer/query` | 顾客查询 | 分页检索顾客，行操作：创建诊断、更新、诊断历史、回访计划、删除 |
-| `/customer/update` | 顾客档案 | 回填顾客信息并保存；头卡显示建档月份与最近到店；病史栏逐条记录过敏史/既往史（过敏/既往切换 + 内容 ≤200 字，可删除）；持卡栏显示每张次卡「已用 X/N 次」进度与「购入日期 · 有效期至」（发卡可选有效期，空=长期有效），可发卡/停用/恢复，「核销记录」弹层按次列出（第几次/时间/服务员工/订单号，历史补录无单号）；有效卡可「加次」（1-99 次 + 理由 ≤100 字）与「转卡」（搜索目标顾客、手机号打码、排除本卡顾客），「调整记录」弹层留痕（赠次/转卡、理由、操作人、转入顾客名） |
+| `/customer/create` | Create patient | New record: name / age / gender / phone / address / membership level / birthday |
+| `/customer/query` | Patient search | Paged search; row actions: create diagnosis, update, diagnosis history, follow-up plan, delete |
+| `/customer/update` | Patient record | Loads and saves patient info; the header card shows the record-creation month and the latest visit; the history section records allergy history / past medical history entry by entry (allergy / past toggle + content ≤200 chars, deletable); the cards section shows each visit card's "used X of N" progress and "purchase date · valid until" (issue may set a validity; empty = no expiry), with issue / suspend / restore; a "write-off log" modal lists entries (which visit / time / serving staff / order number; no number for backfilled history); valid cards allow "add visits" (1-99 + reason ≤100 chars) and "transfer card" (search the target patient, phone masked, self excluded); an "adjustment log" modal keeps the trail (bonus visits / transfer, reason, operator, receiving patient name) |
 
-### 诊断系统（/treat）
+### Treatment records (/treat)
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/treat/create` | 创建诊断 | 诊疗单大表单：主诉、问/望/切、脉象（左右手 **寸/关/尺分部** 三格 ×2 + 总述与补充）、五行（**五行生克定位图**：火心/木肝/土脾/金肺/水肾五节点，中宫脾高亮 + 本/克/难经/缓急四指标随录入联动）、取穴（按穴位字典选穴追加，仍可自由写）、针灸处方（针法/灸法/留针分钟/手法/疗程频次 + 「套用外治模板」一键带出方法/取穴/疗程建议，回填后随单自由改）、诊断、方案、饮食、调理；支持 `?customerId=` 预载、`?treatId=` 复诊回填；接诊医师**署名**（选填 `staffId` 随单落库，服务端按 staffs 回显 `staffName`，近三次诊疗/顾客档案时间线按署名医师显示、未署名如实标注「未署名」）；顾客条持卡余次显示实卡数据（无卡如实标注）并带**疗程标记**（同项目第 N 张卡=第 N 疗程，无卡项不标）、今日接诊计数真实；「收款去向」卡内链**收费结算台**（按订单计应收+小票打印，本页不做开单试算），开单表项目行为规划域预留（无假按钮），打印/扫码计数无埋点数据源标注规划；页顶**外设状态条**显示扫码枪/80mm 小票机/处方笺打印机连接态——桌面工作站壳内经 `peripheral_status` 命令取真实状态（30 秒轮询+扫码事件即时刷新），浏览器端如实标注「需桌面工作站」，查询不到不伪造（见 [desktop](/design/desktop) D10） |
-| `/treat/query` | 模糊查询 | 按 id / 姓名 / 年龄 / 手机号检索诊断单 |
-| `/treat/acupoints` | 穴位字典 | 经络穴位参考库维护页：收录/编辑/删除，穴名唯一；按穴名或拼音码检索（如「足三」/「zusanli」）；接诊页「取穴」检索选中即追加进取穴文本 |
-| `/treat/history` | 诊断历史 | 某顾客的历史诊疗记录（按时间倒序） |
+| `/treat/create` | Create diagnosis | The big treatment-record form: chief complaint, inquiry / inspection / palpation, pulse (left and right hand, **cun / guan / chi positions** — three cells ×2 plus an overall summary and additions), five phases (the **five-phase generation & restraint map**: Fire-Heart / Wood-Liver / Earth-Spleen / Metal-Lung / Water-Kidney nodes, with the central spleen highlighted and the four indicators root / restraint / classic / urgency reacting live to input), point selection (pick from the acupoint dictionary and append; free text still allowed), acupuncture prescription (needle technique / moxibustion method / retention minutes / manipulation / course frequency + "apply an external-therapy template" prefilling method / points / course suggestions, freely editable afterwards), diagnosis, plan, diet, conditioning; supports `?customerId=` prefill and `?treatId=` follow-up refill; **attributed doctor** (optional `staffId` stored with the record; the server resolves `staffName` from staffs; the last three treatments and the patient-record timeline show the attributed doctor, honestly labeled "unattributed" when absent); the patient strip shows real card balances (honestly labeled when there are no cards) plus a **treatment-course marker** (the Nth card of the same item = the Nth course; unmarked without cards), and the today's-treatment count is real; the "payment" card deep-links to the **settlement counter** (receivables per order + receipt printing; no order totals are computed on this page), the order-form item rows are reserved as a planned area (no fake buttons), print / scan counters are labeled as planned (no telemetry source); the top **peripheral status bar** shows the barcode scanner / 80mm receipt printer / prescription-note printer connection state — inside the desktop workstation shell it comes from the real `peripheral_status` command (30 s polling + instant refresh on scan events), in a browser it is honestly labeled "requires the desktop workstation"; never faked (see [desktop](/design/desktop) D10) |
+| `/treat/query` | Treatment search | Search treatment records by id / name / age / phone |
+| `/treat/acupoints` | Acupoint dictionary | Maintenance page for the meridian-point reference library: add / edit / delete; point names unique; search by point name or pinyin code (e.g. "足三" / "zusanli"); picking a point in the treatment page's "point selection" search appends it to the points text |
+| `/treat/history` | Diagnosis history | A patient's historical treatment records (newest first) |
 
-创建诊断页已实装界面截图（四诊、脉象、取穴、五行生克、调理方案）：
+Screenshots of the implemented create-diagnosis page (four examinations, pulse, point selection, five phases, conditioning plan):
 
-![管理后台 · 接诊诊疗单（已实装界面截图）](/screenshots/admin-diagnosis.png)
+![Admin console · treatment record (implemented screenshot)](/screenshots/admin-diagnosis.png)
 
-### 卡项系统（/item）
+### Service cards (/item)
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/item/create` | 创建卡项 | 名称 / 价格 / 时长（分钟，选填，展示用）/ 描述，支持 `?itemId=` 回填（编辑复用此页，带 id 提交走 `PUT /api/v1/item/` 真实更新，不带 id 新建） |
-| `/item/query` | 卡项查询 | 分页检索与删除，**编辑操作跳转 `/item/create?itemId=` 回填** |
+| `/item/create` | Create card | Name / price / duration (minutes, optional, display-only) / description; supports `?itemId=` refill (editing reuses this page — submitting with an id goes through the real `PUT /api/v1/item/` update; without an id it creates) |
+| `/item/query` | Card search | Paged search and delete; **the edit action jumps to `/item/create?itemId=` to refill** |
 
-### 反馈系统（/review）——复盘与回访
+### Feedback (/review) — retrospectives and follow-ups
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/review/day` | 每日总结 | 填写 / 查看当天做得好的与待改进 |
-| `/review/staff` | 员工总结 | 批量维护员工日复盘 |
-| `/review/customer` | 顾客反馈 | 批量维护顾客回访记录 |
-| `/review/plan` | 回访计划 | 为顾客设定回访日、最近到店与回访原因（存回访记录 `advice`；档案页据此显示下次回访与回访提醒） |
+| `/review/day` | Daily summary | Write / view what went well and what to improve today |
+| `/review/staff` | Staff summaries | Maintain staff retrospectives for a day in bulk |
+| `/review/customer` | Patient feedback | Maintain patient follow-up records in bulk |
+| `/review/plan` | Follow-up plan | Set a follow-up date, latest visit and reason for a patient (stored as the follow-up record's `advice`; the record page shows the next follow-up and the reminder from this) |
 
-### 报表系统（/dash）
+### Reports (/dash)
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/dash/day` | 每日报表 | 默认首页：员工总结表、今日回访、今日总结三块拼版 |
-| `/dash/month` | 月度收费报表 | 月份选择器 + 当月实收/结算单数/次卡核销三统计卡 + 近 6 月趋势双柱图（实收墨柱/接诊淡柱，逐月标注「N 诊 / N 单」，当月高亮）+ 支付方式构成 + 逐日明细（单数/实收）；数据来自收费结算，次卡核销实收 0 单列 |
+| `/dash/day` | Daily report | Default home page: staff summary, today's follow-ups and today's summary in one layout |
+| `/dash/month` | Monthly billing report | Month picker + three stat cards for the month (amount received / settlement orders / visit-card write-offs) + a 6-month trend double bar chart (receipts in ink bars / treatments in pale bars, each month labeled "N visits / N orders", current month highlighted) + payment-method mix + day-by-day details (orders / receipts); data comes from billing & settlement, with visit-card write-offs at 0 receipts listed separately |
 
-### 诊所运营（/staff，员工与考勤）
+### Clinic operations (/staff — staff and attendance)
 
-员工账号维护、上 / 下班签到与考勤统计，属诊所运营辅助：
+Staff account maintenance, clock in / clock out and attendance statistics; clinic-operations support:
 
-| 路径 | 页面 | 做什么 | 权限 |
+| Path | Page | What it does | Permission |
 | ---- | ---- | ---- | ---- |
-| `/staff/create` | 创建员工 | 新建员工账号（含**职务** `title`，自由文本；排班页医师名册=在职且职务含「医师」；**名医等级** `famousLevel` 0 普通 / 1-3 名医，仅影响列表排序与标识徽章） | 仅 `canAdmin` |
-| `/staff/query` | 员工查询 | 分页检索（列含**名医等级**，0 普通 / 一级·二级·三级名医徽章）与删除员工 | 仅 `canAdmin` |
-| `/staff/update` | 员工更新 | 回填并保存（含**职务** `title`、**名医等级** `famousLevel`） | - |
-| `/staff/sign`、`/staff/sign/timesheet/today`、`/staff/timesheet/list` | 签到 / 今日考勤 / 考勤列表 | 上 / 下班打卡、本人今日时长、按月全员考勤矩阵 | 已登录 / - |
-| `/staff/leave` | 员工请假 | 左侧登记表单（员工选择/类型 病假·事假/起止时间/事由）+ 右侧近期请假记录（可删除）；接口 `POST /api/v1/staff/leave/`，记录口径不改登录状态、无审批流 | 已登录 |
-| `/staff/shifts` | 员工班表 | 周期班表周矩阵（行=员工、列=周一~周日，格内 `HH:mm–HH:mm` 班次）；「加排班」弹层选员工/星期/时段（30 分钟步进，下班须晚于上班），点击时段调整、`✕` 删除；同员工同星期仅一条班次，考勤打卡仍以签到记录为准；接口 `/api/v1/shift` | 仅 `canAdmin` |
-| `/staff/timesheet/week` | 周班次对照 | 员工 × 7 天（周一至周日）：「应」= 班表计划、「实」= 当日打卡（最早上班/最晚下班、整小时）；选日期看所在周，「本周」一键回当前；接口 `/api/v1/staff/timesheet/week` | 仅 `canAdmin` |
+| `/staff/create` | Create staff | New staff account (including **title** `title`, free text; the scheduling page's doctor roster = employed with a title containing "医师"; **famous-doctor level** `famousLevel`, 0 regular / 1-3 famous doctor — affects list ordering and the badge only) | `canAdmin` only |
+| `/staff/query` | Staff search | Paged search (columns include the **famous-doctor level**: 0 regular / level-1 · level-2 · level-3 famous-doctor badges) and staff deletion | `canAdmin` only |
+| `/staff/update` | Update staff | Refill and save (including **title** `title` and **famous-doctor level** `famousLevel`) | - |
+| `/staff/sign`, `/staff/sign/timesheet/today`, `/staff/timesheet/list` | Sign in / today's timesheet / timesheet list | Clock in / out, own hours today, a per-month all-staff attendance matrix | Logged in / - |
+| `/staff/leave` | Staff leave | A leave form on the left (staff picker / type sick · personal / start-end time / reason) + recent leave records on the right (deletable); API `POST /api/v1/staff/leave/`; records never change login state and there is no approval flow | Logged in |
+| `/staff/shifts` | Shift table | Periodic shift matrix (rows = staff, columns = Monday–Sunday, cells hold `HH:mm–HH:mm` shifts); the "add shift" modal picks staff / weekday / window (30-minute steps, end must be later than start); tap a cell to adjust, `✕` to delete; one shift per staff per weekday; attendance still follows the sign-in records; APIs `/api/v1/shift` | `canAdmin` only |
+| `/staff/timesheet/week` | Weekly timesheet | Staff × 7 days (Monday–Sunday): "planned" = shift table, "actual" = that day's punches (earliest in / latest out, whole hours); pick a date to see its week, "this week" jumps back to the current one; API `/api/v1/staff/timesheet/week` | `canAdmin` only |
 
-### 订单系统（/order）
+### Orders (/order)
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/order/create` | 前台下单 | 按手机号定位顾客 → 多选卡项（每行可改数量，价格取卡项现价快照，多行合计落单）与建单人（选填）→ 下单落「待接待」；适用于到店临时加项 |
-| `/order/query` | 订单管理 | 顾客 Kiosk 下的单与前台建的单在这里接待：接单 → 完成，未接待可取消；删除仅限已取消的单；已完成/已取消可「查看」详情（明细行 单价/数量/小计、合计、整单备注、支付方式、下单时间、来源）；业务单号 `YYYYMMDD-NNN`，列表新单在前 |
+| `/order/create` | Front-desk order | Locate the patient by phone → multi-select service cards (quantity editable per row, prices snapshot the current card price, row subtotals sum into the total) and an optional order creator → the order lands as "pending check-in"; for walk-in additions at the desk |
+| `/order/query` | Order management | Orders placed at the Kiosk or by the front desk are received here: accept → complete; unaccepted orders can be cancelled; deletion is limited to cancelled orders; completed / cancelled orders can be "viewed" in detail (line items unit price / quantity / subtotal, total, order remarks, payment method, order time, source); business number `YYYYMMDD-NNN`, newest first |
 
-订单来自门店自助机（kiosk）或前台建单，前台在此接单；不做在线支付，到店结算。
+Orders come from the in-store Kiosk or the front desk; the desk accepts them here. No online payment — settlement happens in person.
 
-已实装界面截图（订单管理）：
+Screenshots of the implemented pages (order management):
 
-![管理后台 · 订单管理（已实装界面截图）](/screenshots/admin-orders.png)
+![Admin console · order management (implemented screenshot)](/screenshots/admin-orders.png)
 
-### 收费结算（/billing）
+### Billing & settlement (/billing)
 
-自助机/前台单据的收款环节（对齐 `docs/design/mockups/admin-billing.html` 的结算台形态）。
+The payment step for Kiosk / front-desk orders (matching the settlement-counter layout of `docs/design/mockups/admin-billing.html`).
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/billing/settle` | 结算台 | 左侧待结算队列（订单状态 0/1，`自助机`/`前台` 来源标签，业务单号 `YYYYMMDD-NNN`，项目「名 ×数量」串）+ 最近结算记录（每条可补打小票、可退单：理由必填 ≤100 字弹窗单向确认，已退款示标记；订单退款后回队列可重收）；选单后展示结算明细多行表（项目/数量/小计，多品项订单联 `order_item` 明细）与整单备注（琥珀备忘块，≤200 字失焦保存）；选支付方式收款：储值卡（显示实时余额，余额不足可填额充值后一并收款）、微信、支付宝（选中出示商户**收款码**供顾客扫码，缺码 404 如实提示未配置）、现金、次卡（显示本单卡项有效余次，选中即扣 1 次、实收记 0，明细表追加「卡项抵扣 ¥0」行）；收款成功订单转「已完成」并落结算单 |
-| `/billing/reconciliation` | 日对账 | 按自然日对账：日期选择（默认今天，禁选未来）+ 统计卡（实收/退款/净额/现金净额/充值单列）+ 收款构成表 + 充值、退款两张明细表（联顾客/操作人名，退款行带理由与原支付方式）；接口 `/api/v1/settlement/reconciliation` |
+| `/billing/settle` | Settlement counter | Left: the unsettled queue (order status 0/1, `Kiosk` / `front desk` source tags, business number `YYYYMMDD-NNN`, items as a "name ×qty" string) + recent settlements (each can reprint a receipt or be refunded: reason required ≤100 chars in a one-way confirm modal, refunded rows marked; a refunded order returns to the queue for re-payment); selecting an order shows the settlement line items (item / qty / subtotal; multi-item orders join `order_item` details) and order remarks (an amber note block, ≤200 chars, saved on blur); pick a payment method to collect: stored value (shows the live balance; if short, top up any amount and collect together), WeChat, Alipay (selecting shows the merchant **payment QR code** for the patient to scan; a missing code 404s with an honest "not configured"), cash, visit card (shows the valid remaining count for this order's item; selecting deducts 1 visit, records 0 received, and appends a "card deduction ¥0" row); on success the order turns "completed" and a settlement is written |
+| `/billing/reconciliation` | Daily reconciliation | Reconcile by calendar day: date picker (default today, future dates disabled) + stat cards (received / refunds / net / net cash / top-ups listed separately) + payment-mix table + two detail tables for top-ups and refunds (joined with patient / operator names; refund rows carry the reason and original payment method); API `/api/v1/settlement/reconciliation` |
 
-结算口径：实收取订单价格快照（多品项单为各行小计合计，`order_item` 存名称/单价快照），储值支付自动扣减余额（流水合计）；次卡抵扣扣持卡余 1 次、实收记 0，并在同一事务落核销流水（顾客档案持卡栏可查）；微信/支付宝为到店扫码收款：结算台出示商户收款码（`/api/v1/pay-qrcode/{method}` 出图，缺图 404 如实提示未配置、可扫台卡纸质码过渡），顾客扫码支付在系统外完成，系统只按所选方式记账（不接支付网关，到账以商户账单为准）；小票走服务端套打 `GET /api/v1/print/receipt/{settlementId}`（80mm HTML，收款成功后可打印、最近结算可补打）；处方饮片行进结算裁定不做——收费以卡项订单结算为准，处方计价为试算/提示口径。退单原路退回（储值补回余额、次卡回补次数、现金当面退回），日对账页 `/billing/reconciliation` 按自然日三段核对。
+Settlement policy: the amount received takes the order's price snapshot (multi-item orders sum the line subtotals; `order_item` stores name / price snapshots); stored-value payment automatically deducts the balance (flows summed); visit-card deduction takes 1 from the card's remaining visits, records 0 received, and writes the write-off flow in the same transaction (visible in the patient record's cards section); WeChat / Alipay are in-person scanned payments: the counter shows the merchant payment QR (`/api/v1/pay-qrcode/{method}` renders it; a missing image 404s honestly, and a laminated table card can bridge), the patient's scan-payment happens outside the system and the system only books the chosen method (no payment gateway; receipts follow the merchant statement); receipts use the server-side overprint `GET /api/v1/print/receipt/{settlementId}` (80mm HTML; printable on success, reprintable from recent settlements); prescription-herb rows entering settlement was ruled out — billing follows service-card order settlement, and prescription pricing is an estimate / hint; refunds return on the original path (stored value back to balance, visit cards back to counts, cash returned in person), and the daily reconciliation page `/billing/reconciliation` cross-checks by calendar day.
 
-已实装界面截图（收费结算台：储值/充值与次卡抵扣已实装；原型里的处方饮片行进结算裁定不做）：
+Screenshots of the implemented pages (settlement counter: stored value / top-up and visit-card deduction implemented; the prototype's prescription-herb rows were ruled out of settlement):
 
-![管理后台 · 收费结算台（已实装界面截图）](/screenshots/admin-billing.png)
+![Admin console · settlement counter (implemented screenshot)](/screenshots/admin-billing.png)
 
-### 处方系统（/prescription）
+### Prescriptions (/prescription)
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/prescription/create` | 开方 | 处方笺头（顾客 性别·年龄·掩码手机 / 医师·日期·诊号=接诊单 / 处方编号预览 `Rx-YYYYMMDD-编号`，编号开方后生成）→ 按手机号定位顾客 → 带出最近接诊单的辨证摘要条（辨证=接诊单诊断、治法/方案=接诊单方案，可切换接诊单，随处方落 `treatId`；无接诊单显示建档提示）→ 「套用模板」按病症一键带出药味/剂数/用法（可选）、「方剂库」按方名/拼音带出全方 → 写药味（药名/克数/炮制/煎法，可增删行）+ 「从饮片目录添加」下拉（中文名或**拼音首字母检索**如 zz/fs/gcao，选中填入空行或追加行，选项带每克单价；pinyin-pro 本地计算+缓存）+ 特殊煎法提醒（扫药味煎法备注命中 先煎/后下/包煎/烊化/冲服/另煎 计「N 味需标注」）+ **剂量上限提示**（`POST /api/v1/prescription/dose-check` 防抖 500ms：药味单剂克数严格大于该药材 `dose_max` 即提示、等值不提示，不拦截由医师判断；上限由诊所自录——药典权威量属医学参考数据仓内不硬编码，同库存上下限口径）+ 类型（汤剂/膏方，膏方选收膏方式）+ 用法三格（剂数/煎法/服法）+ 备注 + 签名行（选填开方医师 / 药师审核 / 调配复核）；勾「代煎 N 袋」出领取方式（自取 / 同城配送运费 ¥6.00，运费仍为提示口径）与取药窗口提示（今日 17:00 前可取，加急 2 小时）；计价面板按原型三行账：饮片 N 味 × 付数 + 代煎服务（¥3/袋，2026-10-12 拍板入应收合计）→ 应收=两者之和，实际收费仍以卡项订单结算为准；底部三键：存方并收费（提交）· 存入我的方剂库（当前方随病症名存为启用模板）· 打印处方笺（只出处方笺主卡） |
-| `/prescription/query` | 处方查询 | 已开处方笺一览（顾客/医师/药味/剂数/类型/代煎/膏方状态/煎法服法/开方时间/实时计价），「详情」抽屉看整方药味（炮制/煎法列）与计价明细、煎法/服法分列、代煎与膏方各自流转领取、发药状态与快捷确认发药（带备注走药房工作台），可删除 |
-| `/prescription/dispensary` | 药房工作台 | 待发药/已发药/全部三态切换带计数 + 顾客姓名/手机检索；列表=处方号/顾客(姓名+脱敏手机)/类型/剂数/药味数/代煎/膏方/发药状态与时间/开方时间；行操作「发药」弹窗带可选备注（≤100 字）单向确认，已发药行只读；代煎/膏方「已取」领取自动发药无需重复点；接口 `/api/v1/prescription/dispense/page` |
-| `/prescription/templates` | 病症模板 | 病症处方模板库维护页：新建/编辑（药味行内增删）/删除/上架开关，病症名唯一；模板只存建议值，套用后随处方自由增减不写回 |
-| `/prescription/therapy-templates` | 外治模板 | 外治处方模板库维护页：新建/编辑/删除/上架开关，模板名唯一（1–20 字）+ 外治方法（≤10 字，如 耳穴压豆/穴位贴敷/艾灸/拔罐）+ 建议取穴部位/疗程频次/注意事项；接诊页「套用外治模板」下拉（仅上架模板）回填针法/疗程与取穴文本，回填后随单自由改不写回模板；接口 `/api/v1/therapy-template` |
-| `/prescription/formulas` | 方剂库 | 经典方剂参考库维护页：收录/编辑（药味行内增删）/删除，方名唯一；按方名或拼音码检索（如「逍遥」/「xiaoyao」）；药味克数为文献常用量口径，开方页带出后随处方自由增减不写回 |
-| `/prescription/herbs` | 药材字典 | 处方计价比价依据的维护页：收录/改价/删除，名称唯一精确匹配，价格为每克分价（页内以元展示）；可维护**库存上下限**（`stockMin`/`stockMax` 克，可空=不预警）与**单剂上限**（`doseMax` 克/剂，可空=不预警，开方页剂量校验依据） |
-| `/prescription/herb-stock` | 饮片库存 | 库存余额看板（克 + 最早未消耗批次效期 + 到期预警，阈值 30/60/90 天可切 + **库存线**预警列：低于下限/高于上限）+ 出入库登记（药材/类型/数量/效期/供货方/备注，出库不填效期）+ 流水分页可删除；库存=入合计-出合计，出库按效期 FEFO 消耗；接口 `/api/v1/herb-stock` |
+| `/prescription/create` | Write prescription | Prescription header (patient gender · age · masked phone / doctor · date · visit no. = treatment record / prescription-number preview `Rx-YYYYMMDD-No.`, generated after saving) → locate the patient by phone → the latest treatment record's pattern-differentiation strip (pattern = the treatment record's diagnosis, method / plan = its plan; switchable across records, `treatId` saved with the prescription; without one a create-record prompt shows) → "apply template" prefills herbs / doses / administration from a syndrome (optional); "formula library" prefills a whole formula by name or pinyin → write herbs (name / grams / processing / decoction method; rows add and delete) + the "add from herb catalog" dropdown (search by Chinese name or **pinyin initials** like zz / fs / gcao; picking fills an empty row or appends one; options carry the per-gram price; pinyin-pro computes locally with caching) + special-decoction reminders (scanning herb decoction notes for 先煎 / 后下 / 包煎 / 烊化 / 冲服 / 另煎 counts "N herbs need annotation") + **dose-cap hints** (`POST /api/v1/prescription/dose-check`, debounced 500 ms: a per-herb single-dose gram weight strictly above that herb's `dose_max` triggers a hint; equal values do not; nothing is blocked — the doctor decides; caps are clinic-entered — pharmacopoeia authority values are medical reference data and are not hard-coded in the repo, same as stock limits) + type (decoction / paste; paste picks the finishing method) + administration (doses / decoction / how to take) + remarks + signature row (optional prescriber / pharmacist review / compounding check); checking "decoction service, N bags" reveals the pickup method (self-pickup / local delivery at ¥6.00 — the fee remains informational) and a pickup-window note (before 17:00 today; 2 hours for rush); the pricing panel shows the prototype's three-line account: herbs N items × doses + decoction service (¥3/bag, ruled into receivables on 2026-10-12) → receivable = their sum, with actual payment still following service-card order settlement; three buttons at the bottom: save & charge (submit) · save to my formula library (stores the current formula as an enabled template under the syndrome name) · print the prescription note (prints the note card only) |
+| `/prescription/query` | Prescription search | All written prescriptions (patient / doctor / herbs / doses / type / decoction / paste status / decoction & administration / written-at / live pricing); the "detail" drawer shows the whole formula (processing / decoction columns) with pricing details, decoction and administration side by side, decoction and paste flows and pickup, dispensing status with quick dispense confirmation (with a remark, via the pharmacy workbench), deletable |
+| `/prescription/dispensary` | Pharmacy workbench | Pending / dispensed / all tabs with counts + search by patient name / phone; list = prescription no. / patient (name + masked phone) / type / doses / herb count / decoction / paste / dispense status & time / written-at; the row action "dispense" opens a modal with an optional remark (≤100 chars) and one-way confirm; dispensed rows are read-only; decoction / paste "picked up" marks auto-dispense without a second tap; API `/api/v1/prescription/dispense/page` |
+| `/prescription/templates` | Syndrome templates | Maintenance for the syndrome-prescription template library: create / edit (inline herb rows) / delete / enable switch; syndrome names unique; templates store suggested values only — applied values are freely adjustable and never written back |
+| `/prescription/therapy-templates` | External-therapy templates | Maintenance for the external-therapy template library: create / edit / delete / enable switch; template names unique (1–20 chars) + therapy method (≤10 chars, e.g. 耳穴压豆 / 穴位贴敷 / 艾灸 / 拔罐) + suggested points / course frequency / notes; the treatment page's "apply external-therapy template" dropdown (enabled templates only) prefills needle technique / course and the points text — freely editable afterwards, never written back; API `/api/v1/therapy-template` |
+| `/prescription/formulas` | Formula library | Maintenance for the classic-formula reference library: add / edit (inline herb rows) / delete; formula names unique; search by name or pinyin code (e.g. "逍遥" / "xiaoyao"); herb gram weights follow the literature's usual amounts — prefilled values are freely adjustable and never written back |
+| `/prescription/herbs` | Herb dictionary | The pricing reference for prescriptions: add / reprice / delete; names unique and matched exactly; prices are fen per gram (displayed as yuan); maintainable **stock limits** (`stockMin`/`stockMax` grams, empty = no alert) and **per-dose caps** (`doseMax` grams/dose, empty = no alert; the basis for the writing page's dose checks) |
+| `/prescription/herb-stock` | Herb stock | A stock balance board (grams + the earliest unconsumed batch's expiry + expiry alerts with switchable 30/60/90-day thresholds + a **stock line** alert column: below the floor / above the ceiling) + stock-in/out entry (herb / type / quantity / expiry / supplier / remarks; out-entries take no expiry) + paged, deletable flows; stock = total in − total out; out-consumption follows FEFO by expiry; API `/api/v1/herb-stock` |
 
-药材名为自由文本；配伍审方（十八反/十九畏）、过敏提示与实时计价已实装——开方页随写随查（审方提示不拦截；定位顾客后按其过敏史原文比对药味，命中时列出 药味 + 记录原文，无命中不占位；计价按药材字典精确同名比价、未收录药名不计费）；代煎已实装——开方页勾选「代煎 N 袋」（袋数=剂数，服务费 ¥3/袋 仅提示，可再选领取方式 自取/同城配送随方存档），查询页列表出代煎状态、详情抽屉流转领取（待煎→可取→已取）；膏方已实装——开方页类型选「膏方」并选收膏方式（炼蜜/清膏/糖膏/阿胶收膏，可清空），开方落「待制作」（膏方按料计不勾代煎），查询页列表出膏方状态、详情抽屉流转（待制作→可取→已取）；病症模板已实装——开方页「套用模板」下拉（仅上架模板），带出后一切可改，另可「存入我的方剂库」把当前方随病症名存为启用模板；方剂库已实装——开方页「方剂库」下拉按方名/拼音检索一键带出全方（药味带出、剂数不变），带出后一切可改。
+Herb names are free text; compatibility review (the eighteen incompatibilities / nineteen antagonisms), allergy alerts and live pricing are implemented — the writing page checks as you type (compatibility hints never block; after a patient is located, herb names are matched against the patient's allergy history verbatim, hits list the herb + the original record text, no placeholder when there are none; pricing matches the herb dictionary by exact name, unlisted names are not charged); decoction service is implemented — checking "decoction service, N bags" on the writing page (bags = doses; the ¥3/bag fee is informational; pickup method self / local delivery saved with the prescription), the search page lists decoction status and the detail drawer follows the flow (waiting → ready → picked up); paste is implemented — selecting type "paste" and a finishing method (honey-refined / clear / sugar / gelatin, clearable) saves it as "to prepare" (paste counts by batch; no decoction service), the search page lists paste status and the detail drawer follows the flow (to prepare → ready → picked up); syndrome templates are implemented — the writing page's "apply template" dropdown (enabled templates only) prefills freely editable values, plus "save to my formula library" storing the current formula as an enabled template under the syndrome name; the formula library is implemented — the writing page's "formula library" dropdown searches by name / pinyin and prefills the whole formula (herbs prefilled, dose count unchanged), freely editable afterwards.
 
-已实装界面截图（中药处方笺：开方/查询/配伍审方/过敏提示/实时计价/代煎与膏方领取/辨证摘要联动）：
+Screenshots of the implemented pages (herbal prescriptions: writing / search / compatibility review / allergy alerts / live pricing / decoction & paste pickup / pattern-differentiation linkage):
 
-![管理后台 · 中药处方笺（已实装界面截图）](/screenshots/admin-herbprescription.png)
+![Admin console · herbal prescription (implemented screenshot)](/screenshots/admin-herbprescription.png)
 
-### 广告屏系统（/ads）
+### Advertising screens (/ads)
 
-候诊区展示屏（tablet）的素材、排期、屏幕注册与叫号记录管理：
+Management of the lobby display's (tablet) materials, schedules, screen registration and call records:
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/ads/materials` | 素材管理 | 广告素材（视频 / 图片）上传、分类子标题（如「门店活动」，选填）、启用停用、排序；叠加层文案四项（眉题 / 大标题 / 文案 / 价格行，均可空，全空即纯素材播放），随 playlist 下发平板排版层（原型 tablet-screen 整版设计的适配版：媒体铺满舞台、文案左下渐变底叠加） |
-| `/ads/schedules` | 排期管理 | 排期名（选填）+ 素材按星期与时间段排到屏幕 |
-| `/ads/screens` | 屏幕管理 | Kiosk 屏注册、在线状态（正在播 排期名 + 轮播条数）、绑定排期 |
-| `/ads/calls` | 叫号操作 | 前台叫号后，定向屏（或全部屏）在 3 秒内全屏提示号码与诊室；预约接待（0→1）会**自动叫号**（服务端联动，最近叫号列表可见，散客仍手动叫） |
+| `/ads/materials` | Materials | Upload advertising materials (video / image), category subtitle (e.g. "clinic events", optional), enable / disable, sorting; four overlay-text fields (kicker / headline / copy / price line, all optional — all empty plays the bare material), delivered with the playlist to the tablet's layout layer (an adaptation of the prototype's whole-page tablet-screen design: media fills the stage, text overlays on a bottom-left gradient) |
+| `/ads/schedules` | Schedules | Schedule name (optional) + materials arranged onto screens by weekday and time window |
+| `/ads/screenss` | Screens | Kiosk screen registration, online status (playing schedule name + rotation length), schedule binding |
+| `/ads/calls` | Call queue | After the front desk calls, the target screen (or all screens) shows the number and room fullscreen within 3 seconds; appointment check-in (0→1) **calls automatically** (server-side linkage, visible in the recent-call list; walk-ins are still called manually) |
 
-已实装界面截图（素材管理 + 屏幕状态 + 快捷叫号）：
+Screenshots of the implemented pages (materials + screen status + quick calling):
 
-![管理后台 · 广告屏管理（已实装界面截图）](/screenshots/admin-ads.png)
+![Admin console · advertising screens (implemented screenshot)](/screenshots/admin-ads.png)
 
-### 外观设置（/appearance）
+### Appearance (/appearance)
 
-站点主题与品牌呈现（设计稿见文档站首页「主题切换」）：
+Site theme and brand presentation (design in the docs-site "theme switching" preview):
 
-| 路径 | 页面 | 做什么 |
+| Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/appearance` | 外观设置 | 四套主题色即点即换：石墨×古金（默认，取自品牌 logo）/ 松烟绿 / 朱砂 / 黛蓝；选择即时生效并记忆，全站 tokens.css 变量组切换 |
+| `/appearance` | Appearance settings | Four theme colors, applied on tap: graphite × antique gold (default, from the brand logo) / pine smoke green / cinnabar / indigo; the choice applies instantly and is remembered, switching the site's tokens.css variable groups |
 
-未登录入口：`/user/login` 登录页（账号密码登录，登录后按角色落对应首页；无注册入口——账号由管理员创建，见 [api](/server/api) 鉴权约定）。
+Unauthenticated entry: `/user/login` (account + password login; after login each role lands on its home page; no sign-up — accounts are created by the administrator, see the auth conventions in [api](/server/api)).
 
-## 权限与角色
+## Permissions and roles
 
-- `canAdmin`：管理端创建 / 查询员工入口（对应服务端 `role == 0` 的管理员，登录响应 `currentAuthority=admin`）；
-- `canUser`：签到与今日考勤入口（任何已登录员工）；
-- 服务端方法级权限已强制：员工管理写接口（`POST`/`PUT`/`DELETE` /api/v1/staff）加 `@PreAuthorize("hasRole('ADMIN')")`，与页面级 `canAdmin` 同口径；服务端角色映射 `role 0 → ADMIN`、`1-9 管理层 → MANAGER`、`≥10 普通员工 → USER`（StaffEntity.getAuthorities），越权写返回 403（ResponseExceptionAdvice 对 AccessDeniedException 出 403，不落 500；回归 StaffPermissionHttpTest）。其余业务接口仍为登录即可用（未按方法分权）。
+- `canAdmin`: the admin console's create / search staff entries (the administrator with server-side `role == 0`; login response `currentAuthority=admin`);
+- `canUser`: sign-in and today's timesheet entries (any logged-in staff);
+- Server-side method-level authorization is enforced: staff-management write endpoints (`POST`/`PUT`/`DELETE` /api/v1/staff) carry `@PreAuthorize("hasRole('ADMIN')")`, matching the page-level `canAdmin`; the server's role mapping is `role 0 → ADMIN`, `1-9 management → MANAGER`, `≥10 regular staff → USER` (StaffEntity.getAuthorities); unauthorized writes return 403 (ResponseExceptionAdvice maps AccessDeniedException to 403, never 500; regression: StaffPermissionHttpTest). All other business endpoints still require only login (no per-method authorization).
 
-## 前端遗留项（如实说明）
+## Frontend leftovers (stated honestly)
 
-- 品牌口径已定（2026-10-12 拍板）：站点品牌即「Youngs 医馆」——logo 养字标 + 全部界面原型 + youngs.fun 自有域名共同证实，非脚手架残留；登录页标题、Footer 文案、`src/manifest.json` 品牌值已统一到此口径（Footer 保留 youngs.fun 业务链接；PWA manifest 尚未接线——config 无引用、不进构建产物，品牌值已就位备接线）；
-- `config/oneapi.json` 仍为脚手架模板 schema（含 `/api/rule` 等模板端点），**保留备查**——pro 插件预置的 openAPI 代码生成 + requestRecord 录制已移除（其依赖链携带无补丁版本的 mockjs），`src/services/ant-design-pro/` 服务层手写维护。
+- The brand question is settled (2026-10-12): the site brand is "Youngs 医馆" — evidenced together by the logo 养 mark, all interface prototypes and the owned domain youngs.fun; not scaffolding residue. The login page title, Footer copy and `src/manifest.json` brand values all follow it (the Footer keeps the youngs.fun business link; the PWA manifest is not wired up yet — config does not reference it and it is not in the build output, the brand values sit ready for wiring);
+- `config/oneapi.json` is still the scaffold's template schema (with template endpoints like `/api/rule`), **kept for reference** — the pro plugin's preinstalled openAPI codegen + requestRecord recording was removed (its dependency chain carried an unpatched mockjs); `src/services/ant-design-pro/` is maintained by hand.
 
-> 已清理：脚手架残留页面 `src/pages/Welcome.tsx`、`Admin.tsx`、`TableList/`（不在路由，无引用）；petstore 示例服务 `src/services/swagger/`（`config.ts` openAPI 第二入口一并移除）；卡项占位页 `/item/spread`、`/item/update`（表单实为 `createItem` 建新卡项的误用隐患，已连同路由移除，编辑统一走 `/item/create?itemId=`，2026-10-12 起带 id 提交走 `updateItem` PUT 真实更新；spread「扩散」在原型 admin-items.html 无对应设计，按脚手架残留裁定不补）。
+> Cleaned up: the scaffold's leftover pages `src/pages/Welcome.tsx`, `Admin.tsx`, `TableList/` (unrouted, unreferenced); the petstore sample service `src/services/swagger/` (the second openAPI entry in `config.ts` removed with it); the placeholder card pages `/item/spread` and `/item/update` (the form was really a misuse of `createItem` creating a new card; removed together with the routes — editing uniformly goes through `/item/create?itemId=`, and since 2026-10-12 submitting with an id goes through `updateItem` PUT for a real update; "spread" had no design in the prototype admin-items.html and was ruled scaffolding residue, not to be rebuilt).

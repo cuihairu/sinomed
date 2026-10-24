@@ -1,19 +1,17 @@
-# 模板二：中医科普软广
+# Template 2: Soft Advertorial (TCM Health Education)
 
-> 🌐 [English](./article-science.en.md) · **本页为中文**
-
-> 适用：日常发布，一到两周一篇。科普为主，文末带一句馆里信息，不硬卖。
-> 用法：每期换一个主题，下面给的是"秋燥咽干"示例，结构可以直接复用。
+> When to use: everyday publishing, one article every one to two weeks. Health education comes first, with a short clinic mention at the end — no hard sell.
+> How to use: change the topic each issue. The sample below is the "秋燥咽干" (dry throat from autumn dryness) example; the structure can be reused as is.
 
 ---
 
-**标题备选**
+**Title options**
 
 - 入秋嗓子干，喝水没用？试试这几招
 - 嗓子干、皮肤紧、睡不踏实——秋燥的三个信号
 - 秋燥不是多喝水就完了
 
-**正文**
+**Body copy**
 
 最近来看诊的街坊里，说"嗓子干、喝水也不解渴"的明显多了。今天就聊聊秋燥。
 
@@ -39,9 +37,9 @@
 
 ---
 
-**改写提示**
+**Rewriting tips**
 
-- 每期换主题，选题从当季和顾客高频问题里挑：春天讲过敏、夏天讲暑湿、冬天讲进补，平时从候诊时听到的问题里找。
-- "什么时候该看医生"这段是软广的落点，别删——它既是科普的边界，也是读者来店的理由。
-- 结尾馆所信息保持三行以内，多读者就划走了。
-- 真实案例要用脱敏的、已征得同意的，编的不行。
+- Change the topic each issue. Pick subjects from the current season and customers' most frequent questions: allergies in spring, summer heat and dampness in summer, winter tonics — and collect ideas from what you overhear in the waiting room.
+- The "when should you see a doctor" section is where the soft advertisement lands — do not cut it. It is both the boundary of the health education and the reader's reason to visit.
+- Keep the clinic information at the end to three lines or fewer; any longer and readers swipe away.
+- Real cases must be de-identified and used with the customer's consent — invented ones are not allowed.

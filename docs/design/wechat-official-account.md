@@ -1,439 +1,440 @@
-# 公众号管理模块设计（服务号 / 订阅号接入）
+# Official Account Module Design (Service / Subscription Account Integration)
 
-> 🌐 [English](wechat-official-account.en.md) ｜ **本页为中文**
-
-> 状态：**设计稿（未排期）**。本页回答三件事：公众号能力如何接入本仓（选型结论：方案 a，引入 WxJava SDK 自研薄封装）、数据模型如何与顾客/会员实体衔接（公众号粉丝 ≠ 小程序 openid，经 `wx_fans.customer_id` 桥接）、以及分期如何切（第一期只做「接入 + 消息收发 + 关联顾客」）。
+> Status: **design draft (unscheduled)**. This page answers three things: how official-account capabilities integrate into this repo (choice: option a, a thin in-house wrapper over the WxJava SDK), how the data model connects to the customer/membership entities (official-account fans ≠ mini-program openids, bridged via `wx_fans.customer_id`), and how the phases are cut (phase 1 does "integration + message send/receive + customer linking" only).
 
 ---
 
-## 1. 定位与范围
+## 1. Positioning and Scope
 
-微信公众号是医馆触达顾客的第二条线上通道（第一条是小程序，已实装）。定位为**运营辅助模块**，不是诊疗或收银链路的一环：
+The WeChat official account is the clinic's second online channel to reach customers (the first is the mini program, already implemented). It is positioned as an **operations support module**, not part of the diagnosis or billing flow:
 
-- **做**：消息收发（被动回复）、自动回复规则、顾客档案关联、自定义菜单、素材管理、（服务号）模板消息与群发；
-- **不做**：微信支付（沿用现有收银的支付口径，见 README「Planned Features」）、多门店矩阵号、小程序内嵌公众号组件、内容合规审查工具化。
+- **Do**: message send/receive (passive replies), auto-reply rules, customer-record linking, custom menus, material management, (service accounts) template messages and mass messaging;
+- **Don't**: WeChat Pay (keep the existing billing payment conventions, see README "Planned Features"), multi-store account matrices, mini-program embedded official-account components, content-compliance review tooling.
 
-单店口径：默认**一个公众号账号**，表结构预留多账号（`account_id` 维度），但第一期 UI 只暴露单账号配置。
-
----
-
-## 2. 开源方案对比
-
-| 方案 | Star | 许可 | 技术栈 | 功能覆盖 | 与本仓适配度 |
-| ---- | ---- | ---- | ------ | -------- | ------------ |
-| [binarywang/WxJava](https://github.com/binarywang/WxJava) | 33.2k | Apache-2.0 | Java SDK（含 `wx-java-mp-spring-boot-starter`） | 公众号/小程序/企业微信/微信支付全套 API 封装 | **最高**：同为 Java/Spring Boot，只引 SDK 不引架构，本仓自研薄封装 |
-| [niefy/wx-manage](https://github.com/niefy/wx-manage)（前端）+ [wx-api](https://github.com/niefy/wx-api)（后端） | 1.6k | Apache-2.0 | Vue2 + ElementUI；Spring Boot + **Shiro** + MyBatis-Plus + WxJava | 菜单、自动回复、素材、简易 CMS、模板消息、粉丝、带参二维码 | **低**：仓库已归档（archived）；Shiro 与本仓 Spring Security 冲突、MyBatis-Plus 与本仓 JPA 冲突，整套引入=双套鉴权与双套 ORM |
-| [anchel/wechat-official-account-admin](https://github.com/anchel/wechat-official-account-admin) | 41 | MIT | Go + MongoDB + Redis | 功能最全：多公众号、收发消息（明文/密文）、自定义菜单含个性化、素材、二维码、用户标签 | **仅参考设计**：Go 版不可直接用；MongoDB/Redis 本仓均未引入，其数据模型与「个性化菜单」交互设计可借鉴 |
-| [vluma/wechat_official_account_mcp](https://github.com/vluma/wechat_official_account_mcp) | 3 | **无许可（未声明）** | Python MCP | 素材/草稿/发布；明确区分服务号/认证订阅号/未认证订阅号权限边界 | **仅参考文档**：MCP 形态不适用本仓服务端；无许许可复用性存疑；其账号类型权限矩阵（§6）有参考价值 |
-
-> 数据来源：GitHub API，2026-10-19 实测（star 数、license、archived 标志均取自各仓库 API 响应）。
-
-**结论：方案 a（直接引入 WxJava SDK，自研薄封装）**，理由：
-
-1. **技术栈同源**：本仓 Java 21 + Spring Boot（`server/pom.xml:5-8`），WxJava 是纯 Java SDK，经 `wx-java-mp-spring-boot-starter` 与 Spring Boot 配置直接绑定；wx-manage 的 Shiro/MyBatis-Plus 与本仓 Spring Security/JPA 直接冲突，引入即背双套架构。
-2. **依赖最小**：只加一个 Maven 依赖 + 一个配置段，不新增进程/中间件（b 方案等于并一个独立后端，c 方案引入 MongoDB/Redis）。
-3. **可控性最好**：回调路由、顾客绑定、审计落库都是本仓强口径（见 §3、§5），必须自己写；SDK 只替代「HTTP + XML + AES + access_token 管理」这些无差异体力活。
-4. **活跃度**：WxJava 2026-10 仍在发版（仓库 API `pushed_at=2026-10-17`）；wx-manage 已归档。
+Single-store convention: **one official account** by default; table structures reserve an `account_id` dimension, but phase-1 UI exposes only single-account configuration.
 
 ---
 
-## 3. 本仓现状盘点（file:line）
+## 2. Open-source Option Comparison
 
-### 3.1 模块划分与技术栈
+| Option | Stars | License | Stack | Coverage | Fit for this repo |
+| ------ | ----- | ------- | ----- | -------- | ----------------- |
+| [binarywang/WxJava](https://github.com/binarywang/WxJava) | 33.2k | Apache-2.0 | Java SDK (incl. `wx-java-mp-spring-boot-starter`) | Full API wrappers for official accounts / mini programs / WeCom / WeChat Pay | **Highest**: same Java/Spring Boot stack; bring the SDK only, not the architecture; this repo writes the thin wrapper |
+| [niefy/wx-manage](https://github.com/niefy/wx-manage) (frontend) + [wx-api](https://github.com/niefy/wx-api) (backend) | 1.6k | Apache-2.0 | Vue2 + ElementUI; Spring Boot + **Shiro** + MyBatis-Plus + WxJava | Menus, auto-replies, materials, simple CMS, template messages, fans, parametric QR codes | **Low**: repo archived; Shiro conflicts with this repo's Spring Security, MyBatis-Plus with its JPA — bringing the whole thing means dual auth and dual ORM |
+| [anchel/wechat-official-account-admin](https://github.com/anchel/wechat-official-account-admin) | 41 | MIT | Go + MongoDB + Redis | Most complete: multiple accounts, message send/receive (plaintext/ciphertext), custom menus incl. personalized, materials, QR codes, user tags | **Design reference only**: Go version not directly usable; MongoDB/Redis not in this repo; its data model and "personalized menu" interaction design are worth borrowing |
+| [vluma/wechat_official_account_mcp](https://github.com/vluma/wechat_official_account_mcp) | 3 | **No license (none declared)** | Python MCP | Materials/drafts/publish; explicitly distinguishes permission boundaries across service / verified subscription / unverified subscription | **Docs reference only**: MCP form doesn't fit this repo's server; reusability questionable without a license; its account-type permission matrix (§6) has reference value |
 
-- **单模块后端**，无聚合父 pom：`server/pom.xml:1-4`，artifactId `sinomed`，version `0.1.0-SNAPSHOT`；CI 只认单模块构建（`.github/workflows/maven.yml:29`）。
-- **Java 21 + Spring Boot**：`server/pom.xml:25-27`（`java.version=21`，parent 为 `spring-boot-starter-parent`）。
-- **包结构固定为 10 层**（`server/src/main/java/com/sinomed/`）：`config/`（11 个装配类）、`controller/`（30 个 REST 控制器）、`entity/`（43 个 JPA 实体）、`repository/`（39 个仓库）、`service/`+`service/impl/`（26 对接口-实现）、`security/`（5 类）、`vo/`（60+ 视图对象）、`params/`、`util/`、`seed/`。
+> Data source: GitHub API, measured 2026-10-19 (stars, license and archived flags all from each repo's API response).
 
-### 3.2 数据访问层
+**Conclusion: option a (bring in the WxJava SDK directly, write a thin in-house wrapper)**, because:
 
-- **JPA + Hibernate**，`spring-boot-starter-data-jpa`（`server/pom.xml:71-73`）；DDL 策略 `ddl-auto: update`（`server/src/main/resources/application.yml:24-25`）——新表/新列由实体注解自动建，无需迁移脚本。
-- **默认 MySQL**，演示环境可切 SQLite：`application.yml:10-20` 用 `DB_DRIVER`/`DB_DIALECT`/`DB_URL` 环境变量切换；`mysql-connector-j` + `sqlite-jdbc` 双驱动并存（`server/pom.xml:50-60`）。
-- **仓库基线**：`JpaRepository<T,Long>` + `JpaSpecificationExecutor<T>`（例：`CustomerRepository.java:9`）。
-- **无外键约束**：实体间不用 DB 外键，靠业务 id 字段在服务层关联（`docs/server/data-model.md:5`）。
-- **审计字段**：全局 `@EnableJpaAuditing`（`PersistenceConfig.java:6-7`），实体挂 `@EntityListeners(AuditingEntityListener.class)` + `@CreatedDate/@LastModifiedDate`（例：`CardLookupLogEntity.java:27-57`）。
-- **插入省略策略**：`@DynamicInsert` 配合 `columnDefinition = "integer default 0"`，种子路径不必逐字段 set（`CustomerEntity.java:14-50`）。
-
-### 3.3 鉴权
-
-- **Spring Security + JWT**：`spring-boot-starter-security`（`server/pom.xml:76-78`）+ `jjwt 0.13.0` 三件套（`server/pom.xml:62-70`）。
-- **过滤器链**：`JwtRequestFilter extends OncePerRequestFilter`（`security/JwtRequestFilter.java:24-39`），从 `Authorization: Bearer` 解析 JWT，校验后写入 `SecurityContextHolder` 与会话属性。
-- **放行清单**：`SecurityConfig.java:51-64` 用 `requestMatchers(...).permitAll()` 列举白名单（Swagger、`/api/v1/ads/playlist`、`/api/v1/calls/latest`、`/api/v1/kiosk/**`、`/api/v1/print/templates`、`/media/**`、`/actuator/**`、登录接口），其余 `.anyRequest().authenticated()`（`SecurityConfig.java:65`）。
-- **角色与权限**：`Role` 枚举 `USER/ADMIN/MANAGER`（`security/Role.java:16-38`），`ADMIN` 含全部权限；`Permission` 枚举 `admin:read/update/create/delete` + `management:*`（`security/Permission.java:7-15`）。
-- **方法级鉴权**：`@EnableMethodSecurity`（`SecurityConfig.java:25`）；现有用法仅 `@PreAuthorize("hasRole('ADMIN')")`（`StaffController.java:72,156`），无 `hasAuthority` 细粒度用法。
-- **密码**：`BCryptPasswordEncoder`（`config/EncryptConfig.java:10-13`）。
-
-### 3.4 已有微信触点（本模块要衔接的既有资产）
-
-- **小程序凭据已落地**：`application.yml:51-53` 的 `sinomed.wechat.app-id` / `app-secret`（env `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，缺省空串=未配置）。
-- **`WechatConfig`** 仅装配一个 `RestTemplate` bean（`config/WechatConfig.java:11-17`），注释明确「便于测试用 MockRestServiceServer 绑定替身」。
-- **`WechatClient` 只覆盖 jscode2session**（`service/WechatClient.java:19-55`）：`WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置时抛 `IllegalArgumentException` 由全局异常透 400（不静默）；`session_key` 不出服务端。这是公众号模块**唯一已存在的微信 HTTP 出口**——公众号接入要新增出口，不能复用这个 bean（不同 appid 体系）。
-- **顾客档案已有一列 openid**：`CustomerEntity.java:36-38` 的 `openid` 是**小程序 openid**（unique、可空），配 `idx_customer_openid` 索引（`CustomerEntity.java:20`）；查询入口 `CustomerRepository.java:15` 的 `findByOpenid`。**这列不是公众号 openid**，两者属不同微信 appid 体系、值不同，必须分开存（详见 §4.7）。
-- **openid 绑定路径已实装**：`KioskController.java:308-331` 的 `/openid-session`（jscode2session 换 openid）与 `:352-397` 的 `/openid-bind`（openid + 手机号 + 一次性短信验证码自证后绑定到顾客档案），口径由 `sinomed.phone-lookup.mode`（`off`/`openid_only`/`sms_verified`，默认 `off`，`application.yml:48-49`）控制。
-- **审计模式已有样板**：`CardLookupLogEntity.java:17-57`——每次尝试（含拒绝）落一条，记录「查了谁的卡（phone/customerId）、谁查的（operator）、什么模式（mode）、结果（result）」；`KioskController.java:383-397` 展示写入模式。公众号绑定沿用同一审计口径。
-- **顾客标签已有表**：`CustomerTagEntity.java:18-44`（`customer_tags`，唯一约束 `(customer_id, tag)`），是公众号粉丝标签在本仓的**复用锚点**——粉丝标签不另建表，经 `wx_fans.customer_id` 关联查询（见 §4.6）。
+1. **Same tech stack**: this repo is Java 21 + Spring Boot (`server/pom.xml:5-8`); WxJava is a pure Java SDK that binds to Spring Boot config via `wx-java-mp-spring-boot-starter`; wx-manage's Shiro/MyBatis-Plus directly conflict with this repo's Spring Security/JPA.
+2. **Minimal dependencies**: one Maven dependency + one config block; no new process/middleware (option b means running a second backend, option c brings MongoDB/Redis).
+3. **Best controllability**: callback routing, customer binding, and audit logging are all strong repo conventions (§3, §5) that must be written in-house; the SDK only replaces the undifferentiated plumbing of "HTTP + XML + AES + access_token management".
+4. **Activity**: WxJava still releases as of 2026-10 (repo API `pushed_at=2026-10-17`); wx-manage is archived.
 
 ---
 
-## 4. 数据模型设计
+## 3. Current State of the Repo (file:line)
 
-遵循本仓纪律：JPA 实体 + `ddl-auto: update` 自动建表、无 DB 外键（业务 id 关联）、`@CreatedDate/@LastModifiedDate` 审计字段（见 §3.2）。所有表带 `account_id` 维度但第一期恒为单账号。
+### 3.1 Module Layout and Tech Stack
 
-### 4.1 wx_accounts — 公众号账号
+- **Single-module backend**, no aggregate parent pom: `server/pom.xml:1-4`, artifactId `sinomed`, version `0.1.0-SNAPSHOT`; CI builds the single module only (`.github/workflows/maven.yml:29`).
+- **Java 21 + Spring Boot**: `server/pom.xml:25-27` (`java.version=21`, parent is `spring-boot-starter-parent`).
+- **Package layout of 10 layers** (`server/src/main/java/com/sinomed/`): `config/` (11 config classes), `controller/` (30 REST controllers), `entity/` (43 JPA entities), `repository/` (39 repositories), `service/` + `service/impl/` (26 interface-impl pairs), `security/` (5 classes), `vo/` (60+ view objects), `params/`, `util/`, `seed/`.
 
-| 字段 | 类型 | 含义 |
-| ---- | ---- | ---- |
-| id | Long | 主键 |
-| app_id | String | AppID（唯一） |
-| app_secret | String | AppSecret（**加密落库**，不复用 `EncryptConfig` 的 BCrypt——那是单向哈希；用 AES 可逆加密，密钥走 env） |
-| account_name | String | 账号名称（展示用） |
-| account_type | String | `service`（服务号）/ `subscription`（订阅号） |
-| verified | Integer | 微信认证：1 已认证 / 0 未认证（决定能力矩阵，见 §6） |
-| token | String | 消息推送 Token（公众号后台配置的服务器验证令牌） |
-| aes_key | String | EncodingAESKey（43 字符，消息加解密密钥；**加密落库**） |
-| encrypt_mode | String | `plaintext`（明文）/ `compatible`（兼容）/ `safe`（安全）——对齐公众号后台三种消息加密模式 |
-| enabled | Integer | 1 启用 / 0 停用（停用后回调直接拒绝） |
-| remark | String | 备注 |
-| create_time / update_time | Date | 审计时间 |
+### 3.2 Data Access Layer
 
-唯一约束 `app_id`；索引 `enabled`。第一期**配置入口**：优先直接写库（管理端表单）或 env 覆盖，`WechatClient` 现有「未配置明确拒绝」口径沿用（不静默跳过）。
+- **JPA + Hibernate**, `spring-boot-starter-data-jpa` (`server/pom.xml:71-73`); DDL strategy `ddl-auto: update` (`server/src/main/resources/application.yml:24-25`) — new tables/columns are created automatically from entity annotations, no migration scripts.
+- **MySQL by default**, switchable to SQLite for demos: `application.yml:10-20` switches via `DB_DRIVER`/`DB_DIALECT`/`DB_URL` env vars; `mysql-connector-j` + `sqlite-jdbc` both present (`server/pom.xml:50-60`).
+- **Repository baseline**: `JpaRepository<T,Long>` + `JpaSpecificationExecutor<T>` (e.g. `CustomerRepository.java:9`).
+- **No DB foreign keys**: entities don't use DB FKs; business id fields relate them at the service layer (`docs/server/data-model.md:5`).
+- **Audit fields**: global `@EnableJpaAuditing` (`PersistenceConfig.java:6-7`); entities carry `@EntityListeners(AuditingEntityListener.class)` + `@CreatedDate/@LastModifiedDate` (e.g. `CardLookupLogEntity.java:27-57`).
+- **Insert-omit strategy**: `@DynamicInsert` with `columnDefinition = "integer default 0"`, so seed paths needn't set every field (`CustomerEntity.java:14-50`).
 
-### 4.2 wx_fans — 公众号粉丝（核心，桥接顾客档案）
+### 3.3 Authentication
 
-| 字段 | 类型 | 含义 |
-| ---- | ---- | ---- |
-| id | Long | 主键 |
-| account_id | Long | 公众号 id（wx_accounts.id，业务外键） |
-| openid | String | **公众号 openid**（同账号内唯一；与 `customers.openid` 的小程序 openid **不同体系、值不同**，见 §4.7） |
-| unionid | String | 开放平台 unionid（可空；仅当公众号与小程序绑到同一开放平台账号下才有，是跨端自动关联的唯一凭据） |
-| nickname | String | 昵称 |
-| head_img_url | String | 头像 URL |
-| subscribe | Integer | 1 已关注 / 0 已取消关注（取消关注保留行，供回归分析） |
-| subscribe_time | Date | 关注时刻（事件推送 `subscribe` 时写入；取关时写 unsubscribe_time） |
-| unsubscribe_time | Date | 取关时刻（可空） |
-| **customer_id** | Long | **顾客档案 id（可空；绑定后写入，见 §4.7）** |
-| remark | String | 运营备注 |
-| create_time / update_time | Date | 审计时间 |
+- **Spring Security + JWT**: `spring-boot-starter-security` (`server/pom.xml:76-78`) + the `jjwt 0.13.0` trio (`server/pom.xml:62-70`).
+- **Filter chain**: `JwtRequestFilter extends OncePerRequestFilter` (`security/JwtRequestFilter.java:24-39`) parses the JWT from `Authorization: Bearer`, validates it, and writes to `SecurityContextHolder` and the session.
+- **Permit list**: `SecurityConfig.java:51-64` enumerates `requestMatchers(...).permitAll()` entries (Swagger, `/api/v1/ads/playlist`, `/api/v1/calls/latest`, `/api/v1/kiosk/**`, `/api/v1/print/templates`, `/media/**`, `/actuator/**`, login); everything else `.anyRequest().authenticated()` (`SecurityConfig.java:65`).
+- **Roles and permissions**: `Role` enum `USER/ADMIN/MANAGER` (`security/Role.java:16-38`); `ADMIN` holds all permissions; `Permission` enum `admin:read/update/create/delete` + `management:*` (`security/Permission.java:7-15`).
+- **Method-level auth**: `@EnableMethodSecurity` (`SecurityConfig.java:25`); the only existing use is `@PreAuthorize("hasRole('ADMIN')")` (`StaffController.java:72,156`); no fine-grained `hasAuthority` usage.
+- **Passwords**: `BCryptPasswordEncoder` (`config/EncryptConfig.java:10-13`).
 
-唯一约束 `(account_id, openid)`；索引 `customer_id`、`unionid`。
+### 3.4 Existing WeChat Touchpoints (assets this module must connect to)
 
-### 4.3 wx_menus — 自定义菜单（编辑/草稿与推送服务端已交付；真实出网压凭据）
+- **Mini-program credentials landed**: `application.yml:51-53` `sinomed.wechat.app-id` / `app-secret` (env `WECHAT_APP_ID`/`WECHAT_APP_SECRET`, empty default = unconfigured).
+- **`WechatConfig`** only wires a `RestTemplate` bean (`config/WechatConfig.java:11-17`), commented for `MockRestServiceServer` stubbing in tests.
+- **`WechatClient` covers jscode2session only** (`service/WechatClient.java:19-55`): when `WECHAT_APP_ID`/`WECHAT_APP_SECRET` are missing it throws `IllegalArgumentException` surfaced as 400 by the global handler (no silence); `session_key` never leaves the server. This is the **only existing WeChat HTTP egress** — official-account integration needs a new egress and must not reuse this bean (different appid system).
+- **The customer record already has an openid column**: `CustomerEntity.java:36-38` `openid` is the **mini-program openid** (unique, nullable), with the `idx_customer_openid` index (`CustomerEntity.java:20`); lookup via `CustomerRepository.java:15` `findByOpenid`. **This is not the official-account openid** — different appid systems, different values, must be stored separately (§4.7).
+- **The openid binding path is implemented**: `KioskController.java:308-331` `/openid-session` (jscode2session exchange) and `:352-397` `/openid-bind` (openid + phone + one-time SMS code self-binding to the customer record), governed by `sinomed.phone-lookup.mode` (`off`/`openid_only`/`sms_verified`, default `off`, `application.yml:48-49`).
+- **Audit pattern has a template**: `CardLookupLogEntity.java:17-57` — one row per attempt (including rejections), recording "whose card was looked up (phone/customerId), who looked (operator), which mode, which result"; the write pattern at `KioskController.java:383-397`. Official-account binding follows the same audit convention.
+- **Customer tags table exists**: `CustomerTagEntity.java:18-44` (`customer_tags`, unique `(customer_id, tag)`) — the **reuse anchor** for fan tags; fan tags get no separate table, queried through `wx_fans.customer_id` (§4.6).
 
-| 字段 | 类型 | 含义 |
-| ---- | ---- | ---- |
-| id | Long | 主键 |
-| account_id | Long | 公众号 id |
-| parent_id | Long | 父菜单 id（顶级为空；最多两级，微信协议上限） |
-| name | String | 菜单名（微信限制：一级 ≤ 4 汉字、二级 ≤ 8 汉字，服务端校验） |
+---
+
+## 4. Data Model
+
+Follows repo discipline: JPA entities + `ddl-auto: update` auto-tables, no DB FKs (business id relations), `@CreatedDate/@LastModifiedDate` audits (§3.2). Every table carries `account_id` but phase 1 is single-account.
+
+### 4.1 wx_accounts — Official Account
+
+| Column | Type | Meaning |
+| ------ | ---- | ------- |
+| id | Long | PK |
+| app_id | String | AppID (unique) |
+| app_secret | String | AppSecret (**encrypted at rest** — not `EncryptConfig`'s BCrypt, that's one-way; use reversible AES with the key from env) |
+| account_name | String | Display name |
+| account_type | String | `service` / `subscription` |
+| verified | Integer | WeChat verification: 1 verified / 0 not (drives the capability matrix, §6) |
+| token | String | Message-push Token (server verification token configured in the WeChat console) |
+| aes_key | String | EncodingAESKey (43 chars, message crypto key; **encrypted at rest**) |
+| encrypt_mode | String | `plaintext` / `compatible` / `safe` — mirrors the console's three message-encryption modes |
+| enabled | Integer | 1 on / 0 off (off → callbacks refuse processing) |
+| remark | String | Notes |
+| create_time / update_time | Date | Audit times |
+
+Unique on `app_id`; index on `enabled`. Phase-1 **configuration entry**: write the DB directly (admin form) or env override; `WechatClient`'s "explicit rejection when unconfigured" convention carries over (no silent skip).
+
+### 4.2 wx_fans — Official Account Fans (core, bridges customer records)
+
+| Column | Type | Meaning |
+| ------ | ---- | ------- |
+| id | Long | PK |
+| account_id | Long | Account id (wx_accounts.id, business FK) |
+| openid | String | **Official-account openid** (unique per account; a **different system and different values** from the mini-program openid in `customers.openid`, §4.7) |
+| unionid | String | Open Platform unionid (nullable; present only when the account and mini program sit under the same Open Platform account — the only credential for automatic cross-app linking) |
+| nickname | String | Nickname |
+| head_img_url | String | Avatar URL |
+| subscribe | Integer | 1 subscribed / 0 unsubscribed (unsubscribes keep the row for regression analysis) |
+| subscribe_time | Date | Subscribe time (written on `subscribe` event; unsubscribe writes unsubscribe_time) |
+| unsubscribe_time | Date | Unsubscribe time (nullable) |
+| **customer_id** | Long | **Customer record id (nullable; written once bound, §4.7)** |
+| remark | String | Operations note |
+| create_time / update_time | Date | Audit times |
+
+Unique `(account_id, openid)`; indexes on `customer_id`, `unionid`.
+
+### 4.3 wx_menus — Custom Menus (edit/draft and the push server side delivered; real outbound stays credential-gated)
+
+| Column | Type | Meaning |
+| ------ | ---- | ------- |
+| id | Long | PK |
+| account_id | Long | Account id |
+| parent_id | Long | Parent id (empty for top level; max two levels, WeChat protocol limit) |
+| name | String | Menu name (WeChat limits: level-1 ≤ 4 CJK chars, level-2 ≤ 8; validated server-side) |
 | menu_type | String | `view`/`click`/`scancode_push`/`scancode_waitmsg`/`pic_sysphoto`/`pic_photo_or_album`/`pic_weixin`/`location_select`/`view_miniprogram` |
-| url | String | `view` 类型跳转 URL |
-| media_id | String | 素材类菜单的 media_id |
-| miniprogram_appid / miniprogram_pagepath | String | `view_miniprogram` 的小程序跳转参数（**可指向本仓小程序**） |
-| event_key | String | `click` 类型的事件 key（回调时透传，用于路由） |
-| sort | Integer | 展示顺序 |
-| enabled | Integer | 1 启用 / 0 草稿（草稿态不推送微信） |
-| create_time / update_time | Date | 审计时间 |
+| url | String | Jump URL for `view` |
+| media_id | String | media_id for material menus |
+| miniprogram_appid / miniprogram_pagepath | String | Mini-program jump params for `view_miniprogram` (**may point at this repo's mini program**) |
+| event_key | String | Event key for `click` (passed through on callback, for routing) |
+| sort | Integer | Display order |
+| enabled | Integer | 1 published / 0 draft (drafts are not pushed to WeChat) |
+| create_time / update_time | Date | Audit times |
 
-索引 `(account_id, parent_id)`。参考 anchel 的「个性化菜单」设计，**第一期不做**（单店场景无人群差异化菜单需求），表结构不预留。
+Index `(account_id, parent_id)`. Anchel's "personalized menus" are **not in phase 1** (single store has no audience-differentiated menu need); no table reservation.
 
-管理端编辑/草稿已交付（`WxOfficialAccountService.saveMenu`，与规则编辑同款「不再手工改库」口径，不依赖模块开关）：两级结构校验（父必须是同账号顶级菜单、最多两级）、一级仅 view/click（扫码/媒体类只能做二级）、菜单名按微信口径加权校验（非 ASCII 记 2 分、ASCII 记 1 分：一级 ≤8 分即「4 汉字或 8 字母」、二级 ≤16 分）、容量上限（每号 ≤3 一级、每个一级 ≤5 二级）、view/click/view_miniprogram 必填字段、非 view 类型强制清空 url；删除父菜单须先删子。**推送微信半边服务端已交付**（2026-10-20 p1020g：`POST /api/v1/wx/menus/push/{accountId}` 取 token→`cgi-bin/menu/create`、只推启用菜单、微信 errcode 透传不静默；出网基址可配 `wechat-api-base-url`，测试走本地桩零外网——D-OA4 先例；真实出网仍压凭据；web 管理端「推送微信」按钮已接线——`wx.ts` `pushMenus` + 公众号页菜单 tab Popconfirm（2026-10-20，web jest 18/18））；2026-10-20 同批校验收紧：click/扫码/媒体/位置类必填事件 key、view_miniprogram 建菜单时即要求备用网页 url（微信协议必填，避免推送时才失败）。
+Admin-side edit/draft is delivered (`WxOfficialAccountService.saveMenu`, same "no more hand-edited SQL" convention as rule editing, independent of the module switch): two-level structure validation (parent must be a same-account top-level menu, two levels max), view/click only at level 1 (scan/media types are sub-menu only), WeChat-convention weighted name check (non-ASCII counts 2, ASCII counts 1: level-1 ≤8 i.e. "4 CJK chars or 8 letters", level-2 ≤16), capacity caps (≤3 top menus per account, ≤5 sub-menus per top), required fields for view/click/view_miniprogram, URLs on non-view types cleared server-side; a parent must be child-free before deletion. **The push-to-WeChat server side is delivered** (2026-10-20: `POST /api/v1/wx/menus/push/{accountId}` fetching a token then calling `cgi-bin/menu/create`, enabled menus only, WeChat errcode passed through never silent; outbound base configurable via `wechat-api-base-url`, tests hit a local stub with zero external calls — the D-OA4 precedent; real outbound stays credential-gated; the web admin "Push to WeChat" button is wired (2026-10-20: `pushMenus` in `wx.ts` + a Popconfirm button in the menu tab, web jest 18/18)); a same-day validation tightening: click/scan/media/location types require an event key, and view_miniprogram requires the fallback web url at save time (required by the WeChat protocol, so failures surface at menu build rather than at push).
 
-### 4.4 wx_auto_replies — 自动回复规则
+### 4.4 wx_auto_replies — Auto-reply Rules
 
-| 字段 | 类型 | 含义 |
-| ---- | ---- | ---- |
-| id | Long | 主键 |
-| account_id | Long | 公众号 id |
-| rule_type | String | `subscribe`（关注欢迎语，一账号一条生效）/ `keyword`（关键词回复）/ `fallback`（兜底回复，一账号一条） |
-| keyword | String | 关键词（`rule_type=keyword` 时非空） |
-| match_type | String | `exact`（全等）/ `contains`（包含） |
-| reply_type | String | `text` / `image` / `news`（图文，media_id 引用 wx_materials） |
-| content | TEXT | 文本内容；素材类存 media_id |
-| priority | Integer | 匹配优先级，小者先试 |
-| enabled | Integer | 1 启用 / 0 停用 |
-| create_time / update_time | Date | 审计时间 |
+| Column | Type | Meaning |
+| ------ | ---- | ------- |
+| id | Long | PK |
+| account_id | Long | Account id |
+| rule_type | String | `subscribe` (welcome message, at most one effective per account) / `keyword` / `fallback` (at most one per account) |
+| keyword | String | Keyword (non-empty when `rule_type=keyword`) |
+| match_type | String | `exact` / `contains` |
+| reply_type | String | `text` / `image` / `news` (media_id referencing wx_materials) |
+| content | TEXT | Text content; media types store media_id |
+| priority | Integer | Match priority, lower tries first |
+| enabled | Integer | 1 on / 0 off |
+| create_time / update_time | Date | Audit times |
 
-索引 `(account_id, rule_type, enabled)`。同账号同 `rule_type=subscribe`/`fallback` 各最多一条生效（服务层约束，不加 DB 唯一约束——避免草稿态冲突）。
+Index `(account_id, rule_type, enabled)`. At most one effective `subscribe`/`fallback` per account (service-layer constraint, no DB unique — avoids draft-state conflicts).
 
-### 4.5 wx_materials — 素材台账
+### 4.5 wx_materials — Material Ledger
 
-| 字段 | 类型 | 含义 |
-| ---- | ---- | ---- |
-| id | Long | 主键 |
-| account_id | Long | 公众号 id |
-| media_id | String | 微信侧 media_id（唯一键之一） |
-| material_type | String | `image`/`voice`/`video`/`news`（图文）/`temp`（临时素材） |
-| name | String | 素材名 |
-| url | String | 微信返回的访问 URL（临时素材有时效，仅记录不依赖） |
-| local_path | String | 本仓本地落盘路径（复用 `sinomed.ads.upload-dir` 同款挂载思路，`application.yml:39-41`） |
-| size / mime_type | Long / String | 文件元信息 |
-| create_time / update_time | Date | 审计时间 |
+| Column | Type | Meaning |
+| ------ | ---- | ------- |
+| id | Long | PK |
+| account_id | Long | Account id |
+| media_id | String | WeChat-side media_id (one of the unique keys) |
+| material_type | String | `image`/`voice`/`video`/`news`/`temp` |
+| name | String | Material name |
+| url | String | WeChat-returned access URL (temp materials expire; recorded, never relied on) |
+| local_path | String | Local storage path (reuses the `sinomed.ads.upload-dir` mount idea, `application.yml:39-41`) |
+| size / mime_type | Long / String | File metadata |
+| create_time / update_time | Date | Audit times |
 
-唯一约束 `(account_id, media_id)`。第一期**只做消息内临时素材的拉取落日志**（收到图片消息时下载 PicUrl 到 `local_path`，供管理端查看），不做上传/管理 UI。台账只读查看已于 2026-10-20 交付：`GET /api/v1/wx/materials/page`（账号/类型/时间窗 AND 过滤）+ `GET /api/v1/wx/materials/{id}` 取本地副本（路径越权防护，`../` 一律 400），web/ 公众号页「素材台账」tab 消费（blob 预览带 JWT）；上传与微信侧永久素材仍属第二期推送半边（压凭据）。
+Unique `(account_id, media_id)`. Phase 1 **only pulls message-embedded temp materials to disk + logs** (downloads PicUrl into `local_path` when an image message arrives, for admin viewing); no upload/manage UI. Read-only ledger viewing landed on 2026-10-20: `GET /api/v1/wx/materials/page` (account/type/time-window AND filters) + `GET /api/v1/wx/materials/{id}` serving the local copy (path-traversal guard, `../` always 400), consumed by the web/ WeChat page's "Material ledger" tab (blob preview carrying the JWT); upload and WeChat-side permanent materials remain the phase-2 push half (credential-gated).
 
-### 4.6 粉丝标签：不建表，复用 customer_tags
+### 4.6 Fan Tags: No New Table, Reuse customer_tags
 
-粉丝标签（公众号侧的「用户标签」）**不另建表**：本仓已有 `customer_tags`（`CustomerTagEntity.java:18-44`，同顾客同标签唯一），粉丝标签经 `wx_fans.customer_id` 关联到顾客后直接查询顾客标签。理由：
+Fan tags (WeChat-side "user tags") get **no separate table**: this repo already has `customer_tags` (`CustomerTagEntity.java:18-44`, unique per customer+tag); fan tags join to customers via `wx_fans.customer_id` and query those directly. Rationale:
 
-1. 医馆运营关心的是「这个粉丝对应哪位顾客、有什么标签」，不是微信侧独立的粉丝标签体系；
-2. 未绑定顾客的粉丝（无 `customer_id`）暂无标签需求——第一期连绑定都是引导式，未绑定粉丝的管理价值低；
-3. 不产生两套并行标签实体（对齐 salon-extension.md §6 红线）。
+1. Clinic operations care about "which customer is this fan, what tags do they have", not a standalone WeChat-side tag system;
+2. Unbound fans (no `customer_id`) have no tag needs yet — phase-1 binding is guided, so unbound fans carry little management value;
+3. Avoids two parallel tag entities (aligns with salon-extension.md §6 red line).
 
-若后续确需微信侧标签（群发按微信标签定向），再补 `wx_fan_tags` 表，属第三期以后。
+If WeChat-side tags are truly needed later (mass messaging targeted by WeChat tag), add `wx_fan_tags` then — phase 3+.
 
-### 4.7 与顾客/会员实体的关系（关键设计决策）
+### 4.7 Relation to Customer/Membership Entities (key design decision)
 
-**两个 openid 是不同体系**：
+**The two openids are different systems**:
 
 ```text
-小程序（已有）                          公众号（新增）
-customers.openid  ←—— jscode2session   wx_fans.openid   ←—— 消息回调 FromUserName
-   （小程序 openid，unique）                （公众号 openid，per-account 唯一）
+Mini program (existing)                    Official account (new)
+customers.openid  ←— jscode2session   wx_fans.openid   ←— callback FromUserName
+   (mini-program openid, unique)           (official-account openid, unique per account)
         │                                        │
-        │      同一开放平台下 unionid 才相等       │
-        └──────────────┬─────────────────────────┘
-                       ▼
-                 customers.id（顾客档案）
-                  ↗ 经 wx_fans.customer_id 桥接
+        │    unionid equal only under same        │
+        │        Open Platform account            │
+        └──────────────────┬─────────────────────┘
+                           ▼
+                    customers.id (customer record)
+                     ↗ bridged via wx_fans.customer_id
 ```
 
-- **不合并**：`customers.openid` 保持小程序语义不动（`CustomerEntity.java:36-38`、`docs/server/data-model.md:18`），公众号 openid 存 `wx_fans.openid`。
-- **绑定路径（第一期，显式）**：公众号侧引导顾客绑定 → 复用 Kiosk 已验证的「手机号 + 一次性短信验证码双因子」口径（`KioskController.java:352-397` 的 `/openid-bind` 模式）：粉丝点菜单/回复关键词进入 H5 → 输入手机号 + 短信码 → 服务端校验后写 `wx_fans.customer_id` → 每次尝试（含拒绝）落 `wx_binding_logs`（§4.8）。
-- **自动关联路径（后续，需开放平台）**：若公众号与小程序绑定同一微信开放平台账号，消息回调携带的 openid 可换 unionid，与 `wx_fans.unionid` 或小程序侧 unionid 比对自动关联——**第一期不做**（单店通常不为此单独开开放平台主体），设计只保留 `unionid` 字段。
-- **解除绑定**：管理端可解绑（清 `customer_id` + 审计）；顾客取关不自动解绑（保留行、`subscribe=0`，再关注后 `customer_id` 仍在——换人关注同一 openid 属线下场景，走管理端人工处理）。web 接线已交付（2026-10-20：公众号页「消息流水」行内「解绑」按钮——`in` 行取 `fromUser`、`out` 行取 `toUser` 为粉丝 openid，成功刷新顾客列回「未绑定」，`no_fan`/`not_bound` 的 400 原样透出；服务端端点见 docs/server/api.md，纯本地库操作不触微信）。
+- **No merge**: `customers.openid` keeps its mini-program semantics untouched (`CustomerEntity.java:36-38`, `docs/server/data-model.md:18`); the official-account openid lives in `wx_fans.openid`.
+- **Binding path (phase 1, explicit)**: official-account-side guided binding → reuse Kiosk's proven "phone + one-time SMS code two-factor" convention (`KioskController.java:352-397` `/openid-bind` pattern): the fan opens an H5 from menu/keyword → enters phone + SMS code → the server verifies and writes `wx_fans.customer_id` → every attempt (including rejections) lands in `wx_binding_logs` (§4.8).
+- **Automatic linking path (later, needs Open Platform)**: if the account and mini program sit under one Open Platform account, the callback openid can be exchanged for a unionid and matched against `wx_fans.unionid` or the mini-program-side unionid for automatic linking — **not in phase 1** (single stores rarely open an Open Platform entity just for this); the design only reserves the `unionid` column.
+- **Unbinding**: the admin can unbind (clear `customer_id` + audit); a customer unsubscribing does not auto-unbind (row kept, `subscribe=0`; `customer_id` persists after re-subscribing — a different person following the same openid is an offline scenario, handled manually by the admin). Web wiring delivered (2026-10-20: an "unbind" row action in the message-logs tab of the admin page — the fan openid is `fromUser` on `in` rows and `toUser` on `out` rows, the customer column flips back to "unbound" after a refresh, and the `no_fan`/`not_bound` 400s are surfaced verbatim; the server endpoint is documented in docs/server/api.md and the operation is purely local, with no WeChat call).
 
-### 4.8 wx_binding_logs — 粉丝绑定审计
+### 4.8 wx_binding_logs — Fan Binding Audit
 
-沿用 `card_lookup_logs` 口径（`CardLookupLogEntity.java:17-57`）：每次尝试（含拒绝）落一条。
+Follows `card_lookup_logs` conventions (`CardLookupLogEntity.java:17-57`): one row per attempt (including rejections).
 
-| 字段 | 类型 | 含义 |
-| ---- | ---- | ---- |
-| id | Long | 主键 |
-| account_id | Long | 公众号 id |
-| fan_openid | String | 发起绑定的粉丝 openid |
-| phone | String | 被绑定顾客手机号（审计：绑了谁） |
-| customer_id | Long | 命中的顾客 id（未命中为空） |
-| result | String | `ok` / `missing_code` / `bad_code` / `expired_code` / `used_code` / `no_customer` / `bound_other`（该粉丝已绑其他顾客）/ `conflict`（该顾客已被其他粉丝绑定） |
-| create_time | Date | 时间 |
+| Column | Type | Meaning |
+| ------ | ---- | ------- |
+| id | Long | PK |
+| account_id | Long | Account id |
+| fan_openid | String | The binding fan's openid |
+| phone | String | The bound customer's phone (audit: who got bound) |
+| customer_id | Long | Matched customer id (empty on miss) |
+| result | String | `ok` / `missing_code` / `bad_code` / `expired_code` / `used_code` / `no_customer` / `bound_other` (this fan already bound to another customer) / `conflict` (this customer already bound to another fan) |
+| create_time | Date | Time |
 
-索引 `fan_openid`、`phone`。**不共用 `card_lookup_logs`**：那是「查卡」语义，这里是「绑定」语义，混表会让 result 枚举膨胀且查询意图不清——同口径、不同表。
+Indexes `fan_openid`, `phone`. **Does not share `card_lookup_logs`**: that's "card lookup" semantics, this is "binding" — mixing tables would bloat the result enum and blur query intent. Same convention, different table.
 
 ---
 
-## 5. 消息接入流程
+## 5. Message Integration Flow
 
-> 来源：[服务器配置](https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/服务器配置.html)、[接收普通消息](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/接收普通消息.html)、[消息加解密说明](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/消息加解密说明.html)、[被动回复用户消息](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/被动回复用户消息.html)、[接收事件推送](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/接收事件推送.html)
+> Sources: [Server configuration](https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/服务器配置.html), [Receiving messages](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/接收普通消息.html), [Message crypto](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/消息加解密说明.html), [Passive replies](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/被动回复用户消息.html), [Event push](https://developers.weixin.qq.com/doc/offiaccount/Basic_Information/接收事件推送.html)
 
-### 5.1 回调 URL 与放行
+### 5.1 Callback URL and Whitelisting
 
-- **路径**：`GET/POST /api/v1/wx/callback/{accountId}`（`accountId` 对应 `wx_accounts.id`；单账号场景便于日后扩多账号，无需改 URL）。
-- **免登录放行**：微信服务器 POST 无 JWT，须加入 `SecurityConfig.java:51-64` 的 permitAll 清单：`"/api/v1/wx/callback/**"`。这是本模块唯一的新放行项——管理端其余接口仍走 JWT。
-- **来源可信靠签名**，不靠登录态：见 §5.2。
-- **实例约束**：WxJava 的 `WxMpMessageRouter` 须按 `accountId` 实例化并缓存（`WxMpMultiServices` 思路），不能单例复用多账号配置。
+- **Path**: `GET/POST /api/v1/wx/callback/{accountId}` (`accountId` = wx_accounts.id; single account today, but the URL survives multi-account later).
+- **No-login whitelisting**: WeChat's POSTs carry no JWT, so add to `SecurityConfig.java:51-64`'s permitAll: `"/api/v1/wx/callback/**"`. This is the module's only new permit entry — all other admin endpoints keep JWT.
+- **Source trust comes from the signature**, not a login state: §5.2.
+- **Instance constraint**: WxJava's `WxMpMessageRouter` must be instantiated per `accountId` and cached (`WxMpMultiServices` idea); a singleton cannot serve multiple account configs.
 
-### 5.2 签名验证（两种场景，同一算法）
+### 5.2 Signature Verification (two scenarios, one algorithm)
 
-算法：`signature = SHA1(sort(token, timestamp, nonce))` 字典序拼接后 SHA1-Hex。
+Algorithm: `signature = SHA1(sort(token, timestamp, nonce))` — sort lexicographically, concatenate, SHA1-Hex.
 
-| 场景 | 触发 | 校验内容 | 成功返回 |
-| ---- | ---- | -------- | -------- |
-| **URL 验证（GET）** | 公众号后台保存服务器配置时 | `signature/timestamp/nonce`，`echostr` 原样返回 | `echostr` 明文 |
-| **消息推送（POST）** | 每次用户发消息/事件 | `msg_signature`（密文模式= `SHA1(token+timestamp+nonce+encrypt)`），验签后再解密 | 见 §5.4 |
+| Scenario | Trigger | Verifies | On success |
+| -------- | ------- | -------- | ---------- |
+| **URL verification (GET)** | Saving server config in the console | `signature/timestamp/nonce`; returns `echostr` verbatim | `echostr` plaintext |
+| **Message push (POST)** | Every user message/event | `msg_signature` (safe mode = `SHA1(token+timestamp+nonce+encrypt)`), then decrypt | §5.4 |
 
-验签失败一律返回 200 + 空 body（微信要求异常时也不能回 5xx，否则持续重试 3 次后放弃），同时落审计日志。
+Signature failures always return 200 + empty body (WeChat requires no 5xx, else it retries 3 times then gives up), with an audit row.
 
-### 5.3 加解密（AES-256-CBC）
+### 5.3 Crypto (AES-256-CBC)
 
-- **明文模式**（`encrypt_mode=plaintext`）：POST body 即明文 XML，验签后直接解析。
-- **兼容/安全模式**（`compatible`/`safe`）：body 是 `<xml><Encrypt>…</Encrypt></xml>`，流程：`msg_signature` 验签 → Base64 解码 → 取 16 字节随机串 + 4 字节 msg_len + 明文 XML + receiveid（`Base64(AES-256-CBC(随机串+XML))`，密钥 = `Base64Decode(EncodingAESKey + "=")`，IV = 密钥前 16 字节）→ PKCS7 反填充得明文 XML。
-- **实现归属（2026-10-20 已落地，已代决）**：按官方规范手写 `WxMsgCryptor`（AES-256-CBC/PKCS7、四段 `msg_signature`、receiveid 绑定），不引 WxJava——沿用 D-OA3「不引 SDK」决策族；正确性以 OpenSSL 独立实现的已知向量（KAT）锚定（`WxMsgCryptorTest`），不与实现同源循环。
-- **被动回复加密**：安全模式下回复体也须加密（同 key），由 `WxOfficialAccountService.sealReply` 统一密封：时间戳取服务器当前时间、Nonce 回带入站值；`success` 与空体保持明文。
+- **Plaintext mode** (`encrypt_mode=plaintext`): the POST body is plaintext XML, parse after verification.
+- **Compatible/safe** (`compatible`/`safe`): body is `<xml><Encrypt>…</Encrypt></xml>`; flow: `msg_signature` verify → Base64 decode → 16-byte random + 4-byte msg_len + plaintext XML + receiveid (`Base64(AES-256-CBC(random+XML))`, key = `Base64Decode(EncodingAESKey + "=")`, IV = first 16 key bytes) → PKCS7 unpad.
+- **Implementation home (landed 2026-10-20, decided)**: hand-written `WxMsgCryptor` to the official spec (AES-256-CBC/PKCS7, 4-part `msg_signature`, receiveid binding), no WxJava — the D-OA3 "no SDK" decision family; correctness is anchored by known-answer vectors (KAT) computed by an independent OpenSSL implementation (`WxMsgCryptorTest`), not by the implementation itself.
+- **Encrypted replies**: in safe mode replies are encrypted with the same key and sealed by `WxOfficialAccountService.sealReply`: server-side timestamp, nonce echoed from the inbound push; `success` and empty bodies stay plaintext.
 
-### 5.4 消息接收与分发
+### 5.4 Message Reception and Dispatch
 
 ```text
-微信服务器
-  │ POST /api/v1/wx/callback/{accountId}（XML）
+WeChat servers
+  │ POST /api/v1/wx/callback/{accountId} (XML)
   ▼
 WxCallbackController
-  ├─ 1. 按 accountId 取 wx_accounts（停用/未配置 → 200 "success" 拒处理 + 审计）
-  ├─ 2. 验签（§5.2）+ 解密（§5.3）→ WxMpXmlMessage
-  ├─ 3. 排重：MsgId（消息）或 EventKey+FromUserName+CreateTime（事件）唯一键落库，
-  │      重复直接 200 "success"（微信 5s 超时会重试，总共 3 次）
-  ├─ 4. 落 wx_message_logs（direction=in，全量）
-  ├─ 5. 路由（WxMpMessageRouter，同步规则部分 5s 内完成）：
-  │      ├─ event=subscribe   → wx_fans.upsert(subscribe=1) + 订阅欢迎语规则
-  │      ├─ event=unsubscribe → wx_fans.subscribe=0（不回复，微信不收）
-  │      ├─ event=CLICK/VIEW  → 菜单事件（第一期仅落日志）
-  │      ├─ msg=text          → wx_auto_replies 关键词匹配（exact→contains，priority）
-  │      └─ msg=image/voice/… → 落日志 + 兜底回复（不做语音识别/图片处理）
-  └─ 6. 回复：被动回复 XML（5s 内）或客服消息接口（异步，48h 窗口内）
+  ├─ 1. load wx_accounts by accountId (off/unconfigured → 200 "success" refuse + audit)
+  ├─ 2. verify signature (§5.2) + decrypt (§5.3) → WxMpXmlMessage
+  ├─ 3. dedupe: MsgId (messages) or EventKey+FromUserName+CreateTime (events) unique in DB,
+  │      duplicates → 200 "success" (5s timeout → 3 retries)
+  ├─ 4. write wx_message_logs (direction=in, everything)
+  ├─ 5. route (WxMpMessageRouter, synchronous rules within 5s):
+  │      ├─ event=subscribe   → wx_fans.upsert(subscribe=1) + welcome rule
+  │      ├─ event=unsubscribe → wx_fans.subscribe=0 (no reply; WeChat won't accept one)
+  │      ├─ event=CLICK/VIEW  → menu events (phase 1: log only)
+  │      ├─ msg=text          → wx_auto_replies keyword match (exact→contains, priority)
+  │      └─ msg=image/voice/… → log + fallback reply (no speech/image processing)
+  └─ 6. reply: passive XML (within 5s) or customer-service API (async, 48h window)
 ```
 
-**5 秒约束**（官方：5 秒收不到响应会断连并重试，共 3 次；无需回复时直接回 `"success"` 空串）：
+**The 5-second constraint** (official: no response within 5s → disconnect and retry, 3 times total; return `"success"` when no reply is needed):
 
-- 规则匹配 + 被动回复同步完成（纯内存/本地库操作，5s 富余）；
-- 素材下载、顾客绑定等慢操作**不阻塞**回复线程：先回 `"success"`，异步线程处理，需要触达用户时走客服消息接口；
-- 全部回复（被动 + 客服）也落 `wx_message_logs`（`direction=out`），构成完整会话记录。
+- Rule matching + passive reply complete synchronously (memory/local DB only, 5s is ample);
+- Slow operations (material download, customer binding) **must not block** the reply thread: reply `"success"` first, process async, reach the user via the customer-service API;
+- All replies (passive + customer-service) also land in `wx_message_logs` (`direction=out`), forming a complete conversation record.
 
-### 5.5 消息类型支持矩阵（第一期）
+### 5.5 Message Type Matrix (phase 1)
 
-| 类型 | 接收 | 被动回复 | 说明 |
-| ---- | ---- | -------- | ---- |
-| text | ✅ | ✅ | 关键词匹配主体 |
-| image | ✅ | ✅（回固定文案） | PicUrl 拉取落 `wx_materials.local_path` |
-| voice | ✅ | ✅（回固定文案） | 落日志，Format/MediaId 记录，不做识别 |
-| video / shortvideo | ✅ | ✅（回固定文案） | 落日志 |
-| link / location | ✅ | ✅（回固定文案） | 落日志 |
-| event: subscribe / unsubscribe | ✅ | 欢迎语 / 不回复 | 粉丝增删主入口 |
-| event: CLICK / VIEW | ✅ | 落日志 | 菜单事件，第一期不做业务路由 |
-| event: 其他（scan 等） | ✅ | 落日志 | 不识别的事件统一落日志不报错 |
+| Type | Receive | Passive reply | Notes |
+| ---- | ------- | ------------- | ----- |
+| text | ✅ | ✅ | The keyword-match workhorse |
+| image | ✅ | ✅ (fixed copy) | PicUrl pulled into `wx_materials.local_path` |
+| voice | ✅ | ✅ (fixed copy) | Logged with Format/MediaId, no recognition |
+| video / shortvideo | ✅ | ✅ (fixed copy) | Logged |
+| link / location | ✅ | ✅ (fixed copy) | Logged |
+| event: subscribe / unsubscribe | ✅ | Welcome / no reply | The fan add/remove main entry |
+| event: CLICK / VIEW | ✅ | Log only | Menu events, no business routing in phase 1 |
+| event: others (scan etc.) | ✅ | Log only | Unrecognized events log silently, no errors |
 
-**设计原则**：未识别类型永远「落日志 + 静默/兜底」，不抛异常——微信侧的回调重试会放大错误。
+**Design principle**: unrecognized types always "log + silence/fallback", never throw — WeChat-side retries would amplify the error.
 
-### 5.6 网页授权（snsapi_base）与 H5 绑定流程（2026-10-19 巡检代决定稿，分期状态仍「未排期」）
+---
 
-第一期只做 **snsapi_base 静默授权拿 openid**；snsapi_userinfo（用户确认页 + scope 审批 + unionid 解密链）不进第一期——绑定只需要 openid。以下技术决策按 2026-10-14 授权代决（版本号/发版、License、付费采购、素材授权四类仍归用户）。
+### 5.6 Web authorization (snsapi_base) and the H5 binding flow (patrol decision record 2026-10-19; scheduling status remains "unscheduled")
 
-**流程**：
+Phase 1 does **snsapi_base silent authorization for the openid only**; snsapi_userinfo (a user-consent page + scope approval + the unionid decrypt chain) is not in phase 1 — binding needs only the openid. The technical decisions below were made by the patrol under the 2026-10-14 delegation (versioning/releases, license, paid purchases, and asset licensing remain with the user).
+
+**Flow**:
 
 ```
-H5 页 /h5/wx/bind?account=1
-  → GET /api/v1/wx/oauth/1/start        （302，签发 state）
+H5 page /h5/wx/bind?account=1
+  → GET /api/v1/wx/oauth/1/start        (302, issues state)
   → open.weixin.qq.com/connect/oauth2/authorize?appid&redirect_uri&response_type=code&scope=snsapi_base&state#wechat_redirect
-  → 微信静默回跳 GET /api/v1/wx/oauth/1/callback?code&state
-  → 校验 state → 调 sns/oauth2/access_token 换 openid（secret 自 wx_accounts 解密读；token 即取即弃不落库）
-  → 发一次性 ticket（5 分钟、单次兑换）
+  → WeChat silently redirects back to GET /api/v1/wx/oauth/1/callback?code&state
+  → verify state → call sns/oauth2/access_token for the openid (secret decrypted from wx_accounts; token used once, never stored)
+  → issue a one-time ticket (5 minutes, single redemption)
   → 302 /h5/wx/bind?account=1#ticket=…
-  → H5 以 ticket 调 POST /api/v1/wx/bind/1（ticket 与 openid 二选一；手机号 + 短信码双因子不变）
+  → the H5 page calls POST /api/v1/wx/bind/1 with the ticket (ticket or openid, either one; phone + SMS two-factor unchanged)
 ```
 
-**决策记录**：
+**Decision record**:
 
-| # | 议题 | 采纳 | 被否 | 一句理由 |
+| # | Topic | Adopted | Rejected | One-line rationale |
 | --- | --- | --- | --- | --- |
-| D-OA1 | state 防 CSRF | 无状态签名 `SHA1(token, accountId|nonce|exp)`，10 分钟有效 | 服务端 challenge 表 / Redis；落 wx_binding_logs 前置行 | 绑定成功仍要短信码双因子，state 泄露不构成攻击面，免存储 |
-| D-OA2 | redirect_uri 来源 | 新配置 `sinomed.official-account.oauth-redirect-base`（env `WX_OA_OAUTH_REDIRECT_BASE`），回调固定 `{base}/api/v1/wx/oauth/{accountId}/callback` | 从请求 Host 反推 | 公众号后台网页授权域名白名单要求精确登记，Host 反推可被头注入污染 |
-| D-OA3 | code→openid 交换 | 复用 `wechatRestTemplate` bean 直调（WechatClient jscode2session 同款 RestTemplate+DTO，不引 SDK） | 引 WxJava SDK | 第一期「不引依赖先跑通」口径；初记 java.net.http，2026-10-20 落地时对齐仓内既有出网 DTO 绑定口径（同等不引新依赖）；第二期安全模式 AES 已于 2026-10-20 落地且维持不引 SDK（`WxMsgCryptor` 官方规范手写 + OpenSSL KAT 锚定，已代决） |
-| D-OA4 | H5 宿主 | 同域静态单页，路径 `/h5/wx/bind`（已落地：classpath 静态资源 `static/h5/wx/bind/index.html`，服务端自己托管，`WebMvcConfig` view controller forward，`SecurityConfig` 放行 `/h5/**`） | 新建子域 / 引 SSR | 第一期只有一个绑定表单页；子域要在白名单多登记一条 |
-| D-OA5 | openid 交付 H5 | 一次性 ticket（5 分钟、单次兑换） | URL 裸传 openid；长效 cookie | openid 是长期标识不宜作 URL 明文或长效凭证，ticket 兑换即废 |
+| D-OA1 | CSRF protection for state | Stateless signature `SHA1(token, accountId|nonce|exp)`, 10-minute validity | Server-side challenge table / Redis; a pre-row in wx_binding_logs | Successful binding still requires the SMS two-factor, so a leaked state is not an attack surface — no storage needed |
+| D-OA2 | redirect_uri source | New config `sinomed.official-account.oauth-redirect-base` (env `WX_OA_OAUTH_REDIRECT_BASE`); the callback is fixed at `{base}/api/v1/wx/oauth/{accountId}/callback` | Deriving it from the request Host | The WeChat console registers the web-auth domain as an exact whitelist entry; Host derivation can be poisoned by header injection |
+| D-OA3 | code→openid exchange | Direct call reusing the `wechatRestTemplate` bean (RestTemplate+DTO, same as the WechatClient jscode2session path; no SDK) | Pulling in the WxJava SDK | Phase-1 "no new deps first" policy; originally sketched as java.net.http, aligned to the repo's existing outbound DTO-binding idiom at implementation time on 2026-10-20 (equally dependency-free); the phase-2 AES safe mode landed on 2026-10-20 and stays dependency-free (`WxMsgCryptor`, hand-written to the official spec and anchored by OpenSSL KAT vectors; decided) |
+| D-OA4 | H5 host | A same-origin static single page at `/h5/wx/bind` (delivered: a classpath static resource `static/h5/wx/bind/index.html` hosted by the server itself, forwarded by a `WebMvcConfig` view controller, permitted by `SecurityConfig` `/h5/**`) | A new subdomain / SSR | Phase 1 is a single binding form; a subdomain adds another whitelist entry |
+| D-OA5 | Handing the openid to H5 | A one-time ticket (5 minutes, single redemption) | Passing the openid in the URL; a long-lived cookie | The openid is a long-term identifier — no plaintext URLs or long-lived credentials; the ticket dies on redemption |
 
-**端点契约（2026-10-20 服务端半边与 H5 静态单页均已按此落地，`WxOauthHttpTest` 桩测锁定）**：`GET /api/v1/wx/oauth/{accountId}/start`（302，permitAll，随 `/api/v1/wx/oauth/**` 放行）、`GET /api/v1/wx/oauth/{accountId}/callback`（permitAll；state 失效/换码失败 400 明确错误不静默，全量落 `wx_message_logs` 拒绝审计；成功 302 回 `{oauth-redirect-base}/h5/wx/bind?account={accountId}#ticket=...`——account 必须随回跳下发，页面凭它拼绑定端点）、既有 `POST /api/v1/wx/bind/{accountId}` 增 `ticket` 入参；H5 页为服务端 classpath 静态单页（免登录 `SecurityConfig` 放行 `/h5/**`），只读 `account`+`#ticket` 两要素，缺任一如实提示重新进入、不提供绕过授权的手工入口；出网基址走 `sinomed.official-account.wechat-api-base-url`（env `WX_OA_WECHAT_API_BASE_URL`，缺省官方域），测试用 JDK HttpServer 桩指该配置（同 ads/payqrcodes「测试专用注入」先例）。
+**Endpoint contract (server half and the H5 static page both delivered as written on 2026-10-20, locked by `WxOauthHttpTest` stub tests)**: `GET /api/v1/wx/oauth/{accountId}/start` (302, permitAll, whitelisted with `/api/v1/wx/oauth/**`), `GET /api/v1/wx/oauth/{accountId}/callback` (permitAll; an invalid state or failed exchange returns an explicit 400, never silent, with a full rejection audit in `wx_message_logs`; on success 302 to `{oauth-redirect-base}/h5/wx/bind?account={accountId}#ticket=...` — the account must ride the redirect so the page can build the bind endpoint URL), and the existing `POST /api/v1/wx/bind/{accountId}` gains a `ticket` parameter; the H5 page is a server-side classpath static page (login-free, permitted by `SecurityConfig` `/h5/**`) that reads only `account` + `#ticket`; when either is missing it says so honestly and offers no manual bypass of the authorization chain; the outbound base URL is `sinomed.official-account.wechat-api-base-url` (env `WX_OA_WECHAT_API_BASE_URL`, official domain by default) and tests stub it with a local JDK HttpServer (same "test-only injection" precedent as ads/payqrcodes).
 
-**激活清单（凭据到位后，用户侧）**：公众号后台「网页授权域名」登记 `oauth-redirect-base` 的域名；配 `WX_OA_ENABLED`/`WX_OA_TOKEN`/`WX_OA_CREDENTIAL_KEY`；`wx_accounts` 落 appid + AppSecret（加密落库）。
-
----
-
-
-## 6. 权限边界（账号类型 × 能力矩阵与降级）
-
-> 来源：[服务号介绍](https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/服务器配置.html)（服务号/公众号文档已分列）、[自定义菜单介绍](https://developers.weixin.qq.com/doc/offiaccount/Custom_Menus/自定义菜单介绍.html)、[素材管理](https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/素材管理.html)；账号能力差异亦参考 vluma MCP 对三类账号的边界划分（见 §2 对比表）。
-
-### 6.1 能力矩阵
-
-| 能力 | 服务号 | 认证订阅号 | 未认证订阅号 |
-| ---- | ------ | ---------- | ------------ |
-| 消息回调（接收 + 被动回复） | ✅ | ✅ | ✅ |
-| 客服消息（48h 窗口） | ✅ | ✅ | ❌ |
-| 自定义菜单 | ✅ | ✅ | ❌（后台手动配置亦受限） |
-| 素材管理 | ✅ | ✅ | ✅（上传/读取） |
-| 群发（订阅通知/一次性订阅消息） | ✅（模板消息/订阅通知） | ✅（订阅通知，一天一条） | ❌ |
-| 模板消息 | ✅ | ❌（订阅号无模板消息） | ❌ |
-| 网页授权（snsapi_base/userinfo） | ✅ | ✅ | ✅ |
-| 带参二维码 | ✅ | ✅ | ✅ |
-
-> 边界判定以官方文档当前口径为准；本表是**产品设计口径**，实施时以 `wx_accounts.account_type + verified` 两字段驱动，不写死枚举判断。
-
-### 6.2 未认证订阅号的降级策略（要求点）
-
-能力探测不写死在代码分支，而是**统一由 `WxCapabilities` 服务返回**：入参 `wx_accounts` 行，出参该账号可用能力集合。前端（web 管理端）首次加载时拉取能力集，据此渲染：
-
-| 入口 | 服务号/认证订阅号 | 未认证订阅号 |
-| ---- | ----------------- | ------------ |
-| 自定义菜单页 | 可编辑可推送 | **入口隐藏**，账号设置页提示「未认证订阅号不支持自定义菜单」 |
-| 群发/模板消息 | 可用 | **入口隐藏**，同上提示 |
-| 客服消息回复 | 可用（48h） | **入口隐藏**，消息工作台仅被动回复模式 |
-| 素材管理 | 可用 | 可用 |
-| 消息收发 / 顾客关联 | 可用 | 可用（本模块第一期全部价值在此） |
-
-降级提示样式与现有管理端一致（禁用态 + tooltip），不做二次确认弹窗——能力缺失是**账号属性**，不是操作风险。
-
-**接线现状**（2026-10-20）：自定义菜单页的降级入口已交付——web/ 公众号页「自定义菜单」tab 按所选账号 `menuManagement`（服务号或已认证）隐藏编辑工作区并提示「未认证订阅号不支持自定义菜单」，拉取失败按不允许处理不闪编辑器；群发/模板/客服消息的入口降级待对应工作台立项后接线（当前无 UI）。
-
-### 6.3 管理端操作权限（本仓角色）
-
-复用现有 `Role/Permission` 体系（`security/Role.java:16-38`、`Permission.java:7-15`），**不新增权限枚举**（现网只有 `ADMIN`/`MANAGER` 两档有效）：
-
-- 公众号账号配置（含 AppSecret/Token/AESKey 读写）：`ADMIN`（对齐 `StaffController.java:72` 的 `@PreAuthorize("hasRole('ADMIN')")` 用法）；
-- 菜单/自动回复/素材/消息工作台：`MANAGER` 及以上；
-- 回调接口：免登录（§5.1），靠签名验证。
-
-**AppSecret 不回显**：管理端查询接口只返回掩码（`****`），修改时留空=不更新——对齐 `WechatClient.java:15-16`「凭据不下发前端」口径。
+**Activation checklist (user side, once credentials arrive)**: register the `oauth-redirect-base` domain under the console's "web authorization domain"; set `WX_OA_ENABLED`/`WX_OA_TOKEN`/`WX_OA_CREDENTIAL_KEY`; store the appid + AppSecret in `wx_accounts` (encrypted at rest).
 
 ---
 
-## 7. 配置与凭据
+## 6. Permission Boundaries (account type × capability matrix and degradation)
 
-沿用 `sinomed.*` 配置段风格（`application.yml:38-53`）：
+> Sources: [Service account intro](https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/服务器配置.html), [Custom menus](https://developers.weixin.qq.com/doc/offiaccount/Custom_Menus/自定义菜单介绍.html), [Materials](https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/素材管理.html); account capability differences also reference the vluma MCP's three-type boundary split (§2 table).
+
+### 6.1 Capability Matrix
+
+| Capability | Service | Verified subscription | Unverified subscription |
+| ---------- | ------- | -------------------- | ----------------------- |
+| Message callback (receive + passive reply) | ✅ | ✅ | ✅ |
+| Customer service messages (48h window) | ✅ | ✅ | ❌ |
+| Custom menus | ✅ | ✅ | ❌ (console config also limited) |
+| Material management | ✅ | ✅ | ✅ (upload/read) |
+| Mass messaging (subscription notifications) | ✅ (template messages/subscription notifications) | ✅ (subscription notifications, one per day) | ❌ |
+| Template messages | ✅ | ❌ (subscription accounts have none) | ❌ |
+| Web authorization (snsapi_base/userinfo) | ✅ | ✅ | ✅ |
+| Parametric QR codes | ✅ | ✅ | ✅ |
+
+> Boundaries follow the official docs of the day; this table is the **product design view**, driven at implementation by the `wx_accounts.account_type + verified` pair, no hardcoded enum branches.
+
+### 6.2 Unverified Subscription Account Degradation (required)
+
+Capability detection is not scattered over code branches; a unified **`WxCapabilities` service** returns the capability set for a given `wx_accounts` row. The web admin fetches it on load and renders accordingly:
+
+| Entry | Service / verified subscription | Unverified subscription |
+| ----- | ------------------------------- | ----------------------- |
+| Menu page | editable, publishable | **hidden**, account settings show "unverified subscription accounts don't support custom menus" |
+| Mass/template messages | available | **hidden**, same note |
+| Customer service replies | available (48h) | **hidden**, message console is passive-reply only |
+| Materials | available | available |
+| Messaging / customer linking | available | available (all of phase-1's value lives here) |
+
+Degradation styling matches the existing admin (disabled + tooltip), no confirm dialogs — a missing capability is an **account attribute**, not an operation risk.
+
+**Wiring status** (2026-10-20): the menu page's degraded entry is delivered — the admin menu tab hides its editing workspace per the selected account's `menuManagement` (service or verified) and shows "unverified subscription accounts don't support custom menus"; a capability-fetch failure is treated as not-allowed (no editor flash). Mass/template/customer-service entry degradation awaits those workbenches (no UI yet).
+
+### 6.3 Admin Operation Permissions (this repo's roles)
+
+Reuse the existing `Role/Permission` system (`security/Role.java:16-38`, `Permission.java:7-15`), **no new permission enums** (only `ADMIN`/`MANAGER` are effectively in use):
+
+- Account configuration (incl. AppSecret/Token/AESKey read/write): `ADMIN` (aligning with `StaffController.java:72`'s `@PreAuthorize("hasRole('ADMIN')")` usage);
+- Menus / auto-replies / materials / message console: `MANAGER` and above;
+- Callback endpoints: no login (§5.1), trusted by signature.
+
+**AppSecret never echoes back**: the admin query returns a mask (`****`); empty on update = keep — aligning with `WechatClient.java:15-16` "credentials never reach the frontend".
+
+---
+
+## 7. Configuration and Credentials
+
+Follows the `sinomed.*` config style (`application.yml:38-53`):
 
 ```yaml
 sinomed:
-  # 微信小程序（已有，不动）
+  # WeChat mini program (existing, untouched)
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}
-  # 公众号（新增；第一期单账号，与小程序凭据分离，不同 appid 体系）
+  # Official account (new; phase-1 single account, credentials separate from the mini program, different appid system)
   official-account:
-    # —— 第一期已实现（现状见 application.yml:56-64）——
-    enabled: ${WX_OA_ENABLED:false}            # 缺省 false=模块整体关闭，回调入口返回 200 拒处理
-    token: ${WX_OA_TOKEN:}                     # 服务器配置 Token
-    material-dir: ${WX_OA_MATERIAL_DIR:data/wxmaterials}      # 图片消息素材落盘根目录（§4.5）
-    material-max-bytes: ${WX_OA_MATERIAL_MAX_BYTES:10485760}  # 单素材下载上限（字节），超限跳过
-    credential-key: ${WX_OA_CREDENTIAL_KEY:}   # wx_accounts.app_secret/aes_key 落库加密密钥；缺省空=凭据写入拒绝
-    # —— 第二期预留（当前代码未读，激活请勿按此段配置）——
-    account-id: ${WX_OA_ACCOUNT_ID:1}          # 多账号预留；现行回调走路径变量 {accountId}
-    # aes_key/encrypt_mode 没有 env 入口：安全模式（2026-10-20 已交付）按 wx_accounts.aes_key
-    # 加密列 + encrypt_mode 列（缺省 plaintext）取，属账号业务数据，凭据可后台改
-    # app_id/app_secret 走 wx_accounts 表（加密落库），不走 env——凭据属业务数据，可后台改
+    # —— phase 1 implemented (current state: application.yml:56-64) ——
+    enabled: ${WX_OA_ENABLED:false}            # default false = module fully off; callbacks refuse with 200
+    token: ${WX_OA_TOKEN:}                     # server-config Token
+    material-dir: ${WX_OA_MATERIAL_DIR:data/wxmaterials}      # root dir for image-message media downloads (§4.5)
+    material-max-bytes: ${WX_OA_MATERIAL_MAX_BYTES:10485760}  # per-file download cap in bytes; oversize files skipped
+    credential-key: ${WX_OA_CREDENTIAL_KEY:}   # encryption key for wx_accounts.app_secret/aes_key at rest; default empty = credential writes rejected
+    # —— phase 2 reserved (not read by code yet; do not configure activation from this block) ——
+    account-id: ${WX_OA_ACCOUNT_ID:1}          # reserved for multi-account; the current callback rides the path variable {accountId}
+    # aes_key/encrypt_mode have no env entries: the safe mode (delivered 2026-10-20) reads the
+    # encrypted wx_accounts.aes_key column plus the encrypt_mode column (default plaintext) —
+    # per-account business data, editable from the console
+    # app_id/app_secret go into wx_accounts (encrypted at rest), not env — credentials are business data, editable from the console
 ```
 
-- **`enabled=false` 是默认值**：与 `sinomed.phone-lookup.mode` 默认 `off`（`application.yml:49`）同款「不静默」口径——模块未启用时回调返回 200 `"success"` 并落审计，不让微信侧无限重试；
-- **token 走 env 是第一期妥协**：单店部署免建库配置；aes_key/encrypt_mode 属账号业务数据走 wx_accounts 列（安全模式已按此落地），env 退化为仅开发/演示用；
-- **凭据不入库明文**：`wx_accounts.app_secret`/`aes_key` 用 AES 可逆加密（密钥走 env `WX_OA_CREDENTIAL_KEY`），BCrypt 单向不可用（凭据需回读调用 API）。
+- **`enabled=false` is the default**: same "no silence" convention as `sinomed.phone-lookup.mode` default `off` (`application.yml:49`) — with the module off, callbacks return 200 `"success"` plus an audit row, so WeChat doesn't retry forever;
+- **token/aes_key in env is the phase-1 compromise**: single-store deployment avoids DB config; phase 2 moves them into the admin form and env becomes dev/demo-only;
+- **No plaintext credentials in the DB**: `wx_accounts.app_secret`/`aes_key` use reversible AES (key from env `WX_OA_CREDENTIAL_KEY`); BCrypt's one-wayness can't work (credentials must be read back to call APIs).
 
 ---
 
-## 8. 分期计划
+## 8. Phasing
 
-### 第一期：最小可用 ——「接入 + 消息收发 + 关联顾客」
+### Phase 1: Minimal Viable — "integration + messaging + customer linking"
 
-**目标**：顾客在公众号发消息，医馆能看到是谁（若已绑定顾客档案）、能自动回复；管理端能看会话流水。不做任何管理 UI 的增删改查——配置走 env + 种子数据，规则表先手工/SQL 维护。
+**Goal**: a customer messages the account, the clinic sees who they are (if bound to a record) and can auto-reply; the admin can read the conversation log. No admin CRUD UI — config via env + seed data, rules maintained by hand/SQL.
 
-| # | 交付物 | 说明 |
-| --- | ------ | ---- |
-| 1 | `wx_accounts` + env 配置 + 回调 Controller | `GET` 验签回 `echostr`；`POST` 验签、解密、排重、落日志、回 `"success"`/被动回复 |
-| 2 | `wx_fans` upsert | `subscribe`/`unsubscribe` 事件维护粉丝行 |
-| 3 | 自动回复（读规则表） | `subscribe` 欢迎语 + `keyword` 匹配 + `fallback`，规则表先手工维护 |
-| 4 | `wx_message_logs` 全量收发流水 | 管理端只读列表（按粉丝/时间/类型过滤），不做对话式 UI |
-| 5 | 粉丝 ↔ 顾客绑定 | H5 授权拿 openid → 手机号 + 短信验证码双因子（复用 `sms_codes` 与 Kiosk 口径，`KioskController.java:352-397`）→ 写 `wx_fans.customer_id` + `wx_binding_logs` 审计 |
-| 6 | 能力探测接口 `WxCapabilities` | 返回账号能力集（§6.2），第一期前端只用它决定隐藏哪些入口 |
+| # | Deliverable | Notes |
+| - | ----------- | ----- |
+| 1 | `wx_accounts` + env config + callback controller | `GET` verification returns `echostr`; `POST` verifies, decrypts, dedupes, logs, replies `"success"`/passive reply |
+| 2 | `wx_fans` upsert | `subscribe`/`unsubscribe` events maintain fan rows |
+| 3 | Auto-replies (reads rules) | `subscribe` welcome + `keyword` match + `fallback`; rules maintained by hand |
+| 4 | `wx_message_logs` full send/receive log | Admin read-only list (filter by fan/time/type), no conversational UI |
+| 5 | Fan ↔ customer binding | H5 authorization gets openid → phone + SMS two-factor (reuses `sms_codes` and Kiosk conventions, `KioskController.java:352-397`) → writes `wx_fans.customer_id` + `wx_binding_logs` audit |
+| 6 | Capability endpoint `WxCapabilities` | Returns the account capability set (§6.2); phase-1 frontend uses it only to hide gated entries |
 
-**验收口径**：未绑定粉丝发「营业时间」→ 收到关键词回复；已绑定顾客发消息 → 消息流水可见对应顾客姓名；关注事件 → 欢迎语；所有收发（含被拒验签）都有日志。
+**Acceptance**: an unbound fan sends "营业时间" → gets the keyword reply; a bound customer messages → the log shows their name; a follow event → welcome message; everything sent/received (including rejected signatures) is logged.
 
-### 第二期：运营工具化 ——「菜单 + 素材」
+### Phase 2: Operations Tooling — "menus + materials"
 
-- 自定义菜单管理页：编辑/草稿本地半边已交付（管理端树形 CRUD + 协议校验，见 §4.3）；**推送微信半边已交付**（2026-10-20：服务端 `POST /api/v1/wx/menus/push/{accountId}` 取 token→`menus/create`，只推启用菜单、errcode 透传，本地桩测试零外网见 `WxMenuPushHttpTest` 5 例；web 推送按钮同日接线；真实出网压凭据）；
-- 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用；
-- 管理端规则编辑 UI（自动回复不再手工改库）——**已全链交付**（2026-10-20：服务端 `/api/v1/wx/auto-replies` 增删改查 + 枚举校验 + subscribe/fallback 单条启用约束 + 管理端账号列表 `/api/v1/wx/accounts`（脱敏不下发密钥列），契约见 docs/server/api.md；web/ 管理端「公众号」页规则表：选账号过滤 + 类型/状态过滤 + 新建/编辑/停用启用/删除）；
-- 安全/兼容模式消息加解密（回调 AES 信封，§5.3）——**已交付**（2026-10-20：`WxMsgCryptor` 官方规范手写落地，含 `<Encrypt>` 报文走 `msg_signature` 四段验签 + AES 解密进主流程、安全模式回复密封、拒绝审计 `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`；测试 `WxMsgCryptorTest` 6 例 OpenSSL KAT + `WxEncryptModeCallbackHttpTest` 5 例）；
-- 管理端消息流水与素材台账查看（第一期 #4 的 UI 半边）——**已交付**（2026-10-20：web/ 公众号页改 Tabs，新增「消息流水」tab（ProTable 服务端分页，账号/粉丝/方向/类型/结果/时间窗过滤，顾客姓名列兑现第一期验收口径）与「素材台账」tab（含本地副本图片 blob 预览）；服务端素材分页+取图端点见 §4.5 尾注）；
-- 消息工作台升级为对话式视图 + 人工客服回复（48h 窗口，服务号/认证订阅号）。
+- Custom menu management page: the local edit/draft half is delivered (admin tree CRUD + protocol validation, see §4.3); **the push-to-WeChat server side is delivered** (2026-10-20: `POST /api/v1/wx/menus/push/{accountId}` fetching a token then calling `menus/create`, enabled menus only, errcode passed through, zero-external-call local-stub tests in `WxMenuPushHttpTest` (5 cases); real outbound stays credential-gated; the web push button is wired as of the same day);
+- Material upload and management (permanent ledger + local storage), supporting menu and auto-reply references;
+- Admin rule editor UI (auto-replies no longer hand-maintained in DB) — **delivered end to end** (2026-10-20: server `/api/v1/wx/auto-replies` CRUD + enum validation + single-enabled subscribe/fallback constraint + admin account list `/api/v1/wx/accounts` (sanitized, no secret columns), contract in docs/server/api.md; web/ admin "WeChat" page rule table: account picker + type/status filters + create/edit/enable-disable/delete);
+- Safe/compatible-mode message crypto (callback AES envelope, §5.3) — **delivered** (2026-10-20: `WxMsgCryptor` hand-written to the official spec; bodies carrying `<Encrypt>` are verified with the 4-part `msg_signature` and AES-decrypted before entering the main flow, safe-mode replies are sealed, with reject audits `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`; tests: `WxMsgCryptorTest` 6 OpenSSL KAT cases + `WxEncryptModeCallbackHttpTest` 5 cases);
+- Admin viewing of the message log and material ledger (the UI half of phase-1 item 4) — **delivered** (2026-10-20: the web/ WeChat page became tabs, adding a "Message log" tab (ProTable server-side pagination, account/fan/direction/type/result/time-window filters, with the customer-name column fulfilling the phase-1 acceptance criterion) and a "Material ledger" tab (with local-copy image blob preview); the server-side material page + file endpoints are noted at the end of §4.5);
+- Message console upgraded to a conversational view + human customer-service replies (48h window, service/verified subscription).
 
-### 第三期：触达 ——「带参二维码 + 群发/模板消息」
+### Phase 3: Outreach — "parametric QR + mass/template messages"
 
-- 带参二维码（场景值绑定顾客来源，扫码即建粉丝 + 预填 `customer_id`）；
-- 服务号模板消息（预约提醒、复诊提醒——对接现有 `appointments`/`review` 计划）；
-- 订阅号群发（认证订阅号一天一条的约束在 UI 层强提示）；
-- 粉丝标签（若需微信侧定向）再评估是否建 `wx_fan_tags`。
+- Parametric QR codes (scene values bind customer source; scanning creates the fan with pre-filled `customer_id`);
+- Service-account template messages (appointment reminders, follow-up reminders — against existing `appointments`/`review` plans);
+- Subscription mass messaging (the verified-subscription one-per-day limit gets a strong UI hint);
+- Fan tags (if WeChat-side targeting is needed) — re-evaluate `wx_fan_tags` then.
 
-**依赖关系**：第三期的模板消息/群发**强依赖账号类型**（§6.1），单店若只持有未认证订阅号，第三期永久搁置——这不影响第一、二期价值（消息收发与菜单/素材与账号类型无关）。
+**Dependency**: phase 3's template/mass messaging **depends on the account type** (§6.1); a store holding only an unverified subscription account shelved phase 3 forever — this doesn't affect phase 1-2 value (messaging and menus/materials are account-type independent).

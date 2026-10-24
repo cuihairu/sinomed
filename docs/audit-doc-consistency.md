@@ -1,8 +1,6 @@
-# 文档与源码一致性审计报告（2026-10-08，已归档）
+# Documentation ↔ Source Consistency Audit Report (2026-10-08, archived)
 
-> 🌐 [English](./audit-doc-consistency.en.md) · **本页为中文**
-
-> 本文件为 2026-10-08 首轮审计的过程记录，其发现条目已全部落实（代码侧修复或文档侧修正）。
-> **现行口径以 [审计-文档一致性.md](./审计-文档一致性.md) 为准**（2026-10-13 全面重审，三类分桶 + 双侧取证 + P0/P1/P2 修复清单）。
+> This file is the process record of the first audit round (2026-10-08); every finding in it has since been addressed (either fixed on the code side or corrected in the docs).
+> **The current source of truth is [审计-文档一致性.md](./审计-文档一致性.md)** (full re-audit on 2026-10-13: three-way bucketing + two-sided evidence + P0/P1/P2 fix list).
 >
-> 保留本文件的唯一理由：git 历史提交（3001379 等）曾引用此路径，留档便于回溯。
+> The only reason this file is kept: git history commits (3001379 and others) reference this path, so it is retained for traceability.

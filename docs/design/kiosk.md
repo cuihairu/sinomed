@@ -1,22 +1,20 @@
-# 顾客选服务设计：到店 Kiosk（浏览 / 选卡项 / 下单）
+# Customer service selection design: in-store Kiosk (browse / select cards / place order)
 
-> 🌐 [English](./kiosk.en.md) · **本页为中文**
+> Status: **implemented (K1–K6)**. The `kiosk/` client (browse grid / place order / success receipt / idle basket clearing), the server-side kiosk interfaces and order management are all landed and verified item by item; together with the waiting-area display screen ([tablet display](/design/tablet)) they are two devices and two projects — the display screen only plays, this machine is the customer's self-service entry.
 
-> 状态：**已实施（K1–K6）**。`kiosk/` 端（浏览网格 / 下单 / 成功回执 / 空闲清篮）、服务端 kiosk 接口与订单管理均已落地并逐项实证；与候诊区展示屏（[平板展示](/design/tablet)）是两台设备两个工程——展示屏只播不录，本机是顾客自助录入入口。
+UI prototype (service selection and order page; design mockup · data is fictional for the demo):
 
-界面原型（选服务下单页，设计稿 · 数据为虚构演示）：
+![Store self-service Kiosk · service selection (UI prototype)](/screenshots/kiosk-menu.png)
 
-![门店自助机 · 选服务（界面原型）](/screenshots/kiosk-menu.png)
+## Positioning and scenarios
 
-## 定位与场景
+`kiosk/` is a **customer self-service iPad web page** placed at the **front desk / lobby**: arriving customers browse services on the big screen, check the cards they want themselves, leave a phone number and submit, and the front desk accepts the order in the admin console. Three steps:
 
-`kiosk/` 是摆在**前台/大堂的顾客自助 iPad 网页**：到店顾客在大屏上浏览服务项目，自己勾选想做的卡项，留手机号提交，前台在管理端接单。三步：
+1. **Browse**: a large-text grid shows enabled cards (cover + name + price), touch-friendly;
+2. **Select services**: tap to add to the shopping basket, multi-select with add/remove;
+3. **Place order**: fill in a phone number (name optional) and submit; the screen shows the order number and total; the front desk sees the new order in the admin console's "order management" and checks the patient in.
 
-1. **浏览**：大字网格展示启用中的卡项（封面 + 名称 + 价格），触摸友好；
-2. **选服务**：点选加入购物篮，可多选、可增删；
-3. **下单**：填手机号（可填称呼）提交，屏幕回执单号与合计；前台在管理端「订单管理」看到新单并接待。
-
-不做支付（无任何收款代码，下单即到店待接待）；不做会员价/优惠计算（订单金额按下单时刻卡项价格快照）。
+No payment (no collection code at all; placing an order means arriving at the store, not yet arrived); no member pricing/discount calculation (order amount follows the card price snapshot at order time).
 
 ```text
 顾客（kiosk/ 大屏点选） ──► server kiosk 接口（浏览只读 + 下单）
@@ -24,83 +22,83 @@
                   前台（web dash 订单管理）◄── 新单状态流转（接单 → 完成 / 取消）
 ```
 
-## 数据模型（复用既有表，新增字段）
+## Data model (reuse existing tables, add fields)
 
-### items — 卡项补三个字段
+### items — three new fields for cards
 
-现有卡项表只有 `name / price / description`，Kiosk 浏览需要展示与上架控制，补：
+The current card table only has `name / price / description`; Kiosk browsing needs display and publish control, so add:
 
-| 字段 | 类型 | 含义 |
+| Field | Type | Meaning |
 | ---- | ---- | ---- |
-| enabled | Integer | 1 上架、0 下架（Kiosk 只展示上架项；存量行默认 1） |
-| cover | String | 封面图相对 url（可空；复用现有媒体上传与 `/media` 托管） |
-| sort | Integer | 展示顺序，小者在前 |
+| enabled | Integer | 1 published, 0 unpublished (the Kiosk only shows published items; existing rows default to 1) |
+| cover | String | Cover image relative url (optional; reuses the existing media upload and `/media` hosting) |
+| sort | Integer | Display order, smaller first |
 
-`ddl-auto: update` 自动加列，不影响存量数据。管理端卡项页（已有）补这三个字段的编辑。
+`ddl-auto: update` adds the columns automatically without affecting existing data. The admin console card page (already exists) gains editing for these three fields.
 
-### orders — 状态语义定档
+### orders — status semantics finalized
 
-表已存在（`user_id / item_id / staff_id / status / price`），此前接口全是空壳。现在把状态定档并写死：
+The table already exists (`user_id / item_id / staff_id / status / price`) and all previous interfaces were empty shells. Now the statuses are finalized and hard-coded:
 
-| status | 含义 |
+| status | Meaning |
 | ------ | ---- |
-| 0 | 已下单（Kiosk 提交后的初始态） |
-| 1 | 已确认（前台接待中） |
-| 2 | 已完成 |
-| 9 | 已取消 |
+| 0 | Ordered (initial state after Kiosk submission) |
+| 1 | Confirmed (front desk checking in) |
+| 2 | Completed |
+| 9 | Cancelled |
 
-- `user_id` 存顾客 id（`customers` 表，业务外键）；`item_id` 存卡项 id；`staff_id` 接单时可填（Kiosk 单初始为空）；
-- `price` 是**下单时刻的卡项价格快照**（Integer，分为单位与卡项表一致——卡项 price 当前即按元存整数，如实沿用）；
-- 一个卡项一条订单（多选 = 多条订单，同一次提交共享同一顾客），不加购物车表。
+- `user_id` stores the patient id (`customers` table, business foreign key); `item_id` stores the card id; `staff_id` can be filled when accepting the order (empty initially for Kiosk orders);
+- `price` is the **card price snapshot at order time** (Integer, in cents to match the card table — the card price is currently stored as an integer in yuan, followed as-is);
+- one card per order (multi-select = multiple orders, the same submission shares one patient); no shopping-cart table.
 
-### 顾客关联
+### Patient association
 
-`customers.phone` 唯一。Kiosk 下单按手机号查顾客，查无则建档：`name` 取称呼输入（不填默认「到店客人」），`phone` 必填且要求 11 位手机号格式。
+`customers.phone` is unique. Kiosk orders look up the patient by phone number and create a record if none exists: `name` takes the name input (defaults to 「到店客人」 when empty), `phone` is required and must match the 11-digit mobile number format.
 
-## API 面（服务端新增 `/api/v1/kiosk`，免登录）
+## API surface (server adds `/api/v1/kiosk`, unauthenticated)
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 | ---- | ---- | ---- |
-| GET | `/api/v1/kiosk/items` | Kiosk 浏览：`enabled=1` 的卡项按 `sort,name` 升序，返回 `id / name / price / cover / description`（不含审计字段） |
-| POST | `/api/v1/kiosk/orders` | Kiosk 下单：`{ phone, name?, itemIds: [卡项id…] }`；校验手机号格式与卡项存在且上架；按手机号找/建顾客；逐项写订单（status=0、price=卡项现价）；返回 `{ customerId, customerName, orders: [{ id, itemId, itemName, price }], totalFee }` |
+| GET | `/api/v1/kiosk/items` | Kiosk browsing: cards with `enabled=1` ordered by `sort,name` ascending, returning `id / name / price / cover / description` (no audit fields) |
+| POST | `/api/v1/kiosk/orders` | Kiosk order placement: `{ phone, name?, itemIds: [卡项id…] }`; validates phone format and that cards exist and are published; finds/creates the patient by phone number; writes one order per item (status=0, price=current card price); returns `{ customerId, customerName, orders: [{ id, itemId, itemName, price }], totalFee }` |
 
-免登录边界（如实）：Kiosk 是内网设备，浏览接口纯只读；下单接口是唯一写入口，写范围限定「一条顾客档案（按手机号幂等）+ N 条 status=0 订单」，不暴露任何查询/删除能力。如暴露公网需另加验证码或屏 token。
+Unauthenticated boundary (stated plainly): the Kiosk is an intranet device and the browse interface is purely read-only; the order interface is the only write entry, with writes limited to "one patient record (idempotent by phone number) + N status=0 orders", exposing no query/delete capability. If exposed to the public internet, a verification code or screen token must be added.
 
-管理端订单接口：复用 `OrderService`（save/findById 已有），新增列表查询与状态流转，走**需登录**的 `/api/v1/order` 组：
+Admin console order interfaces: reuse `OrderService` (save/findById already exist), add list queries and status flow, under the **login-required** `/api/v1/order` group:
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 | ---- | ---- | ---- |
-| GET | `/api/v1/order/page` | 分页（current、pageSize、status 可选），联出顾客姓名与卡项名 |
-| PUT | `/api/v1/order/status` | `{ id, status }`，只允许 0→1→2 正向流转与 0/1→9 取消 |
-| DELETE | `/api/v1/order/{id}` | 沿用既有删除（仅 9 已取消可删） |
+| GET | `/api/v1/order/page` | Pagination (current, pageSize, optional status), joins in patient name and card name |
+| PUT | `/api/v1/order/status` | `{ id, status }`, only allows the forward flow 0→1→2 and cancellation 0/1→9 |
+| DELETE | `/api/v1/order/{id}` | Reuses the existing delete (only 9 cancelled can be deleted) |
 
-现有 `POST/PUT /api/v1/order/`、`GET /api/v1/order/{id}` 等空壳接口一并替换为真实实现（OrderView 字段与实体对齐：customerId/itemId/staffId/status/price，去掉实体里不存在的 extOrderId/payType/payment）。
+The existing empty-shell interfaces `POST/PUT /api/v1/order/`, `GET /api/v1/order/{id}` etc. are all replaced with real implementations (OrderView fields aligned with the entity: customerId/itemId/staffId/status/price, dropping extOrderId/payType/payment which do not exist in the entity).
 
-### 手机查卡（小程序「我的卡项」，2026-10-14 裁定）
+### Phone card lookup (mini program "My Cards", 2026-10-14 ruling)
 
-隐私红线：**不做裸手机号查卡**——无身份绑定即拒绝。身份绑定两条路径，按后台配置 `sinomed.phone-lookup.mode` 三态开关（env `PHONE_LOOKUP_MODE`）选择，**默认 `off`（关闭）**：
+Privacy red line: **no bare phone-number card lookup** — refused without identity binding. There are two identity-binding paths, selected by the backend config `sinomed.phone-lookup.mode` three-state switch (env `PHONE_LOOKUP_MODE`), **default `off` (disabled)**:
 
-| mode | 行为 |
+| mode | Behavior |
 | ---- | ---- |
-| `off` | 默认。`card-lookup`、`sms-code`、`openid-session`、`openid-bind`、`my-appointments` 与 `appointment-cancel` 一律 400 拒绝，小程序页面透出「在线查卡已关闭 / 在线自助查询已关闭，请到店前台或致电门店查询」 |
-| `openid_only` | 登录态换 openid：小程序 `wx.login` → 服务端 `POST /api/v1/kiosk/openid-session` 经微信 jscode2session 换 openid（需 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置 400 明确拒绝），按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号**；`sms-code` 在此模式仅服务自助绑定（发码放行，查卡仍只走 openid）；`my-appointments` / `appointment-cancel` 在此模式 400 拒绝 |
-| `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡（`card-lookup`）、查自己的待到店预约（`my-appointments`，跨设备）或取消自己的待到店预约（`appointment-cancel`，2026-10-16 代决）；验证码 5 分钟有效、一次性，错/过期/已用均拒绝；`openid-session` / `openid-bind` 在此模式 400 拒绝 |
+| `off` | Default. `card-lookup`, `sms-code`, `openid-session`, `openid-bind`, `my-appointments` and `appointment-cancel` are all refused with 400; the mini program page shows 「在线查卡已关闭 / 在线自助查询已关闭，请到店前台或致电门店查询」 |
+| `openid_only` | Login state exchanges for an openid: the mini program's `wx.login` → the server's `POST /api/v1/kiosk/openid-session` exchanges via WeChat jscode2session for an openid (requires `WECHAT_APP_ID`/`WECHAT_APP_SECRET`, refused with 400 and a clear error when unconfigured), then looks up the bound patient by `customers.openid`; missing openid / unbound are both refused, **no fallback to phone number**; in this mode `sms-code` only serves self-binding (code sending is allowed, card lookup still goes through openid only); `my-appointments` / `appointment-cancel` are refused with 400 in this mode |
+| `sms_verified` | Phone number + SMS verification code two-factor: first `sms-code` sends a code, then cards are looked up with `smsCode` (`card-lookup`), your own not-yet-arrived appointments are looked up (`my-appointments`, cross-device), or your own not-yet-arrived appointment is cancelled (`appointment-cancel`, decided on the user's behalf 2026-10-16); the code is valid for 5 minutes and one-time; wrong/expired/used codes are all refused; `openid-session` / `openid-bind` are refused with 400 in this mode |
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 | ---- | ---- | ---- |
-| POST | `/api/v1/kiosk/sms-code` | `{ phone }`；`sms_verified` 查卡、`openid_only` 绑定共用（off 拒绝），发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩：码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
-| POST | `/api/v1/kiosk/card-lookup` | `{ phone?, openid?, smsCode? }`；按 mode 走 openid 或双因子，命中顾客返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`（新卡在前，含停用与过期卡由前端标态）；未命中/被拒不返回任何卡项 |
-| POST | `/api/v1/kiosk/openid-bind` | `{ openid, phone, smsCode }`；openid_only 模式专用（见下） |
+| POST | `/api/v1/kiosk/sms-code` | `{ phone }`; shared by `sms_verified` card lookup and `openid_only` binding (refused when off); sends a 6-digit code stored in `sms_codes` (valid 5 minutes, one-time). This system has no SMS gateway, so code sending is a server stub: the code only lands in the database and logs (`SMS_CODE_DEMO phone=… code=…`), never leaked externally |
+| POST | `/api/v1/kiosk/card-lookup` | `{ phone?, openid?, smsCode? }`; goes the openid or two-factor path per mode; on a patient hit returns `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }` (newest card first; disabled and expired cards are labeled by the frontend); on a miss/refusal no cards are returned at all |
+| POST | `/api/v1/kiosk/openid-bind` | `{ openid, phone, smsCode }`; dedicated to openid_only mode (see below) |
 
-**openid 自助绑定（2026-10-15 代决，用户可推翻）**：绑定路径拍板为**小程序自助**——`openid-bind` 用一次性短信验证码自证手机号后，把登录 openid 绑到该手机号对应的顾客档案，免桌面免前台；与查卡 `sms_verified` 同一验证码通道、同一审计口径。同档案重复绑定幂等成功；openid 已绑其他档案 400 拒绝（不静默改绑，需前台处理）。此前 `customers.openid` 只能落库直写、无登记入口，此为唯一登记入口。激活仍缺微信侧凭据（正式 appid + AppSecret，同 openid-session「先建后激活」先例）。
+**openid self-binding (2026-10-15 decided on the user's behalf, the user can overturn)**: the binding path was approved as **mini program self-service** — `openid-bind` uses a one-time SMS verification code to prove the phone number, then binds the login openid to that phone number's patient record, no desktop and no front desk involved; it shares the same code channel and audit policy as `sms_verified` card lookup. Re-binding to the same record is idempotent success; an openid already bound to another record is refused with 400 (no silent rebinding; the front desk must handle it). Previously `customers.openid` could only be written directly to the database with no registration entry; this is the only registration entry. Activation still lacks WeChat-side credentials (a formal appid + AppSecret, same as the openid-session "build first, activate later" precedent).
 
-**审计**：每次尝试（成功与拒绝）都落 `card_lookup_logs` 一条——查了谁的卡（`phone` / `customer_id`）、谁查的（`operator`：openid 路径=openid，短信路径=手机号，绑定路径=openid）、什么模式（`mode`）、结果（`result`：`ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer / bind_ok / bind_conflict / missing_appointment / not_owner / not_cancelable / cancel_ok`）、时间（`create_time`）。各路径同口径，off 模式的拒绝也留痕。
+**Audit**: every attempt (success and refusal) writes one `card_lookup_logs` entry — whose cards were looked up (`phone` / `customer_id`), who looked them up (`operator`: openid path = openid, SMS path = phone number, binding path = openid), what mode (`mode`), the result (`result`: `ok / disabled / missing_openid / no_binding / missing_code / bad_code / expired_code / used_code / no_customer / bind_ok / bind_conflict / missing_appointment / not_owner / not_cancelable / cancel_ok`), and the time (`create_time`). All paths follow the same policy, and refusals in off mode leave a trace too.
 
-**自助取消预约（2026-10-16 代决，用户可推翻）**：`app-booking.md` 拍板 2（2026-10-10）裁「顾客侧取消不做」，前提是「取消不核验身份，无法阻止恶意取消他人约」；该前提已因 2026-10-14/15 手机号+一次性验证码双因子与 openid 绑定落地而失效，故恢复顾客侧取消——`POST /api/v1/kiosk/appointment-cancel`（`{ phone, smsCode, appointmentId }`）核验身份后只允许取消**本人** `status=0` 且未过期的预约（0→9），非本人/已受理/已过号/已取消/已过期/未知预约均 400 不静默；取消后该时段按「每时段限约 1 位」自动释放、当日频控随之解除（与 `ensureSlotFree` 的 status IN (0,1) 计数同一口径）；与 `my-appointments` 同一套一次性验证码通道（查预约用过的码取消须重新取码）与审计口径。管理端取消（0→9）保留并行。
+**Self-service appointment cancellation (decided on the user's behalf 2026-10-16, the user can overturn)**: `app-booking.md` ruling 2 (2026-10-10) decided against patient-side cancellation on the premise that "cancellation verifies no identity, so malicious cancellation of other people's bookings cannot be stopped"; that premise lapsed once phone-number + one-time-code two-factor verification and openid binding landed on 2026-10-14/15, so patient-side cancellation is restored — `POST /api/v1/kiosk/appointment-cancel` (`{ phone, smsCode, appointmentId }`) verifies identity and then allows cancelling only the caller's **own** `status=0` not-yet-expired appointment (0→9); not the owner / already received / skipped / already cancelled / already expired / unknown appointments are all refused with 400 (no silent paths); after cancellation the slot is released per the "one booking per slot" rule and the same-day frequency cap lifts accordingly (the same status IN (0,1) counting as `ensureSlotFree`); it shares the one-time code channel with `my-appointments` (a code already spent on lookup must be re-issued for cancellation) and the same audit policy. Admin-console cancellation (0→9) remains available in parallel.
 
-小程序侧（`app/src/pages/card`）：手机号 + 验证码表单，服务端 400 的 `errorMessage` 原样透出；命中后列持卡与余次。weapp 登录换取 openid（仅存内存不落存储），openid 带上即可查卡；未绑定时填手机号+验证码点「绑定微信」走自助绑定（绑定成功直接以 openid 查一次卡）；H5 无 `wx.login` 只走短信路径。
+Mini program side (`app/src/pages/card`): a phone number + verification code form; the server's 400 `errorMessage` is passed through as-is; on a hit it lists held cards and remaining visits. The weapp login exchanges for an openid (kept in memory only, never persisted), and the openid can be sent along to look up cards; when nothing is bound, entering a phone number + code and tapping 「绑定微信」 goes through self-binding (after a successful binding it immediately looks up the cards once by openid); H5 has no `wx.login` and uses only the SMS path.
 
-## 交互链路
+## Interaction flow
 
 ```text
 Kiosk 首页（卡项网格，30s 无操作自动清篮回首页）
@@ -112,7 +110,7 @@ Kiosk 首页（卡项网格，30s 无操作自动清篮回首页）
   → 接单（0→1）→ 服务完成（1→2）；未接待可取消（→9）
 ```
 
-## 目录落位
+## Directory layout
 
 ```text
 kiosk/                      # monorepo 新增目录（与 tablet/ 平级，同一套 Vite + React + TS 约定）
@@ -128,15 +126,15 @@ web/src/pages/Order/        # dash：订单管理（替换现存的顾客列表�
 server/ …/controller/KioskController.java、OrderController.java（真实实现）
 ```
 
-部署落位：Nginx 增加 `/kiosk/`（`kiosk/dist`）；卡项封面沿用 `/media/` 托管，无需新增静态段。
+Deployment layout: Nginx adds `/kiosk/` (`kiosk/dist`); card covers reuse the `/media/` hosting, no new static segment needed.
 
-## todo 原子项
+## todo atomic items
 
-| # | 事项 | 验收 | 状态 |
+| # | Item | Acceptance | Status |
 | ---- | ---- | ---- | ---- |
-| K1 | items 补 `enabled / cover / sort` 三字段并透出到 VO；dash 卡项页补编辑 | dash 可上架/下架、传封面、排序 | ✅ 存量行默认上架、表单三字段浏览器实证 |
-| K2 | server KioskController：`GET /kiosk/items` + `POST /kiosk/orders`（免登录、手机号建档幂等） | curl 浏览只读、下单落库、重复手机号不重复建档 | ✅ 下架项排除、双单合计与同号归同顾客 curl 实证 |
-| K3 | dash 订单管理页：分页列表（联顾客/卡项名）+ 状态流转，替换空壳 OrderController | kiosk 下的单在 dash 可见、可接单/完成/取消 | ✅ 7 项 curl + 浏览器接单流转实证 |
-| K4 | `kiosk/` 脚手架 + 卡项网格浏览页 | 浏览器打开即见上架卡项大字网格 | ✅ 竖屏实证：上架 2 项、下架排除、点选汇总 |
-| K5 | kiosk 购物篮 + 下单 + 成功回执 + 空闲回首页 | 全流程触摸走通，重复手机号二单归同一顾客 | ✅ 手机号校验/回执/10s 自动返回/30s 清篮，二单 customerId 相同 |
-| K6 | 端到端验收 + 文档同步（data-model / api / deploy / index） | 设计稿改已实施，docs build 过 | ✅ 文档四件套同步，docs build 过 |
+| K1 | items gains the three fields `enabled / cover / sort` and exposes them to the VO; the dash card page gains editing | dash can publish/unpublish, upload covers, sort | ✅ Existing rows default to published, the three form fields verified in a browser |
+| K2 | server KioskController: `GET /kiosk/items` + `POST /kiosk/orders` (unauthenticated, idempotent patient creation by phone) | curl browse read-only, order placement persists, duplicate phone numbers do not duplicate records | ✅ Unpublished items excluded, two-order total and same-number same-patient verified with curl |
+| K3 | dash order management page: paginated list (joining patient/card names) + status flow, replacing the empty-shell OrderController | Orders placed from the kiosk are visible in dash and can be accepted/completed/cancelled | ✅ 7 curl cases + browser accept-flow verification |
+| K4 | `kiosk/` scaffolding + card grid browse page | Opening in a browser shows the published cards as a large-text grid | ✅ Portrait verified: 2 published items, unpublished excluded, tap-to-summarize |
+| K5 | Kiosk shopping basket + order placement + success receipt + idle return home | Full touch flow works, a second order with the same phone number goes to the same patient | ✅ Phone validation/receipt/10s auto-return/30s basket clearing, both orders share the same customerId |
+| K6 | End-to-end acceptance + doc sync (data-model / api / deploy / index) | The design doc updated to implemented, docs build passes | ✅ The four doc sets synced, docs build passes |

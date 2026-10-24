@@ -1,65 +1,63 @@
-# 界面原型渲染记录与文件清单
+# UI Prototype Render Log and File Inventory
 
-> 🌐 [English](./README.en.md) · **本页为中文**
-
-> 统一品牌语言：石墨×古金（logo 灰 #666666 + 金 #C7A674 派生），宣纸底、宋体标题。四套可切换主题色：石墨（默认）、松烟绿、朱砂、黛蓝。数据宇宙全仓一致（王女士/金卡/艾灸卡余6次/三伏灸¥880/王中医师等）。
+> One brand language: graphite × antique gold (derived from logo gray #666666 + gold #C7A674), on a rice-paper ground with Song-typeface headings. Four switchable theme palettes: graphite (default), pine smoke green, cinnabar, indigo. The data universe is consistent across the repo (Ms. Wang (王女士) / gold-tier card / moxibustion card with 6 visits left / dog-day moxibustion ¥880 / Physician Wang (王中医师), and so on).
 
 ---
 
-## 1. 源文件清单（`docs/design/mockups/`）
+## 1. Source File Inventory (`docs/design/mockups/`)
 
-| 文件 | 端 | 状态 | 说明 |
+| File | Target | Status | Description |
 |---|---|---|---|
-| `tokens.css` | 全端 | **设计系统内核** | CSS 变量四主题、色板、字体、间距、圆角、阴影 |
-| `admin-customer.html` | web | ✅ 已实现功能 | 顾客档案：建档/查询/更新/诊断历史/回访计划/持卡卡项（次卡发卡与余次） |
-| `admin-diagnosis.html` | web | ✅ 已实现功能 | 接诊诊疗单：四诊/脉象/五行/取穴/诊断/方案 |
-| `admin-dash-day.html` | web | ✅ 已实现功能 | 每日报表：员工总结/今日回访/今日总结/近7日接诊柱状图 |
-| `admin-items.html` | web | ✅ 已实现功能 | 卡项管理：封面/上架/排序/编辑/删除/分页 |
-| `admin-orders.html` | web | ✅ 已实现功能 | 订单管理：分页/状态流转（接单/完成/取消/删除）/查看详情/多品项明细（order_item 行，业务单号 `YYYYMMDD-NNN`、项目列「名 ×数量」、前台建单多选卡项带数量） |
-| `admin-ads.html` | web | ✅ 已实现功能 | 广告屏管理：素材/排期/屏幕/叫号四标签 |
-| `admin-appearance.html` | web | ✅ 已实现功能 | 外观设置：四主题卡即时切换 + 实时预览网格 |
-| `admin-booking.html` | web | ✅ 已实现功能 | 预约排班：待到店列表/建约/到店接待转接诊与医师×时段排班网格已实装（`/appointment/schedule`，右栏今日预约四格统计/待到店列表/小程序联动说明）；过号状态（0→8）与每时段限约 1 位（同医师同小时，后端校验）已实装；小程序自助约期已实装（`POST /api/v1/kiosk/appointments` + 小程序 `pages/booking`）；✅ 2026-10-12 网格/待到店行「第 N 疗程/复诊/首诊」角标已实装——疗程卡标记优先（同项目第 N 张卡），无卡按就诊记录标复诊/首诊（`GET /treat/visited?ids=` 按顾客批量查 treats 聚合计数；treats 无项目维度，按顾客口径拍板） |
-| `admin-herbprescription.html` | web | ✅ 已实现功能 | 中药处方：处方笺开方/查询已实装（`/prescription/create`、`/prescription/query`，药材自由文本）+ 配伍审方已实装（`POST /prescription/compatibility` 十八反/十九畏静态规则）+ 计价已实装（`/api/v1/herb` 字典 + `POST /prescription/price` 试算，开方页随写随查，未收录药名不计费）+ 代煎领取已实装（开方勾选代煎袋数=剂数落待煎，查询页流转 待煎→可取→已取，服务费 ¥3/袋 仅提示，141f295/47e4828）；todo 11 条 2026-10-12 全清（rx 头/特殊煎法提醒/剂量审方 dose-check/签名三签/领取方式/三键/炮制列/用法三格/拼音检索/过敏常显态，代煎费拍板入三行账合计）；仅药典剂量**权威数据源**余卡点（机制已落、由诊所自录 dose_max，数据源待用户定夺） |
-| `admin-billing.html` | web | ✅ 已实现功能 | 收费结算：待结算队列/储值支付与充值/微信·支付宝·现金已实装（`/billing/settle`，结算台形态）+ 次卡抵扣已实装（payType 5，扣 1 次实收 0）+ 小票打印已实装（服务端套打 `GET /api/v1/print/receipt/{settlementId}`，收款后打印/最近结算补打，f57f10d/1b33703）+ 结算明细多行表/整单备注（`PUT /api/v1/order/remark`，≤200 字）/队列业务单号已实装（2026-10-11）+ 到店扫码收款码展示面已实装（`GET /api/v1/pay-qrcode/{method}` 出图，缺图如实提示，2026-10-12）；原型里的处方饮片行已裁定不做（依据「收费以卡项订单结算为准」，处方计价为试算/提示口径）；在线支付真实通道（#88）红线不碰 |
-| `desktop-workstation.html` | desktop | ✅ 已实现功能 | 接诊开单 + 打印/扫码外设状态 |
-| `mobile-home.html` | app | ✅ 已实现功能 | 小程序首页：品牌头（右侧铃铛/头像圆钮，称呼取本机自助约期留下的称呼）/预约横幅（有本机未过期待到店预约显提醒态，否则自助约期入口，均跳 `pages/booking` tab）/今日宜养（宫格实拉，超 4 项显示「全部项目」展开）/我的卡项/养生贴士；底部四标签 tabBar（首页/预约/卡项/我的）；白标自检自顾客首页挪至 `pages/me`（工程验收用）；卡项余次无接口，`pages/card` 与首页均如实「规划功能」占位 |
-| `kiosk-menu.html` | kiosk | ✅ 已实现功能 | 选服务下单：卡项网格/购物篮/手机号下单/回执 |
-| `tablet-screen.html` | tablet | ✅ 已实现功能 | 广告轮播 + 叫号上屏（脱敏姓名） |
+| `tokens.css` | all | **Design-system core** | CSS variables for the four themes, palette, fonts, spacing, radii, shadows |
+| `admin-customer.html` | web | ✅ Feature implemented | Patient record: create / query / update / diagnosis history / follow-up plan / held service cards (visit-card issuance and remaining visits) |
+| `admin-diagnosis.html` | web | ✅ Feature implemented | Treatment record: four examinations / pulse / five phases / point selection / diagnosis / plan |
+| `admin-dash-day.html` | web | ✅ Feature implemented | Daily report: staff summaries / today's follow-ups / today's recap / bar chart of treatments over the last 7 days |
+| `admin-items.html` | web | ✅ Feature implemented | Service card management: covers / listing / ordering / edit / delete / paging |
+| `admin-orders.html` | web | ✅ Feature implemented | Order management: paging / state transitions (accept / complete / cancel / delete) / view details / multi-item line items (order_item rows, business number `YYYYMMDD-NNN`, item column "name ×qty", front-desk multi-select of service cards with quantity when creating an order) |
+| `admin-ads.html` | web | ✅ Feature implemented | Advertising-screen management: four tabs for materials / schedules / screens / queue calling |
+| `admin-appearance.html` | web | ✅ Feature implemented | Appearance settings: instant switching via four theme cards + live preview grid |
+| `admin-booking.html` | web | ✅ Feature implemented | Booking and scheduling: the not-yet-arrived list / appointment creation / check-in-to-treatment transfer and the physician × slot schedule grid are implemented (`/appointment/schedule`, right column with today's four-tile appointment stats / not-yet-arrived list / mini program linkage notes); the skipped status (0→8) and the one-booking-per-slot limit (same physician, same hour, validated server-side) are implemented; mini program self-service booking is implemented (`POST /api/v1/kiosk/appointments` + mini program `pages/booking`); ✅ 2026-10-12 the "Nth course / return visit / first visit" corner badges on grid and not-yet-arrived rows are implemented — treatment-course card markers take priority (the Nth card for the same item), and without a card the badge falls back to return/first visit from treatment history (`GET /treat/visited?ids=` batch-queries aggregated treat counts per patient; treats have no item dimension, so a per-patient policy was decided) |
+| `admin-herbprescription.html` | web | ✅ Feature implemented | Chinese-medicine prescriptions: prescription-pad writing / query implemented (`/prescription/create`, `/prescription/query`, herb names as free text) + compatibility review implemented (`POST /prescription/compatibility`, static rules for the Eighteen Incompatibles / Nineteen Antagonisms) + pricing implemented (`/api/v1/herb` dictionary + `POST /prescription/price` trial calculation, lookups as you type on the prescribing page, herb names not in the catalog are not billed) + decoction-service pickup implemented (checking decoction at prescribing with bags = doses lands as pending-decoction, the query page flows pending → ready → picked up, service fee ¥3/bag shown as a hint only, 141f295/47e4828); all 11 todo items cleared 2026-10-12 (rx header / special decoction-method reminder / dosage review dose-check / three signatures / pickup method / three buttons / processing column / three-cell usage / pinyin search / allergy always visible, with the decoction fee decided to roll into the three-line account total); the only remaining blocker is the **authoritative source** for pharmacopoeia dosages (the mechanism is in place and the clinic records dose_max itself; the data source awaits the user's decision) |
+| `admin-billing.html` | web | ✅ Feature implemented | Billing and settlement: the pending-settlement queue / stored-value payment and recharge / WeChat · Alipay · cash are implemented (`/billing/settle`, settlement-counter form) + visit-card offset implemented (payType 5, deducts 1 visit, 0 received) + receipt printing implemented (server-side template printing `GET /api/v1/print/receipt/{settlementId}`, print after collection / reprint the latest settlement, f57f10d/1b33703) + multi-row settlement detail / whole-order remark (`PUT /api/v1/order/remark`, ≤200 chars) / queue business numbers implemented (2026-10-11) + the in-store scan-to-pay QR display implemented (`GET /api/v1/pay-qrcode/{method}` serves the image, an honest hint when the image is missing, 2026-10-12); the prescription herb rows in the prototype were ruled out (on the grounds that "billing is anchored to service-card order settlement", prescription pricing being a trial-calculation / hint policy); the real online-payment channel (#88) is a red line and stays untouched |
+| `desktop-workstation.html` | desktop | ✅ Feature implemented | Treatment order creation + printer / scanner peripheral status |
+| `mobile-home.html` | app | ✅ Feature implemented | Mini program home: brand header (bell / round avatar button at the right, the form of address taken from what self-service booking left on this device) / booking banner (shows a reminder state when there is an unexpired not-yet-arrived appointment on this device, otherwise a self-service booking entry; both navigate to the `pages/booking` tab) / Today's wellness (the grid pulls real data; beyond 4 items an "All items" expander appears) / my service cards / wellness tips; four-tab tabBar at the bottom (Home / Booking / Cards / Me); the white-label self-check moved off the customer home to `pages/me` (for engineering acceptance); there is no endpoint for card remaining visits, so `pages/card` and the home page both carry an honest "planned feature" placeholder |
+| `kiosk-menu.html` | kiosk | ✅ Feature implemented | Service selection and ordering: service card grid / basket / order by phone number / receipt |
+| `tablet-screen.html` | tablet | ✅ Feature implemented | Ad carousel + queue calling on screen (masked names) |
 
 ---
 
-## 2. 截图产物（`docs/public/screenshots/`）
+## 2. Screenshot Artifacts (`docs/public/screenshots/`)
 
-### 2.1 基础 14 张（1440×900 @2x → 2880×1800；tablet/desktop 1920×1080 @1.5x → 2880×1620）
+### 2.1 The base 14 (1440×900 @2x → 2880×1800; tablet/desktop 1920×1080 @1.5x → 2880×1620)
 
-| 产物 | 尺寸 | 源文件 | 渲染命令 |
+| Artifact | Size | Source file | Render command |
 |---|---|---|---|
-| `admin-customer.png` | 2880×1800 | `admin-customer.html` | 见下 |
-| `admin-diagnosis.png` | 2880×1800 | `admin-diagnosis.html` | 同上 |
-| `admin-dash-day.png` | 2880×1800 | `admin-dash-day.html` | 同上 |
-| `admin-items.png` | 2880×1800 | `admin-items.html` | 同上 |
-| `admin-orders.png` | 2880×1800 | `admin-orders.html` | 同上 |
-| `admin-ads.png` | 2880×1800 | `admin-ads.html` | 同上 |
-| `admin-appearance.png` | 2880×1800 | `admin-appearance.html` | 同上 |
-| `admin-booking.png` | 2880×1800 | `admin-booking.html` | 同上 |
-| `admin-herbprescription.png` | 2880×1800 | `admin-herbprescription.html` | 同上 |
-| `admin-billing.png` | 2880×1800 | `admin-billing.html` | 同上 |
-| `desktop-workstation.png` | 2880×1620 | `desktop-workstation.html` | 同上 |
+| `admin-customer.png` | 2880×1800 | `admin-customer.html` | see below |
+| `admin-diagnosis.png` | 2880×1800 | `admin-diagnosis.html` | same as above |
+| `admin-dash-day.png` | 2880×1800 | `admin-dash-day.html` | same as above |
+| `admin-items.png` | 2880×1800 | `admin-items.html` | same as above |
+| `admin-orders.png` | 2880×1800 | `admin-orders.html` | same as above |
+| `admin-ads.png` | 2880×1800 | `admin-ads.html` | same as above |
+| `admin-appearance.png` | 2880×1800 | `admin-appearance.html` | same as above |
+| `admin-booking.png` | 2880×1800 | `admin-booking.html` | same as above |
+| `admin-herbprescription.png` | 2880×1800 | `admin-herbprescription.html` | same as above |
+| `admin-billing.png` | 2880×1800 | `admin-billing.html` | same as above |
+| `desktop-workstation.png` | 2880×1620 | `desktop-workstation.html` | same as above |
 | `mobile-home.png` | 780×1688 | `mobile-home.html` | 390×844 @2x |
-| `kiosk-menu.png` | 1800×2400 | `kiosk-menu.html` | 900×1200 @2x（竖屏） |
-| `tablet-screen.png` | 2880×1620 | `tablet-screen.html` | 同上 |
+| `kiosk-menu.png` | 1800×2400 | `kiosk-menu.html` | 900×1200 @2x (portrait) |
+| `tablet-screen.png` | 2880×1620 | `tablet-screen.html` | same as above |
 
-### 2.2 主题切换拼图（2×2）
+### 2.2 Theme-switch montage (2×2)
 
-| 产物 | 尺寸 | 来源 | 生成方式 |
+| Artifact | Size | Source | How it is generated |
 |---|---|---|---|
-| `admin-themes.png` | 2880×1872 | `admin-customer.html` 四主题变体 | `convert` 逐张等比缩放 → `montage -tile 2x2 -geometry +0+18 -background '#3a3d3b'` |
+| `admin-themes.png` | 2880×1872 | four theme variants of `admin-customer.html` | `convert` scales each proportionally → `montage -tile 2x2 -geometry +0+18 -background '#3a3d3b'` |
 
 ---
 
-## 3. 渲染命令（可复现）
+## 3. Render Commands (reproducible)
 
-### 3.1 环境准备
+### 3.1 Environment Setup
 
 ```bash
 # 字体（必须，否则宋体回退无衬线）
@@ -70,7 +68,7 @@ fc-list | grep -ci "noto serif cjk"   # 应输出 ≥ 30
 cd /home/cui/workspaces/sinomed/docs/design/mockups
 ```
 
-### 3.2 基础 14 张渲染
+### 3.2 Rendering the Base 14
 
 ```bash
 # 统一参数：--force-device-scale-factor=2 --hide-scrollbars --no-sandbox --disable-gpu
@@ -111,7 +109,7 @@ done
   "file:///home/cui/workspaces/sinomed/docs/design/mockups/kiosk-menu.html"
 ```
 
-### 3.3 四主题变体渲染（以 admin-customer 为例，其余同理）
+### 3.3 Rendering the Four Theme Variants (admin-customer as the example; the rest follow the same pattern)
 
 ```bash
 cd /home/cui/workspaces/sinomed/docs/design/mockups
@@ -135,7 +133,7 @@ for theme in graphite pine cinnabar indigo; do
 done
 ```
 
-### 3.4 拼图生成 `admin-themes.png`（关键：必须先等比缩放再拼）
+### 3.4 Montage Generation of `admin-themes.png` (key: scale proportionally BEFORE montaging)
 
 ```bash
 cd /home/cui/workspaces/sinomed/docs/public/screenshots
@@ -157,64 +155,64 @@ montage _tile-graphite.png _tile-pine.png _tile-cinnabar.png _tile-indigo.png \
 rm _tile-*.png
 ```
 
-> ⚠️ **避坑**：`montage -geometry 1440x900+0+18` 会**中心裁剪**而非等比缩放，导致四格内容被切。必须先 `convert -resize 1440x900` 再拼。
+> ⚠️ **Pitfall avoided**: `montage -geometry 1440x900+0+18` **center-crops** instead of scaling proportionally, which cuts the content in all four tiles. Run `convert -resize 1440x900` first, then montage.
 
 ---
 
-## 4. 数据宇宙一致性（跨页核对表）
+## 4. Data-Universe Consistency (cross-page check table)
 
-| 实体 | 关键值 | 出现页面 |
+| Entity | Key values | Pages where it appears |
 |---|---|---|
-| 顾客 王女士 | 137****3333、金卡会员、艾灸卡余 6→5 次 | admin-customer, admin-diagnosis, admin-billing, admin-dash-day, admin-orders, mobile-home, admin-herbprescription |
-| 医师 王中医师 | 中医师、处方签名、接诊单创建 | admin-diagnosis, admin-dash-day, admin-herbprescription, admin-billing |
-| 医师 沈中医师 | 中医师、腹部推拿、员工总结已提交 | admin-dash-day, admin-booking, admin-orders |
-| 技师 苏技师 | 技师、足浴熏蒸、药师复核/调配 | admin-dash-day, admin-herbprescription |
-| 馆长 顾馆长 | 馆长、巡店对账、药师审核 | admin-dash-day, admin-herbprescription |
-| 卡项：艾灸调理 | ¥100/次、10次卡 | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
-| 卡项：腹部推拿 | ¥180/次、30分钟 | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
-| 卡项：肩颈推拿 | ¥160/次 | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
-| 卡项：足浴熏蒸 | ¥120/次 | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
-| 卡项：三伏灸疗程卡 | ¥880 | admin-items, admin-customer, mobile-home |
+| Patient: Ms. Wang (王女士) | 137****3333, gold-tier member, moxibustion card with 6→5 visits left | admin-customer, admin-diagnosis, admin-billing, admin-dash-day, admin-orders, mobile-home, admin-herbprescription |
+| Physician Wang (王中医师) | TCM physician, prescription signatures, treatment-record creation | admin-diagnosis, admin-dash-day, admin-herbprescription, admin-billing |
+| Physician Shen (沈中医师) | TCM physician, abdominal tuina, staff summary submitted | admin-dash-day, admin-booking, admin-orders |
+| Technician Su (苏技师) | technician, foot-bath steaming, pharmacist review / compounding | admin-dash-day, admin-herbprescription |
+| Director Gu (顾馆长) | clinic director, store-patrol reconciliation, pharmacist review | admin-dash-day, admin-herbprescription |
+| Service card: Moxibustion conditioning (艾灸调理) | ¥100/visit, 10-visit card | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
+| Service card: Abdominal tuina (腹部推拿) | ¥180/visit, 30 minutes | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
+| Service card: Shoulder-and-neck tuina (肩颈推拿) | ¥160/visit | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
+| Service card: Foot-bath steaming (足浴熏蒸) | ¥120/visit | admin-items, admin-customer, admin-billing, admin-orders, kiosk-menu |
+| Service card: Dog-day moxibustion course card (三伏灸疗程卡) | ¥880 | admin-items, admin-customer, mobile-home |
 
 ---
 
-## 5. 文档嵌入对照（VitePress `/sinomed/` base 路径）
+## 5. Document Embedding Reference (VitePress `/sinomed/` base path)
 
-| 文档 | 嵌入语法 | 说明 |
+| Document | Embedding syntax | Description |
 |---|---|---|
-| `README.md` | `![alt](/screenshots/xxx.png)` | 相对根，VitePress 自动加 base |
-| `docs/index.md` | 同上 | 首页产品预览 + 未来功能规划 |
-| `docs/web.md` | 同上 | 顾客档案/诊疗单/订单/广告屏四图 |
-| `docs/app.md` | 同上 | 移动端首页原型（标注界面原型尚未实现） |
-| `docs/design/desktop.md` | 同上 | 桌面工作站原型 |
-| `docs/design/kiosk.md` | 同上 | 自助机原型 |
-| `docs/design/tablet.md` | 同上 | 平板原型 + admin-ads.png |
-| `docs/research/features.md` | 表格内交叉链接 | 预约/中药/收费三行尾注截图路径 |
+| `README.md` | `![alt](/screenshots/xxx.png)` | Root-relative; VitePress prepends base automatically |
+| `docs/index.md` | same | Home page product preview + planned future features |
+| `docs/web.md` | same | Four images: patient record / treatment record / orders / advertising screen |
+| `docs/app.md` | same | Mobile home prototype (annotated that the UI prototype is not yet implemented) |
+| `docs/design/desktop.md` | same | Desktop workstation prototype |
+| `docs/design/kiosk.md` | same | Kiosk prototype |
+| `docs/design/tablet.md` | same | Tablet prototype + admin-ads.png |
+| `docs/research/features.md` | cross-links inside tables | Screenshot paths footnoted on the booking / Chinese-medicine / billing rows |
 
-> **注意**：Markdown 图片语法 `![](path)` 会被 VitePress 重写为 `/sinomed/path`；若在 HTML 标签 `<img src="/screenshots/...">` 中写绝对路径，**不会**被重写，会 404。
+> **Note**: VitePress rewrites Markdown image syntax `![](path)` to `/sinomed/path`; an absolute path written inside an HTML tag `<img src="/screenshots/...">` is **not** rewritten and will 404.
 
 ---
 
-## 6. 最近一次全量重渲染记录
+## 6. Most Recent Full Re-render Record
 
-| 时间 | 触发原因 | 关键修复 |
+| Date | Trigger | Key fixes |
 |---|---|---|
-| 2026-10-08 | 审计发现 admin-items 空洞、admin-dash-day 布局错位、admin-themes.png 裁剪错误、Noto Serif CJK 缺失 | 1) 补卡项页第 6 行 + 分页条 2) 报表柱状图移入右列栈底 3) 字体安装 35 变体 4) 拼图改用 `convert -resize` 等比缩放 |
+| 2026-10-08 | An audit found holes in admin-items, layout misalignment in admin-dash-day, a cropping error in admin-themes.png, and missing Noto Serif CJK | 1) Added the 6th row on the service-card page + a pagination bar 2) Moved the report bar chart to the bottom of the right column stack 3) Installed 35 font variants 4) Switched the montage to `convert -resize` proportional scaling |
 
 ---
 
-## 7. 后续维护清单
+## 7. Ongoing Maintenance Checklist
 
-**自动门禁**：`pnpm -C docs check`（`docs/scripts/check-docs.mjs`，零依赖），`docs.yml` 在 build 前调用。VitePress build 本身不校验图片链接，断链只在浏览器里 404 而构建照样绿灯，故单独成检查。
+**Automated gate**: `pnpm -C docs check` (`docs/scripts/check-docs.mjs`, zero dependencies), invoked by `docs.yml` before build. VitePress build itself does not validate image links — a broken link only 404s in the browser while the build stays green — so it stands as a separate check.
 
-| 项 | 检查内容 |
+| Item | What it checks |
 |---|---|
-| 图片断链 | 全部 Markdown `![alt](path)` 按 VitePress 语义解析（`/xxx` → `docs/public`，其余相对所在 `.md`）；代码块与行内代码里的示例串跳过 |
-| HTML 绝对路径 | `<img src="/...">` 必须命中 `docs/public` —— VitePress 只对 Markdown 语法重写 base，HTML 标签绝对路径不重写（见上文「注意」） |
-| 原型样式源 | 每份 `design/mockups/*.html` 必须挂 `tokens.css`，否则主题切换失效 |
-| 四主题齐全 | `tokens.css` 保留 `:root` 默认石墨 + `pine`/`cinnabar`/`indigo` 三个 `[data-theme]` 块 |
+| Broken image links | Every Markdown `![alt](path)` is resolved with VitePress semantics (`/xxx` → `docs/public`, everything else relative to the `.md` file); sample strings inside code blocks and inline code are skipped |
+| HTML absolute paths | `<img src="/...">` must hit `docs/public` — VitePress rewrites base only for Markdown syntax, not for absolute paths in HTML tags (see the "Note" above) |
+| Prototype style source | Every `design/mockups/*.html` must link `tokens.css`, otherwise theme switching breaks |
+| All four themes present | `tokens.css` keeps the `:root` graphite default + the three `[data-theme]` blocks `pine`/`cinnabar`/`indigo` |
 
-**仍需人工判断**（门禁覆盖不到）：
+**Still needs human judgment** (beyond the gate's reach):
 
-- 新增页面 → 数据宇宙一致性（原型样例数据与后端实体口径是否一致）、补渲染命令与截图对照
-- 主题色调整 → 全量重渲 14+4 张（需浏览器 + CJK 字体环境，见 §6 渲染记录）
+- New pages → data-universe consistency (whether the prototype sample data matches the backend entity policy), plus render commands and screenshot cross-references
+- Theme color changes → full re-render of the 14+4 images (needs a browser + CJK font environment; see the render record in §6)

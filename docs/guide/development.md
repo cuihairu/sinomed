@@ -1,8 +1,6 @@
-# 开发指南
+# Development Guide
 
-> 🌐 [English](./development.en.md) · **本页为中文**
-
-## 目录约定
+## Directory Layout
 
 ```text
 sinomed/
@@ -14,26 +12,26 @@ sinomed/
 └── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建、前端三端构建）
 ```
 
-- 三端独立构建、互不依赖；管理端与小程序端通过服务端 `/api/v1` 接口通信。
-- 前端包管理统一 pnpm；Java 构建使用仓库自带 `mvnw`（无需本机装 Maven）。
-- `.nvmrc` 已在 `web/`、`app/` 声明 Node 24。
+- The three frontends are built independently with no cross-dependencies; the admin console and mini program talk to the server through its `/api/v1` API.
+- The frontend uses pnpm as the unified package manager; Java builds use the repo-bundled `mvnw` (no local Maven install needed).
+- `.nvmrc` pins Node 24 in both `web/` and `app/`.
 
-## 构建
+## Builds
 
-| 目标 | 命令 | 产物 |
+| Target | Command | Artifact |
 | ---- | ---- | ---- |
-| 服务端 | `cd server && ./mvnw -B package -DskipTests` | `server/target/sinomed-server.jar` |
-| 服务端（含测试） | `cd server && ./mvnw -B test`（自包含，见下） | - |
-| 管理端 | `cd web && pnpm install && pnpm build` | `web/dist/` |
-| 管理端开发 | `cd web && pnpm dev` | `http://localhost:8000` |
-| 小程序 H5 | `cd app && pnpm build:h5` | `app/dist/` |
-| 小程序微信端 | `cd app && pnpm build:weapp` | `app/dist/`（微信开发者工具导入） |
-| 自助机 | `cd kiosk && pnpm build`（`tsc -b && vite build`） | `kiosk/dist/` |
-| 候诊区平板 | `cd tablet && pnpm build`（`tsc -b && vite build`） | `tablet/dist/` |
+| Server | `cd server && ./mvnw -B package -DskipTests` | `server/target/sinomed-server.jar` |
+| Server (with tests) | `cd server && ./mvnw -B test` (self-contained, see below) | - |
+| Admin console | `cd web && pnpm install && pnpm build` | `web/dist/` |
+| Admin console dev | `cd web && pnpm dev` | `http://localhost:8000` |
+| Mini program H5 | `cd app && pnpm build:h5` | `app/dist/` |
+| Mini program WeChat | `cd app && pnpm build:weapp` | `app/dist/` (import into WeChat DevTools) |
+| Kiosk | `cd kiosk && pnpm build` (`tsc -b && vite build`) | `kiosk/dist/` |
+| Waiting-area tablet | `cd tablet && pnpm build` (`tsc -b && vite build`) | `tablet/dist/` |
 
-## 测试
+## Tests
 
-- **服务端**：测试自包含——`server/pom.xml` 的 surefire 配置统一注入 SQLite 环境变量（`DB_DRIVER=org.sqlite.JDBC`、`DB_URL=jdbc:sqlite:target/test-sinomed.db`、`SERVER_PORT=0` 等），裸 `./mvnw test` 在干净环境直接跑通，无需先起数据库。需要连外部测试库时用同名环境变量覆盖：
+- **Server**: tests are self-contained — the surefire configuration in `server/pom.xml` uniformly injects SQLite environment variables (`DB_DRIVER=org.sqlite.JDBC`, `DB_URL=jdbc:sqlite:target/test-sinomed.db`, `SERVER_PORT=0`, etc.), so a bare `./mvnw test` runs green on a clean machine with no database to start first. To run against an external test database, override the same-named environment variables:
 
 ```bash
 cd server
@@ -42,44 +40,44 @@ DB_USERNAME=root DB_PASSWORD=test123 SERVER_PORT=2347 \
 ./mvnw -B test
 ```
 
-- **管理端**：`pnpm lint`（eslint + prettier + tsc）、`pnpm jest`；
-- **小程序端**：暂无测试脚本，以多端构建通过为准；类型检查另跑 `pnpm exec tsc --noEmit --skipLibCheck`（`--skipLibCheck` 屏蔽 Taro / `@types` 库自身约 97 条类型报错，本仓源码零报错为准）。
-- **自助机 / 平板**：无独立测试脚本，`pnpm build` 里的 `tsc -b` 即类型门禁。
-- **桌面工作站**：`cd desktop && pnpm test`（即 `cargo test --manifest-path src-tauri/Cargo.toml`）跑 src-tauri 内 23 个 `#[test]`（ESC/POS 字节流、打印模板、配置解析、扫码行切分、崩溃预算等核心逻辑）；Linux 需先装 wry / serialport 前置依赖 `libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libudev-dev`。frontendDist 指向入库的 `desktop/ui` 静态资源，无需前端构建即可编译。
+- **Admin console**: `pnpm lint` (eslint + prettier + tsc), `pnpm jest`;
+- **Mini program**: no test script yet; multi-platform builds passing is the gate; for type checking also run `pnpm exec tsc --noEmit --skipLibCheck` (`--skipLibCheck` suppresses the ~97 type errors from the Taro / `@types` libraries themselves; the bar is zero errors in this repo's own source).
+- **Kiosk / tablet**: no standalone test script; the `tsc -b` inside `pnpm build` is the type gate.
+- **Desktop workstation**: `cd desktop && pnpm test` (i.e. `cargo test --manifest-path src-tauri/Cargo.toml`) runs the 23 `#[test]`s inside src-tauri (ESC/POS byte streams, print templates, config parsing, scan-line splitting, crash budget, and other core logic); on Linux first install the wry / serialport prerequisites `libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libudev-dev`. frontendDist points at the committed `desktop/ui` static assets, so it compiles without a frontend build.
 
-CI（GitHub Actions）：
+CI (GitHub Actions):
 
-| 工作流 | 触发 | 内容 |
+| Workflow | Trigger | Contents |
 | ---- | ---- | ---- |
-| `Java CI with Maven` | push / PR main（忽略纯文档改动） | `cd server && ./mvnw -B package`（Java 21，**带测试**，非 `-DskipTests`；Maven 版本由 wrapper 钉在 3.10.0，无需 runner 预装） |
-| `Frontend Build` | push main 且 `app/` `kiosk/` `tablet/` `web/` 变更 | app 类型检查 + 双端构建（weapp + h5）、kiosk / tablet `pnpm build`、web eslint + 类型检查 + jest（web 构建由 `Docker Images` 出镜像时覆盖） |
-| `Docker Images` | push main 且 `server/` `web/` 变更 | 构建并推送 ghcr.io 镜像 |
-| `Deploy Docs` | push main 且 `docs/**` 变更 | 文档站检查 + 构建 + 部署 github-pages |
-| `Desktop Build` | push main 且 `desktop/` 变更 | Windows NSIS / Linux deb 安装包 + Rust 单元测试（独立 `cargo test` job，与构建矩阵并行）；nightly 发布为手动点火 |
+| `Java CI with Maven` | push / PR to main (ignores docs-only changes) | `cd server && ./mvnw -B package` (Java 21, **with tests**, not `-DskipTests`; Maven version pinned to 3.10.0 by the wrapper, no runner preinstall needed) |
+| `Frontend Build` | push to main with changes in `app/` `kiosk/` `tablet/` `web/` | app type check + dual-platform builds (weapp + h5), kiosk / tablet `pnpm build`, web eslint + type check + jest (the web build is covered when `Docker Images` produces the image) |
+| `Docker Images` | push to main with changes in `server/` `web/` | build and push ghcr.io images |
+| `Deploy Docs` | push to main with `docs/**` changes | docs site check + build + deploy to github-pages |
+| `Desktop Build` | push to main with `desktop/` changes | Windows NSIS / Linux deb installers + Rust unit tests (a separate `cargo test` job, parallel to the build matrix); nightly releases are manually triggered |
 
-## 环境版本要求
+## Environment Version Requirements
 
-| 端 | 要求 |
+| Target | Requirement |
 | ---- | ---- |
-| server | Java 21（`pom.xml` `java.version`，CI 同步）、Maven 3.10.0（`server/.mvn/wrapper` 钉，CI 与本地同版） |
-| web / app | Node.js 24（`engines` + `.nvmrc` + CI 约束）、pnpm 9/10 |
-| 文档站 | Node.js 24，`cd docs && pnpm install && pnpm build` |
+| server | Java 21 (`pom.xml` `java.version`, mirrored in CI), Maven 3.10.0 (pinned by `server/.mvn/wrapper`, same version in CI and locally) |
+| web / app | Node.js 24 (`engines` + `.nvmrc` + CI constraint), pnpm 9/10 |
+| Docs site | Node.js 24, `cd docs && pnpm install && pnpm build` |
 
-## 依赖升级
+## Dependency Upgrades
 
-当前基线（2026-10 升级后）：Spring Boot **4.1.1**、caffeine 3.3.0、jjwt 0.13.0、mysql-connector-j（随 Boot 管理）；@umijs/max **4.7.22**、antd **5.29.3**、pro-components **2.8.10**；Taro **3.6.40**。
+Current baseline (after the 2026-10 upgrades): Spring Boot **4.1.1**, caffeine 3.3.0, jjwt 0.13.0, mysql-connector-j (managed with Boot); @umijs/max **4.7.22**, antd **5.29.3**, pro-components **2.8.10**; Taro **3.6.40**.
 
-大版本升级评估：Spring Boot 4.x **已完成**（4.1.1，knife4j-openapi3 4.5.0 与 Boot 4 共存，回归全绿）。以下仍**暂缓**，破坏点如下，动之前先立项验证：
+Major-version upgrade status: Spring Boot 4.x is **done** (4.1.1, knife4j-openapi3 4.5.0 coexists with Boot 4, regressions all green). The following are still **on hold**; their breaking points are listed below — open a validation effort first before touching them:
 
-| 升级项 | 当前 → 目标 | 破坏点 |
+| Upgrade | Current → Target | Breaking points |
 | ---- | ---- | ---- |
-| React 19 + antd 6 | 18 / 5.x → 19 / 6.x | pro-components 2.x 面向 antd 5;Umi max 对 React 19 的支持需验证;全站组件回归 |
-| Taro 4 | 3.6.40 → 4.x | 编译器与插件体系调整;NutUI 需配套升 3.x(其 latest 仍是 `-cpp` 预发布流) |
-| mysql-connector-j 26.x | 随 Boot(9.x) → 26.x | MySQL 驱动切换到日历版本号体系,新大版本需观察稳定性 |
+| React 19 + antd 6 | 18 / 5.x → 19 / 6.x | pro-components 2.x targets antd 5; Umi max's React 19 support needs verification; full-site component regression |
+| Taro 4 | 3.6.40 → 4.x | Compiler and plugin system changes; NutUI needs a companion 3.x upgrade (its latest is still the `-cpp` prerelease stream) |
+| mysql-connector-j 26.x | managed with Boot (9.x) → 26.x | The MySQL driver switched to calendar versioning; the new major needs stability observation |
 
-范围内的 minor / patch 升级用 `pnpm update`（前端）与直接改版本号（Maven）处理，升级后跑通上文构建与测试再提交。
+In-scope minor / patch upgrades are handled with `pnpm update` (frontend) and by editing version numbers directly (Maven); after upgrading, run the builds and tests above green before committing.
 
-## 文档站开发
+## Docs Site Development
 
 ```bash
 cd docs
@@ -88,4 +86,4 @@ pnpm dev      # 本地预览
 pnpm build    # 产物 docs/.vitepress/dist
 ```
 
-写作约定：中文正文、接口与字段以源码为准（不编造）、功能状态如实标注「占位 / 未完成」；推送 `docs/**` 会自动触发部署工作流。
+Writing conventions: Chinese body text; APIs and fields follow the source code (nothing invented); feature status is honestly labeled "placeholder / incomplete"; pushing `docs/**` automatically triggers the deploy workflow.

@@ -1,39 +1,37 @@
-# 快速上手
+# Getting Started
 
-> 🌐 [English](./getting-started.en.md) · **本页为中文**
+This guide walks through three steps by platform: start the **server**, then the **admin console**, then run the **mini program** as needed. All three live in this repo: `server/` (server), `web/` (admin console), `app/` (mini program).
 
-本指南按平台分三步：先起**服务端**，再跑**管理端**，最后按需运行**小程序端**。三端均在本仓库内：`server/`（服务端）、`web/`（管理端）、`app/`（小程序端）。
+## Environment You'll Need
 
-## 你会用到的环境
+| Component | Version requirement | Notes |
+| ---- | ---- | ---- |
+| JDK | 21 | Server compile and runtime |
+| Maven | 3.10.0 (pinned by `server/.mvn/wrapper`; the repo-bundled `./mvnw` avoids a local install) | Server build |
+| Node.js | 24 | Admin console and mini program |
+| pnpm | 9/10 | Frontend package manager |
+| MySQL | 8.0 | Database |
+| Docker (optional) | - | One compose command to bring up the database and the whole stack |
 
-| 组件 | 版本要求 | 说明 |
-| ---- | -------- | ---- |
-| JDK | 21 | 服务端编译与运行 |
-| Maven | 3.10.0（`server/.mvn/wrapper` 钉版，仓库自带 `./mvnw` 可免安装） | 服务端构建 |
-| Node.js | 24 | 管理端与小程序端 |
-| pnpm | 9/10 | 前端包管理 |
-| MySQL | 8.0 | 数据库 |
-| Docker（可选） | - | 用 compose 一键起数据库与整套服务 |
+## Step 1: Start the Server
 
-## 第一步：启动服务端
+### Option A: Docker Compose (recommended, one command for the database)
 
-### 方式 A：Docker Compose（推荐，一键起库）
-
-仓库提供开发编排 `server/dev.yml`，会启动 MySQL（自动执行 `server/init/init.sql` 建库）与服务端容器（开启 5008 远程调试）：
+The repo ships a dev orchestration `server/dev.yml` that starts MySQL (running `server/init/init.sql` to initialize the schema) together with the server container (with remote debugging on 5008 enabled):
 
 ```bash
 cd server
 docker compose -f dev.yml up -d
 ```
 
-启动完成后：
+Once it's up:
 
-- 服务端地址：<http://127.0.0.1:2347>
-- 接口文档（Knife4j 中文）：<http://127.0.0.1:2347/doc.html>
+- Server address: <http://127.0.0.1:2347>
+- API docs (Knife4j, in Chinese): <http://127.0.0.1:2347/doc.html>
 
-### 方式 B：本机运行
+### Option B: Run on the host
 
-先准备一个 MySQL 8 实例，并执行 `server/init/init.sql` 完成建库（数据表由 JPA 自动创建，无需手工建表）。然后：
+First set up a MySQL 8 instance and run `server/init/init.sql` to initialize the schema (tables are created automatically by JPA — no manual table creation). Then:
 
 ```bash
 cd server
@@ -42,15 +40,15 @@ DB_USERNAME=sinomed DB_PASSWORD='你的密码' SERVER_PORT=2347 \
 ./mvnw spring-boot:run
 ```
 
-服务端通过环境变量读取数据库与端口配置，全部变量见[配置与部署](/server/deploy)。
+The server reads its database and port configuration from environment variables; the full list is in [Configuration and Deployment](/server/deploy).
 
 ::: tip 首次启动会自动创建管理员
-首次启动时，若库中不存在 `admin` 账号，系统会自动创建管理员账号 **admin**（默认密码 **123**，源码内置默认值）。接入正式环境前请先登录修改密码，并更换 `application.yml` 中的 JWT 密钥。
+On first start, if the database contains no `admin` account, the system automatically creates an administrator account **admin** (default password **123**, a built-in default in the source code). Before connecting to a production environment, log in and change the password, and replace the JWT secret key in `application.yml`.
 :::
 
-## 第二步：启动管理端
+## Step 2: Start the Admin Console
 
-管理端是 Ant Design Pro / Umi 工程。开发模式默认关闭 mock，通过代理直连本机服务端：
+The admin console is an Ant Design Pro / Umi project. Dev mode disables mock by default and proxies straight to the local server:
 
 ```bash
 cd web
@@ -58,24 +56,24 @@ pnpm install
 pnpm dev          # 等价于 REACT_APP_ENV=dev MOCK=none UMI_ENV=dev max dev
 ```
 
-启动后访问 `http://localhost:8000`，开发代理会把 `/api` 转发到 `http://127.0.0.1:2347`（见 `web/config/proxy.ts`）。
+Once it's running, open `http://localhost:8000`; the dev proxy forwards `/api` to `http://127.0.0.1:2347` (see `web/config/proxy.ts`).
 
-用上一步的 `admin / 123` 登录即可进入工作台。建议沿医馆主流程走一遍（建档 → 接诊 → 调理方案 → 回访）：
+Log in with the `admin / 123` from the previous step to reach the workbench. It's worth walking the clinic's main flow end to end (onboarding → treatment → conditioning plan → follow-up):
 
-1. **顾客建档**：顾客系统 → 顾客建案，录入姓名 / 年龄 / 性别 / 手机 / 会员等级。
-2. **接诊**：顾客查询 → 行操作「创建诊断」，填写主诉、四诊（问 / 望 / 切）、脉象（左右手）、五行生克、取穴、诊断与调理方案；复诊时从「诊断历史」调阅上次记录回填。
-3. **卡项**：卡项系统 → 创建卡项，登记门店服务项目（为订单与耗卡打基础）。
-4. **复盘与回访**：反馈系统填写每日总结、为顾客设定回访计划；到期回访自动出现在每日报表（`/dash/day`）。
+1. **顾客建档**: in the patient system, use patient onboarding to enter name / age / gender / phone / membership tier.
+2. **接诊**: query patients, use the row action "创建诊断" to fill in the chief complaint, the four examinations (问 / 望 / 切), pulse (left and right hands), the five-phase generation/restraint relations, point selection, diagnosis, and conditioning plan; on follow-up visits, pull the last record from "诊断历史" to prefill it.
+3. **卡项**: in the service-card system, create a service card and register the store's services (this lays the groundwork for orders and card consumption).
+4. **复盘与回访**: record the daily summary in the feedback system and schedule follow-ups for patients; due follow-ups show up automatically in the daily report (`/dash/day`).
 
 ::: tip 关于「开方」的边界
-调理方案（`plan`）与饮食建议以文本记录；中药处方（药材 / 剂量 / 剂数）已有结构化模型（`prescriptions` 表 + `/api/v1/prescription`），挂号（预约）与收费也已实装，其余板块的规划对照见[功能点清单](/research/features)。
+Conditioning plans (`plan`) and dietary advice are recorded as text; the TCM prescription (herbs / doses / number of decoctions) already has a structured model (`prescriptions` table + `/api/v1/prescription`), and registration (appointments) and billing are implemented as well. For the planned scope of the remaining modules, see the [feature list](/research/features).
 :::
 
-此外：员工上 / 下班签到与按月考勤统计在员工系统（诊所运营辅助），管理员可在其中维护员工账号。
+Also: employee clock-in/clock-out and monthly attendance statistics live in the employee system (clinic operations aid), where admins maintain employee accounts.
 
-## 第三步：运行小程序端
+## Step 3: Run the Mini Program
 
-小程序端为 Taro 工程，支持编译到微信 / H5 等多端：
+The mini program is a Taro project that compiles to WeChat / H5 and other platforms:
 
 ```bash
 cd app
@@ -84,14 +82,14 @@ pnpm dev:h5       # 浏览器 H5 预览
 pnpm build:weapp  # 编译微信小程序产物到 dist/
 ```
 
-微信端产物在 `app/dist`，用微信开发者工具导入该目录即可预览。注意 `app/project.config.json` 当前是模板占位 `appid`（`touristappid`），正式开发请替换为你自己的小程序 appid。
+The WeChat output lands in `app/dist` — import that directory in WeChat DevTools to preview. Note that `app/project.config.json` currently uses the template placeholder `appid` (`touristappid`); replace it with your own mini program appid before real development.
 
 ::: warning 小程序端现状
-小程序端已完成工程初始化 + 白标构建 + 顾客首页 + 自助约期 + 我的 + 卡项查卡（底部四标签，网络请求层见 `src/services/api.ts`，宫格拉真实上架项目；自助约期走免登录 `POST /api/v1/kiosk/appointments`，手机查卡按后台 `sinomed.phone-lookup.mode` 三态开关、默认 `off` 关闭）。当前业务功能以管理端（web）为准。
+The mini program has completed project initialization + white-label build + patient home page + self-service booking + mine + card lookup (bottom tab bar; the network request layer is in `src/services/api.ts`; the 宫格拉 source is from a live published project; self-service booking goes through the unauthenticated `POST /api/v1/kiosk/appointments`, and phone-based card lookup follows the three-state toggle in the backend config `sinomed.phone-lookup.mode`, default `off`). For now, authoritative business features follow the admin console (web).
 :::
 
-## 下一步
+## Next Steps
 
-- 了解服务端全貌：[架构总览](/server/architecture)
-- 查接口与字段：[REST 接口清单](/server/api)、[数据模型](/server/data-model)
-- 生产环境部署：[配置与部署](/server/deploy)
+- For the full server picture: [Architecture Overview](/server/architecture)
+- To look up APIs and fields: [REST API List](/server/api), [Data Model](/server/data-model)
+- For production deployment: [Configuration and Deployment](/server/deploy)

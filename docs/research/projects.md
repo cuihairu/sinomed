@@ -1,121 +1,119 @@
-# 开源项目盘点
+# Open-Source Project Inventory
 
-> 🌐 [English](./projects.en.md) · **本页为中文**
+> Survey date: 2026-10-05. Every project was verified live via GitHub `gh api` or Gitee `gitee.com/api/v5`; anything not found is marked "not found" as such. Feature lists are excerpted from each project's README; no inference was made.
 
-> 调研日期:2026-10-05。所有项目均经 GitHub `gh api` 或 Gitee `gitee.com/api/v5` 实时核验,查不到的如实标注「未查到」。功能清单摘自各自 README,未做推断。
+## Verification of starting leads
 
-## 起点线索核验
-
-| 线索 | 结论 |
+| Lead | Verdict |
 | ---- | ---- |
-| TANGKUO/HIS(微服务 HIS) | **已核验存在**(GitHub) |
-| gitee njpaper/hisystem(中小医院 BS) | **已核验存在**(为 `sensay/hisystem` 的 fork,父仓已不可访问) |
-| gitee DzmHIS(大宅门医疗门诊) | **DzmHIS 是账号名而非仓库名**;`gitee.com/DzmHIS/OpenHIS` 原仓已 404,经其 fork 的 homepage 字段确认账号归属,现存可访问副本为若干 fork |
-| OpenHIS(大宅门) | 原仓已下线;注意与 GitHub 上另一套同名的 `tntlinking-opensource/openhis`(天天开源)区分,两者是完全不同的产品 |
+| TANGKUO/HIS (microservice HIS) | **Verified to exist** (GitHub) |
+| gitee njpaper/hisystem (small/mid hospital BS) | **Verified to exist** (a fork of `sensay/hisystem`; the parent repo is no longer accessible) |
+| gitee DzmHIS (大宅门医疗门诊) | **DzmHIS is an account name, not a repository name**; the original `gitee.com/DzmHIS/OpenHIS` repo now 404s; account ownership was confirmed via a fork's homepage field, and the accessible copies remaining are several forks |
+| OpenHIS (大宅门) | Original repo is offline; note the distinction from the same-named `tntlinking-opensource/openhis` (天天开源) on GitHub — the two are entirely different products |
 
-## 已核验项目
+## Verified projects
 
-### 1. wolongHyy/Yukang-Smart-Cloud-Clinic-Platform(愈康云诊所)— 与本项目匹配度最高
+### 1. wolongHyy/Yukang-Smart-Cloud-Clinic-Platform (愈康云诊所) — highest match to this project
 
-- **仓库**:<https://github.com/wolongHyy/Yukang-Smart-Cloud-Clinic-Platform>
-- **技术栈**:JavaScript / Electron 形态,本地优先 SQLite,电脑/手机/平板局域网访问
-- **功能清单**(README):单店/连锁总店/分店三形态(分店独立库、总店聚合、邀请码接入);电子病历含主诉、现病史、既往史、过敏史、体格检查、**中医四诊、诊断、辨证**、医嘱;**处方类型覆盖中西成药、输注、中药、贴敷、外治**;药品分类含**中药饮片、中成药、中药颗粒**;药房库存(批次/效期/盘点)、门诊收费(现金/微信/支付宝/银行卡/医保)、经营统计;**AI 辅助开方与审方**;每日快照备份
-- **活跃度**:105 stars / 12 forks,最近 push **2026-10-02**(活跃)
-- **许可证**:MIT
-- **可借鉴点**:中医四诊 + 辨证 + 中药/贴敷/外治处方的病历-处方模型;本地优先 + 连锁聚合的多店架构
+- **Repo**: <https://github.com/wolongHyy/Yukang-Smart-Cloud-Clinic-Platform>
+- **Stack**: JavaScript / Electron-shaped, local-first SQLite, LAN access from PC/phone/tablet
+- **Feature list** (README): single store / chain HQ / branch in three forms (branches keep separate databases, HQ aggregates, invitation-code onboarding); EMR covers chief complaint, present illness, past history, allergy history, physical examination, **TCM four examinations, diagnosis, pattern differentiation**, medical orders; **prescription types cover Chinese/Western patent medicines, infusion, Chinese herbal, herbal application, external therapy**; drug categories include **Chinese processed herbs, Chinese patent medicines, herbal granules**; pharmacy inventory (batch/expiry/stocktaking), outpatient charging (cash/WeChat/Alipay/bank card/medical insurance), business statistics; **AI-assisted prescribing and prescription review**; daily snapshot backup
+- **Activity**: 105 stars / 12 forks, last push **2026-10-02** (active)
+- **License**: MIT
+- **Borrowable points**: the chart–prescription model of TCM four examinations + pattern differentiation + herbal/herbal application/external therapy prescriptions; the local-first + chain-aggregation multi-store architecture
 
-### 2. tntlinking-opensource/openhis-clinic(天天开源 · 诊所版)
+### 2. tntlinking-opensource/openhis-clinic (天天开源 · clinic edition)
 
-- **仓库**:<https://github.com/tntlinking-opensource/openhis-clinic>
-- **技术栈**:C#/.NET(`Code/medical2.0` 含 back + client + docker-compose)+ SQL 脚本
-- **功能清单**(README):面向社区卫生服务站/村卫生室/民营诊所,**5 个核心模块:预约登记、就诊、收费发药、报表查询、库存管理**;支持本地化 / SaaS、医保对接,可与 OpenHIS 医院系统组县域医共体
-- **活跃度**:24 stars,最近 push **2026-09-10**(活跃,有社区与文档站)
-- **许可证**:GPL-3.0(另附天天开源社区版许可协议,商业版并行)
-- **可借鉴点**:「5 模块诊所闭环」与医馆规模最匹配;注意 GPL-3.0 传染性,复用代码前需评估
-- 同组织 `tntlinking-opensource/openhis`(医院通用版,142 stars,活跃)面向二级以下医院,含体检、收费结算、医护协同、药房、电子病历等 10 大模块
+- **Repo**: <https://github.com/tntlinking-opensource/openhis-clinic>
+- **Stack**: C#/.NET (`Code/medical2.0` contains back + client + docker-compose) + SQL scripts
+- **Feature list** (README): aimed at community health stations / village clinics / private clinics, **5 core modules: appointment & registration, consultation, charging & dispensing, report queries, inventory management**; supports localized / SaaS deployment, medical insurance integration, and can form county medical consortiums with the OpenHIS hospital system
+- **Activity**: 24 stars, last push **2026-09-10** (active, with community and docs site)
+- **License**: GPL-3.0 (plus a separate 天天开源 community edition license; a commercial edition runs in parallel)
+- **Borrowable points**: the "5-module clinic closed loop" fits TCM hall scale best; mind GPL-3.0's viral nature — evaluate before reusing code
+- Same-org `tntlinking-opensource/openhis` (general hospital edition, 142 stars, active) targets secondary-level and below hospitals, with 10 major modules including physical exams, charging & settlement, care-team collaboration, pharmacy and EMR
 
-### 3. ZainZhao/HIS — 同类 star 最高的中文 HIS
+### 3. ZainZhao/HIS — highest-starred Chinese HIS of its kind
 
-- **仓库**:<https://github.com/ZainZhao/HIS>
-- **技术栈**:Spring Cloud Netflix(Eureka/Config/Feign/Zuul/Hystrix)+ Spring Boot 2.0.3 + MyBatis;前端 Vue 2.6 + Element-UI,患者端 uni-app;仓库含单体(`HIS-master`)与微服务(`his-cloud`)两套
-- **功能清单**(README):**门诊医生、药房医生、医技医生、收费员、对帐员、管理员六工作站**;提供在线演示
-- **活跃度**:**1635 stars / 603 forks**,最近 push 2025-02-24
-- **许可证**:Apache-2.0
-- **可借鉴点**:「多工作站分角色」的门诊业务划分;单体/微服务同构双实现(小医馆单机起步、连锁后再拆)
+- **Repo**: <https://github.com/ZainZhao/HIS>
+- **Stack**: Spring Cloud Netflix (Eureka/Config/Feign/Zuul/Hystrix) + Spring Boot 2.0.3 + MyBatis; frontend Vue 2.6 + Element-UI, patient side uni-app; repo contains both a monolith (`HIS-master`) and microservices (`his-cloud`)
+- **Feature list** (README): **six workstations — outpatient physician, pharmacy physician, medical-technician physician, cashier, reconciler, administrator**; offers an online demo
+- **Activity**: **1635 stars / 603 forks**, last push 2025-02-24
+- **License**: Apache-2.0
+- **Borrowable points**: the multi-workstation role split of outpatient business; dual monolith/microservice implementations of the same shape (start a small hall on one machine, split into services after chaining)
 
 ### 4. TANGKUO/HIS
 
-- **仓库**:<https://github.com/TANGKUO/HIS>
-- **技术栈**:与 ZainZhao/HIS 同源(东软实训需求):Spring Cloud Netflix + Spring Boot 2.0.3 + MyBatis + MySQL,配套 Redis/RabbitMQ/ES;前端 Vue + Element-UI + uni-app
-- **功能清单**(README):临床诊疗 / 药品管理 / 财务管理 / 患者管理,**六工作站**(门诊医生、药房医生、医技医生、收费员、对帐员、管理员),含 PC 与 App 截图
-- **活跃度**:600 stars / 321 forks,最近 push 2022-06-21(停滞,作者自述为实训课设)
-- **许可证**:Apache-2.0
-- **可借鉴点**:门诊业务主链路范式;双端结构(PC 诊疗端 + 患者 App)
+- **Repo**: <https://github.com/TANGKUO/HIS>
+- **Stack**: same origin as ZainZhao/HIS (a Neusoft practical-training brief): Spring Cloud Netflix + Spring Boot 2.0.3 + MyBatis + MySQL, with Redis/RabbitMQ/ES; frontend Vue + Element-UI + uni-app
+- **Feature list** (README): clinical care / drug management / financial management / patient management, **six workstations** (outpatient physician, pharmacy physician, medical-technician physician, cashier, reconciler, administrator), with PC and App screenshots
+- **Activity**: 600 stars / 321 forks, last push 2022-06-21 (stalled; the author describes it as a training course project)
+- **License**: Apache-2.0
+- **Borrowable points**: the outpatient main-chain paradigm; the dual-client structure (PC care side + patient App)
 
-### 5. Fankekeke/chinese_medicine_store_cos(中药店管理系统)
+### 5. Fankekeke/chinese_medicine_store_cos (Chinese medicine shop management system)
 
-- **仓库**:<https://github.com/Fankekeke/chinese_medicine_store_cos>
-- **技术栈**:SpringBoot + Vue(毕设级)
-- **功能清单**(README):中药饮片进销存、中医处方流转;管理员侧:药材管理、库存预警、供应商、电子处方、**病症处方模板**、多门店、销售统计;医生侧:病症处方、订单;用户侧:药材购买、在线支付、订单评价;订单流转含抓药、复核、配送
-- **活跃度**:10 stars,pushed 2026-03-13
-- **许可证**:无 license(默认保留所有权利,不可直接复用代码)
-- **可借鉴点**:中药饮片「药材档案-采购-库房预警-抓药复核配送」链路;病症处方模板库
+- **Repo**: <https://github.com/Fankekeke/chinese_medicine_store_cos>
+- **Stack**: SpringBoot + Vue (graduation-project grade)
+- **Feature list** (README): purchase/sales/inventory for Chinese processed herbs and Chinese prescription circulation; admin side: herb management, stock alerts, suppliers, electronic prescriptions, **symptom-pattern prescription templates**, multi-store, sales statistics; physician side: symptom-pattern prescriptions, orders; user side: herb purchase, online payment, order reviews; order flow includes dispensing, double-check and delivery
+- **Activity**: 10 stars, pushed 2026-03-13
+- **License**: none (all rights reserved by default; code may not be reused directly)
+- **Borrowable points**: the processed-herb chain "herb catalog – purchasing – storeroom alerts – dispensing double-check delivery"; the symptom-pattern prescription template library
 
-### 6. xrl-workshop/herb-ms-ssm + herb-ms-vue(中药处方管理系统 HerbMS)
+### 6. xrl-workshop/herb-ms-ssm + herb-ms-vue (Chinese herbal prescription management system HerbMS)
 
-- **仓库**:<https://github.com/xrl-workshop/herb-ms-ssm>(后端)、<https://github.com/xrl-workshop/herb-ms-vue>(前端)
-- **技术栈**:Java 17 + SSM(Spring/SpringMVC/MyBatis)+ Tomcat 10 + MySQL 8(Jakarta EE);前端 Vue 3
-- **功能清单**:中药处方管理(药材-处方-计价),后端四层抽象
-- **活跃度**:10 stars / 6 stars,均 pushed 2024-01-12
-- **许可证**:WTFPL
-- **可借鉴点**:小而干净的中药处方领域模型;功能深度有限
+- **Repo**: <https://github.com/xrl-workshop/herb-ms-ssm> (backend), <https://github.com/xrl-workshop/herb-ms-vue> (frontend)
+- **Stack**: Java 17 + SSM (Spring/SpringMVC/MyBatis) + Tomcat 10 + MySQL 8 (Jakarta EE); frontend Vue 3
+- **Feature list**: Chinese herbal prescription management (herbs–prescriptions–pricing), four-layer backend abstraction
+- **Activity**: 10 stars / 6 stars, both pushed 2024-01-12
+- **License**: WTFPL
+- **Borrowable points**: a small, clean Chinese herbal prescription domain model; limited functional depth
 
-### 7. njpaper/hisystem(中小医院信息管理系统,Gitee)
+### 7. njpaper/hisystem (small/mid hospital information management system, Gitee)
 
-- **仓库**:<https://gitee.com/njpaper/hisystem>
-- **技术栈**:Java SpringBoot + Bootstrap(B/S 单体);含读卡器 SDK(德卡 D3 IC 读卡器)
-- **功能清单**(README):挂号收费、门诊管理、划价收费、药房取药、体检管理、药房管理、系统维护;**就诊卡支持手动录入与 IC 读卡两种方式**
-- **活跃度**:10 stars / 4 forks,pushed 2021-03-07(停滞)
-- **许可证**:未标注
-- **可借鉴点**:实体就诊卡/读卡器对接;轻量单体结构
+- **Repo**: <https://gitee.com/njpaper/hisystem>
+- **Stack**: Java SpringBoot + Bootstrap (B/S monolith); includes card-reader SDK (D3 IC card reader by 德卡)
+- **Feature list** (README): registration & charging, outpatient management, pricing & charging, pharmacy pickup, physical exam management, pharmacy management, system maintenance; **visit cards support both manual entry and IC card reading**
+- **Activity**: 10 stars / 4 forks, pushed 2021-03-07 (stalled)
+- **License**: not stated
+- **Borrowable points**: physical visit card / card reader integration; lightweight monolith structure
 
-### 8. OpenHIS 1.0「大宅门云诊所系统」(Gitee 原仓已下线,经 fork 核验)
+### 8. OpenHIS 1.0 "大宅门云诊所系统" (original Gitee repo offline, verified via forks)
 
-- **原仓**:`DzmHIS/OpenHIS` 已 404;可访问副本:`wangzhixuan/OpenHIS`、`agaobiao/OpenHIS`(Gitee)、`1638824607/OpenHIS`(GitHub,59 stars)等;曾标 805 stars 的 `mali218/OpenHIS` 主副本现不可访问
-- **技术栈**:PHP ≥5.5 + ThinkPHP 3.2.3 + MySQL
-- **功能清单**(fork 内 README):诊所全流程(挂号 → 医生 → 划价 → 收费 → 取药)、微信绑定扫码登录、支付宝/微信支付、图表统计,自称「云诊所系统,开源 + PC + 移动端」
-- **活跃度**:2017-2018 年后停滞
-- **许可证**:第三方收录页标注 Apache;原仓失联,复用需谨慎
-- **可借鉴点**:国内较早的云诊所实现;诊所全流程图可作业务基准线
+- **Original repo**: `DzmHIS/OpenHIS` 404s; accessible copies: `wangzhixuan/OpenHIS`, `agaobiao/OpenHIS` (Gitee), `1638824607/OpenHIS` (GitHub, 59 stars), among others; `mali218/OpenHIS`, once marked 805 stars, is now inaccessible
+- **Stack**: PHP ≥5.5 + ThinkPHP 3.2.3 + MySQL
+- **Feature list** (README inside the fork): full clinic flow (registration → physician → pricing → charging → dispensing), WeChat-bound QR login, Alipay/WeChat pay, chart statistics; self-described as a "cloud clinic system, open source + PC + mobile"
+- **Activity**: stalled after 2017–2018
+- **License**: third-party listing pages mark Apache; the original repo is unreachable — reuse with caution
+- **Borrowable points**: an early domestic cloud-clinic implementation; its full-clinic-flow diagram works as a business baseline
 
-### 9. 其他已核验的中医特色小项目
+### 9. Other verified small TCM-focused projects
 
-| 仓库 | 说明 | 活跃度 | 许可证 |
+| Repo | Description | Activity | License |
 | ---- | ---- | ---- | ---- |
-| `spunky5/his_mvp`(GitHub) | 中医 HIS MVP:挂号/看诊/收费/药房/库存/财务,含**辨证开方、中药方剂(带拼音输入)、药材出入库/盘点**;FastAPI + SQLite + Vue 3 | 0 stars,push 2026-09-08 | 无 |
-| `feitas/zhong_yi`(GitHub) | Odoo V10 中医门诊模块 | 11 stars,push 2017-04 | 无 |
-| `AnthonyLeeDevelopment/hospital`(Gitee) | SpringBoot + Vue 中医馆业务信息管理系统(毕设,仅标题无功能明细) | 0 stars,push 2024-11 | MIT |
-| `Mahongsheng/neusoft-cloud-his`(GitHub) | 东软云 HIS(截图为主) | 28 stars,push 2024-08 | 无 |
+| `spunky5/his_mvp` (GitHub) | TCM HIS MVP: registration/consultation/charging/pharmacy/inventory/finance, with **pattern-differentiation prescribing, Chinese formulas (with pinyin input), herb stock in/out and stocktaking**; FastAPI + SQLite + Vue 3 | 0 stars, push 2026-09-08 | none |
+| `feitas/zhong_yi` (GitHub) | Odoo V10 TCM outpatient module | 11 stars, push 2017-04 | none |
+| `AnthonyLeeDevelopment/hospital` (Gitee) | SpringBoot + Vue TCM hall business information management system (graduation project; title only, no feature detail) | 0 stars, push 2024-11 | MIT |
+| `Mahongsheng/neusoft-cloud-his` (GitHub) | Neusoft cloud HIS (mostly screenshots) | 28 stars, push 2024-08 | none |
 
-## 未查到 / 存疑
+## Not found / in doubt
 
-- **gitee `DzmHIS` 账号与 `mali218/OpenHIS` 主副本**:不可访问(账号注销或转私有)。
-- **`sensay/hisystem`(njpaper/hisystem 父仓)**:Not Found。
-- **成熟的中医医馆连锁专有开源系统**:未发现 star 高、持续维护、以中医医馆连锁管理为主定位的成熟开源项目。中医特色项目集中在毕设级或个人 MVP,活跃度与完成度明显低于通用门诊 HIS——这一空档本身是调研结论之一。
+- **gitee `DzmHIS` account and the `mali218/OpenHIS` main copy**: inaccessible (account deregistered or made private).
+- **`sensay/hisystem` (njpaper/hisystem parent repo)**: Not Found.
+- **A mature open-source system dedicated to TCM hall chains**: none found — no mature open-source project with high stars, ongoing maintenance, and a primary focus on TCM hall chain management. TCM-specific projects cluster at graduation-project or personal-MVP grade, with activity and completeness clearly below general outpatient HIS — this gap is itself one of the survey's conclusions.
 
-## 仲正堂 App 公开资料核验
+## Verification of public material on the 仲正堂 App
 
-**结论:公开渠道未查到「仲正堂」官方 App。**
+**Conclusion: no official "仲正堂" app could be found in public channels.**
 
-- Apple App Store(中国区)iTunes Search API 检索「仲正堂」返回 0 个相关应用(对照组「中医馆」可正常返回天大馆、小鹿中医等真实医馆 App,说明检索有效)。
-- 应用宝 / 华为应用市场 / 豌豆荚等 Android 渠道有反爬机制,未能完成机器核验。
-- 公开资料中「仲正堂」的形态是**中医推拿/艾灸养生连锁与培训机构**(上海仲正堂教育,2013 年创立,特色推拿、关元灸;安心加盟网称上海 26 家分店,该站为招商聚合站、可信度中等),其数字化可见线索是**第三方 SaaS(有赞美业)**而非自研 App。
+- Apple App Store (China storefront) iTunes Search API search for "仲正堂" returns 0 relevant apps (the control query "中医馆" correctly returns real TCM hall apps such as 天大馆 and 小鹿中医, confirming the search works).
+- Android channels such as 应用宝 / 华为应用市场 / 豌豆荚 have anti-scraping measures, so machine verification could not be completed.
+- In public material, "仲正堂" appears as a **TCM tuina/moxibustion wellness chain and training organization** (上海仲正堂教育, founded 2013; specialties tuina and Guanyuan moxibustion; the 安心加盟网 franchise site claims 26 branches in Shanghai — that site is a franchise-aggregation site of medium credibility); its visible digitalization is a **third-party SaaS (有赞美业)**, not a self-built app.
 
-因此本项目的功能范围以**源码实现 + 上述开源项目实况**为依据,对仲正堂仅作「参照」其门店业态(推拿、艾灸等疗程型服务场景),不引用无法核验的功能清单。
+Therefore this project's functional scope is grounded in **source-code implementation plus the verified reality of the open-source projects above**; 仲正堂 is used only as a "reference" for its store business format (tuina, moxibustion and other course-based service scenarios), and no unverifiable feature list is cited.
 
-## 参考价值排序
+## Reference-value ranking
 
-1. **业务模型**:Yukang(MIT、活跃,四诊/辨证/中药处方/连锁分店)与本项目中医医馆需求重合度最高;
-2. **诊所模块闭环**:openhis-clinic(5 模块,活跃,注意 GPL-3.0)与 ZainZhao/HIS(Apache-2.0,六工作站角色模型);
-3. **中医特有领域对象**:中药饮片/颗粒分类、病症处方模板、配伍禁忌审方、药材进销存——见 chinese_medicine_store_cos、his_mvp、herb-ms-ssm;
-4. **许可证注意**:多数中医特色小项目无许可证(不可直接复用代码);tntlinking 系为 GPL-3.0 + 商业双授权;大宅门 OpenHIS 原仓失联。
+1. **Business model**: Yukang (MIT, active; four examinations / pattern differentiation / herbal prescriptions / chain branches) overlaps most with this project's TCM hall requirements;
+2. **Clinic module closed loop**: openhis-clinic (5 modules, active, mind GPL-3.0) and ZainZhao/HIS (Apache-2.0, six-workstation role model);
+3. **TCM-specific domain objects**: processed-herb / granule categories, symptom-pattern prescription templates, incompatibility prescription review, herb purchase/sales/inventory — see chinese_medicine_store_cos, his_mvp, herb-ms-ssm;
+4. **License cautions**: most small TCM-specific projects carry no license (code may not be reused directly); the tntlinking family is GPL-3.0 + commercial dual licensing; the original 大宅门 OpenHIS repo is unreachable.

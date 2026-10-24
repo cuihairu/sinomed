@@ -1,22 +1,20 @@
-# 广告展示端（平板）
+# Lobby Display (tablet)
 
-> 🌐 [English](./tablet.en.md) · **本页为中文**
-
-::: info 现状
-广告展示端已实现（`tablet/` + 服务端 ads/calls 模块 + 管理端单页四 tab：素材 / 排期 / 屏 / 叫号），开发态已逐项实证；部署需自行托管 `/tablet/` 与 `/media/`（见[部署文档](/server/deploy)）。设计与验收细节见[平板展示设计](/design/tablet)。
+::: info Current status
+The lobby display is implemented (`tablet/` + the server-side ads/calls module + a single four-tab page in the admin console: materials / schedules / screens / calling). Each item was verified during development; deployment requires hosting `/tablet/` and `/media/` yourself (see the [deployment guide](/server/deploy)). Design and acceptance details are in the [lobby display design](/design/tablet).
 :::
 
-广告展示端是跑在**候诊区平板**上的 Kiosk 全屏网页：不装 App、不加业务操作，开机自动全屏轮播，前台叫号时自动切换提示。
+The lobby display is a fullscreen Kiosk web page that runs on a **waiting-area tablet**: no app install, no business operations. It auto-enters fullscreen on boot and cycles through the rotation, switching over automatically when the front desk calls a number.
 
-## 它在候诊区长什么样
+## What it looks like in the waiting area
 
-### 场景一：广告与科普轮播
+### Scenario 1: advertising and health-education rotation
 
-平板循环播放管理端配置的素材——门店卡项介绍、活动海报（图片）、中医养生科普（图片或视频）。每条素材的停留时长单独可配（视频自动按实际时长），播完无缝切下一条。
+The tablet loops through the materials configured in the admin console — clinic service cards, promotional posters (images), and TCM wellness education content (images or videos). Each material has its own independently configurable dwell time (videos use their actual length automatically), and playback switches to the next item seamlessly when one ends.
 
-### 场景二：叫号联动
+### Scenario 2: queue-calling integration
 
-前台在管理端点「叫号」后约 1 秒内，平板自动全屏切换为叫号卡：
+About one second after the front desk taps "Call" in the admin console, the tablet automatically switches to a fullscreen call card:
 
 ```text
 ┌──────────────────────────┐
@@ -28,42 +26,42 @@
 └──────────────────────────┘
 ```
 
-- 姓名默认脱敏（`张*`），候诊区可见但不泄隐私；
-- 提示音 + 语音播报（后者按设备支持度自动开关），停留约 15 秒后**自动回到轮播**，无需任何人碰平板；
-- 叫号源（两条并行，2026-10-12 拍板实装「到号自动叫号」）：①前台手动叫号（管理端 `/ads/calls` 发起，无预约散客仍走此路）；②**到店自动叫号**——预约接待（status 0→1）服务端自动落一条 `queue_calls`：号码=当日接待序号补零两位、诊室=接诊医师名+「诊室」（未指派「待分配诊室」）、姓名脱敏（张*）、广播全部屏（screenId 空）；过号/取消不叫号。
+- The patient name is masked by default (`张*`) — visible in the waiting area without leaking privacy;
+- A tone plus a voice announcement plays (the latter is enabled or disabled automatically depending on device support), and after roughly 15 seconds it **returns to the rotation automatically** — nobody needs to touch the tablet;
+- Call sources (two running in parallel; "auto-call on check-in" was approved and implemented on 2026-10-12): ① manual calling from the front desk (initiated from the admin console's `/ads/calls`, still the path for walk-ins without an appointment); ② **auto-call on check-in** — when an appointment is checked in (status 0→1) the server writes a `queue_calls` row automatically: number = that day's check-in sequence number zero-padded to two digits, room = the attending doctor's name + "consulting room" ("unassigned room" when no doctor is assigned), name masked (`张*`), broadcast to all screens (empty `screenId`); skipped or cancelled appointments are not called.
 
-### 场景三：断网不停播
+### Scenario 3: playback survives loss of network
 
-素材在首次加载后预缓存到平板本地；断网时继续播放缓存版本并显示「离线」角标，网络恢复后自动补拉最新排期。注意：断网期间**叫号不可达**（叫号事件来自服务端），恢复后不补播错过的叫号。
+Materials are pre-cached locally on the tablet after their first load; when the network drops it keeps playing the cached version and shows an "offline" badge, then pulls the latest schedule automatically once connectivity returns. Note: while offline, **calling is unreachable** (call events come from the server), and calls missed during the outage are not replayed afterwards.
 
-## 素材与排期怎么配（管理端）
+## How materials and schedules are configured (admin console)
 
-素材、排期、屏全部在**管理端（web dash）**维护，平板端零配置界面：
+Materials, schedules and screens are all maintained in the **admin console (web dash)**; the tablet has no configuration UI at all:
 
-| 配置 | 在哪配 | 说明 |
+| Setting | Where | Notes |
 | ---- | ---- | ---- |
-| 素材上传 | 广告投屏 → 素材管理 | 上传图片 / 视频，设置名称、轮播时长、启停、排序 |
-| 排期 | 广告投屏 → 排期管理 | 素材 × 生效时段（`HH:mm`）× 生效星期（空为每天），按屏绑定 |
-| 诊室 / 区域定向 | 广告投屏 → 屏管理 | 每块平板注册一个屏编码（如 `lobby-1`、`room-2`），排期按屏生效 |
-| 叫号操作 | 广告投屏 → 叫号操作 | 输入号码与诊室（可顺带填脱敏姓名），选目标屏或不选（全部屏），一键叫号 |
+| Upload material | Advertising → Materials | Upload an image / video, and set name, rotation dwell time, enable/disable and sort order |
+| Schedule | Advertising → Schedules | Material × effective time window (`HH:mm`) × effective weekdays (empty = every day), bound per screen |
+| Room / area targeting | Advertising → Screens | Each tablet registers one screen code (e.g. `lobby-1`, `room-2`); schedules apply per screen |
+| Calling | Advertising → Call queue | Enter the number and room (optionally a masked name), pick a target screen or none (all screens), call in one tap |
 
-排期命中规则：当前时刻落在某屏的排期时段内，播放该排期绑定的启用素材；无命中排期时兜底播放该屏全部启用素材。素材或排期一有变更，平板在 30 秒内自动刷新（内容戳比对，媒体差异更新）。
+Schedule hit rule: if the current time falls inside a screen's scheduled window, play the enabled materials bound to that schedule; with no matching schedule, fall back to all enabled materials for that screen. As soon as a material or schedule changes, the tablet refreshes automatically within 30 seconds (content-stamp comparison, media updated by diff).
 
-## 平板端怎么装
+## Installing the tablet
 
 ```text
-1. 管理端「屏管理」注册屏幕，得到屏编码（如 lobby-1）
-2. 平板浏览器打开  https://<部署域名>/tablet/?screen=lobby-1
-3. 加入主屏幕 / 设为全屏启动页（Android：菜单 → 添加到主屏幕；Kiosk 类应用可直接锁定该地址）
-4. 保持充电与亮屏；页面会请求尽力保持唤醒（Wake Lock）
+1. Register the screen in the admin console's "Screens" tab to get a screen code (e.g. lobby-1)
+2. Open  https://<deploy-domain>/tablet/?screen=lobby-1  in the tablet browser
+3. Add to home screen / set as fullscreen launch page (Android: menu → Add to home screen; a Kiosk-style app can lock this URL directly)
+4. Keep it charged and awake; the page requests a best-effort Wake Lock
 ```
 
-- 平板端为纯网页，任何现代平板浏览器可跑（以 Android 平板 + Chrome 为基准环境）；
-- 部署侧由 Nginx 托管 `/tablet/` 静态资源，无需在平板安装任何应用。
+- The tablet side is pure web and runs on any modern tablet browser (Android tablet + Chrome is the reference environment);
+- On the deployment side, Nginx serves `/tablet/` as static assets — no app needs to be installed on the tablet.
 
-## 与桌面版、管理端的关系
+## Relationship with the desktop workstation and admin console
 
-三个终端同用一套服务端，各司其职：
+All three terminals share one server and each has a distinct job:
 
 ```text
                  ┌──────────────────────────────┐
@@ -82,16 +80,16 @@
                  └─────────────┘  └───────────────┘
 ```
 
-- **平板端只读展示**：拉排期、拉叫号，不录入任何业务数据；
-- **桌面版是业务终端**：顾客建档、接诊录入、打印（见[桌面版设计](/design/desktop)），与平板互不依赖；
-- **管理端是唯一配置入口**：素材、排期、屏、叫号都在 dash 完成。
+- **The tablet is display-only**: it pulls schedules and call events and never writes business data;
+- **The desktop workstation is the business terminal**: patient record creation, treatment entry, printing (see the [desktop design](/design/desktop)); it and the tablet are independent of each other;
+- **The admin console is the single configuration entry point**: materials, schedules, screens and calling are all done in the dash.
 
-## 实现进度对照
+## Implementation progress
 
-| 能力 | 状态 |
+| Capability | Status |
 | ---- | ---- |
-| 素材 / 排期 / 屏数据表与接口 | 已实现，curl 全接口实证 |
-| 平板轮播 / 叫号提示 / 离线缓存 | 已实现，浏览器与 headless 逐项实证（叫号 1.5s 上屏、断网续播） |
-| 管理端素材 / 排期 / 屏 / 叫号页面 | 已实现，浏览器实证 |
+| Material / schedule / screen tables and APIs | Implemented, verified against every endpoint with curl |
+| Tablet rotation / call display / offline cache | Implemented, verified item by item in a browser and headlessly (call displayed in 1.5 s, playback resumes offline) |
+| Admin console materials / schedules / screens / calling pages | Implemented, verified in a browser |
 
-逐项验收记录见[平板展示设计](/design/tablet)末尾的 P0 / P1 原子项清单。
+See the atomic P0 / P1 acceptance checklist at the end of the [lobby display design](/design/tablet).

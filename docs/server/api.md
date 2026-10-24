@@ -1,419 +1,418 @@
-# REST 接口清单
+# REST API Inventory
 
-> 🌐 [English](./api.en.md) · **本页为中文**
+All business endpoints share the unified prefix `/api/v1`; the paths in the tables below are listed in full. The admin console dev proxy forwards `/api` to the server (default `127.0.0.1:2347`), and in production Nginx forwards `/api` to the server.
 
-所有业务接口统一前缀 `/api/v1`，下表路径均以完整路径列出。管理端开发代理把 `/api` 转发到服务端（默认 `127.0.0.1:2347`），生产环境由 Nginx 把 `/api` 转发到服务端。
+## Authentication Conventions
 
-## 鉴权约定
+- **Permitted paths**:
+  - Login and docs: `/api/v1/user/login`, `/doc.html`, `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**`, `/swagger-resources/**`, `/webjars/**`
+  - **Unauthenticated business endpoints (intranet device conventions, see the corresponding design docs)**:
+    - `/api/v1/kiosk/**` — Kiosk browsing and ordering for patients + mini program self-service scheduling + openid self-service binding (read-only plus three write entry points: ordering, self-service scheduling, and binding; see [kiosk.md](/design/kiosk) and [app-booking.md](/design/app-booking))
+    - `/api/v1/ads/playlist` — tablet pulls the schedule (read-only + screen code validation; see [tablet.md](/design/tablet))
+    - `/api/v1/calls/latest` — tablet polls for queue calling (read-only + screen code validation; see [tablet.md](/design/tablet))
+    - `/api/v1/print/templates` — print template delivery (blank layouts with no business data; see [desktop.md](/design/desktop) D7)
+    - `/media/**` — advertising media static resources (hosted by Nginx)
+  - `/actuator/**` — ops monitoring
+- All other endpoints require `Authorization: Bearer <JWT>`; unauthenticated requests return 401 (including `POST /error` frontend error reporting — reports made while not logged in get swallowed by the 401; this works normally after login).
+- Note that `POST /api/v1/user/register` (registration) is not on the permitted list — an account must already exist before first use.
+- Staff management write endpoints (`POST`/`PUT`/`DELETE` `/api/v1/staff`) have method-level authorization enabled via `@PreAuthorize("hasRole('ADMIN')")`; non-admins attempting them get 403.
+- On login, the `Authorization` response header returns the access token and `Refresh` returns the refresh token (both already carry the `Bearer ` prefix); the access token is valid for 1 day and the refresh token for 7 days. The refresh endpoint is not implemented yet, so renewing means logging in again.
 
-- **放行路径**：
-  - 登录与文档：`/api/v1/user/login`、`/doc.html`、`/swagger-ui.html`、`/swagger-ui/**`、`/v3/api-docs/**`、`/swagger-resources/**`、`/webjars/**`
-  - **业务免登录端点（内网设备约定，见对应设计文档）**：
-    - `/api/v1/kiosk/**` — 顾客自助机浏览与下单 + 小程序自助约期 + openid 自助绑定（只读 + 下单、自助约期、绑定三个写入口，见 [kiosk.md](/design/kiosk) 与 [app-booking.md](/design/app-booking)）
-    - `/api/v1/ads/playlist` — 平板拉取排期（只读 + 屏 code 校验，见 [tablet.md](/design/tablet)）
-    - `/api/v1/calls/latest` — 平板轮询叫号（只读 + 屏 code 校验，见 [tablet.md](/design/tablet)）
-    - `/api/v1/print/templates` — 打印模板下发（空白版式无业务数据，见 [desktop.md](/design/desktop) D7）
-    - `/media/**` — 广告媒体静态资源（Nginx 托管）
-  - `/actuator/**` — 运维监控
-- 其余接口一律需要 `Authorization: Bearer <JWT>`，未认证返回 401（含 `POST /error` 前端错误上报——未登录时上报会被 401 吞掉，登录后正常）。
-- 注意 `POST /api/v1/user/register`（注册）不在放行列表内——首次使用需先有账号。
-- 员工管理写接口（`POST`/`PUT`/`DELETE` `/api/v1/staff`）已启用方法级鉴权 `@PreAuthorize("hasRole('ADMIN')")`，非管理员越权返回 403。
-- 登录响应头 `Authorization` 返回 access token、`Refresh` 返回 refresh token（均自带 `Bearer ` 前缀）；access 有效期 1 天，refresh 7 天。刷新接口尚未实现，续期需重新登录。
+## User Authentication `/api/v1/user`
 
-## 用户认证 `/api/v1/user`
-
-| 方法 | 路径 | 功能 | 鉴权 |
+| Method | Path | Purpose | Auth |
 | ---- | ---- | ---- | ---- |
-| POST | `/api/v1/user/login` | 账号密码登录，返回 token 与权限标识（`admin` / `user`） | 公开 |
-| POST | `/api/v1/user/register` | 注册员工账号（用户名 / 密码 2-20 位），直接返回 JWT | 需登录 |
-| POST | `/api/v1/user/logout` | 登出（当前仅客户端丢弃 token） | 需登录 |
-| GET | `/api/v1/user/current` | 获取当前登录员工信息 | 需登录 |
+| POST | `/api/v1/user/login` | Username/password login; returns a token and the permission flag (`admin` / `user`) | Public |
+| POST | `/api/v1/user/register` | Register a staff account (username / password 2-20 characters); returns a JWT directly | Login required |
+| POST | `/api/v1/user/logout` | Log out (currently only the client discards the token) | Login required |
+| GET | `/api/v1/user/current` | Get the currently logged-in staff member's information | Login required |
 
-## 顾客 `/api/v1/customer`
+## Patient `/api/v1/customer`
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/customer/page` | 分页查询（`current` / `pageSize` 必填，可选 `name` / `age` / `phone` / `startTime` / `endTime`；`name` 按包含不区分大小写，`age` / `phone` 精确，可叠加） |
-| GET | `/api/v1/customer/{id}` | 按 id 查询 |
-| GET | `/api/v1/customer/phone/{phone}` | 按手机号查询 |
-| GET | `/api/v1/customer/name/{name}` | 按姓名查询（可多条） |
-| POST | `/api/v1/customer/` | 建档（性别必填；手机号可选、唯一、大陆号段格式） |
-| PUT | `/api/v1/customer/` | 更新顾客信息 |
-| DELETE | `/api/v1/customer/{id}` | 删除顾客 |
-| GET | `/api/v1/customer/{id}/history` | 病史列表（过敏史/既往史/护理方案逐条记录，新记录在前；顾客不存在报 400） |
-| POST | `/api/v1/customer/{id}/history` | 记病史：body `{ type, content }`，`type` 0 过敏 / 1 既往 / 2 护理方案（美容业态 d 档案扩展，不复用外治处方模板），`content` 非空且 ≤200 字（自动 trim）；顾客不存在/类型无效报 400；过敏审方仍只读 type=0 |
-| DELETE | `/api/v1/customer/history/{historyId}` | 删除一条病史记录（不存在报 400；演示环境口径，无留痕） |
-| GET | `/api/v1/customer/{id}/tag` | 顾客标签列表（美容业态 d）：肤质/偏好轻量标签，新加的在前；过敏史不在标签里（走病史 type 0） |
-| POST | `/api/v1/customer/{id}/tag` | 加标签：body `{ tag }`，≤20 字（自动 trim）；同顾客同标签唯一（重复 400）；顾客不存在报 400 |
-| DELETE | `/api/v1/customer/tag/{tagId}` | 删除标签 |
-| PUT | `/api/v1/customer/{id}/consent` | **美容敏感信息单独同意**（PIPL 口径，docs/design/salon-extension.md §4，随 d 同批）：body `{ consent: 1/0 }`，记 `beauty_consent` 标志 + 时刻 + 经办员工（登录人）；普通档案更新不抹掉（`updateCustomerEntity` 不触这些列） |
+| GET | `/api/v1/customer/page` | Paged query (`current` / `pageSize` required; optional `name` / `age` / `phone` / `startTime` / `endTime`; `name` matches by case-insensitive contains, `age` / `phone` exact, combinable) |
+| GET | `/api/v1/customer/{id}` | Query by id |
+| GET | `/api/v1/customer/phone/{phone}` | Query by phone number |
+| GET | `/api/v1/customer/name/{name}` | Query by name (may return multiple records) |
+| POST | `/api/v1/customer/` | Create a patient record (gender required; phone number optional, unique, mainland China number format) |
+| PUT | `/api/v1/customer/` | Update patient information |
+| DELETE | `/api/v1/customer/{id}` | Delete a patient |
+| GET | `/api/v1/customer/{id}/history` | Medical-history list (allergy / past history / care plan entries, newest first; 400 when the patient does not exist) |
+| POST | `/api/v1/customer/{id}/history` | Record history: body `{ type, content }`, `type` 0 allergy / 1 past / 2 care plan (beauty phase d archive extension, not the external-treatment template), `content` non-empty and ≤200 chars (trimmed); 400 when the patient does not exist or the type is invalid; the allergy cross-check still reads type=0 only |
+| DELETE | `/api/v1/customer/history/{historyId}` | Delete one history entry (400 when missing; demo-scope, no audit trail) |
+| GET | `/api/v1/customer/{id}/tag` | Customer tag list (beauty phase d): lightweight skin-type/preference tags, newest first; allergies are not tags (history type 0) |
+| POST | `/api/v1/customer/{id}/tag` | Add a tag: body `{ tag }`, ≤20 chars (trimmed); unique per customer (duplicate 400); 400 when the patient does not exist |
+| DELETE | `/api/v1/customer/tag/{tagId}` | Delete a tag |
+| PUT | `/api/v1/customer/{id}/consent` | **Separate consent for beauty sensitive info** (PIPL, docs/design/salon-extension.md §4, ships with phase d): body `{ consent: 1/0 }`, records the `beauty_consent` flag + time + handling staff (the logged-in user); ordinary archive updates do not wipe it (`updateCustomerEntity` never touches these columns) |
 
-## 诊疗单 `/api/v1/treat`
+## Treatment Record `/api/v1/treat`
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/treat/` | 创建诊疗单（`customerId` 必须指向存在的顾客）；可带 `staffId` 署名接诊医师（选填，回显 `staffName`）；脉象支持左右手寸/关/尺分部字段（`pulseCunLeft`/`pulseGuanLeft`/`pulseChiLeft`/`pulseCunRight`/`pulseGuanRight`/`pulseChiRight`，另有总述 `pulse`/`pulseLeft`/`pulseRight` 与补充 `pulseInfo`） |
-| GET | `/api/v1/treat/{id}` | 按 id 查询 |
-| GET | `/api/v1/treat/customer/{id}` | 按顾客 id 查询全部诊疗单 |
-| GET | `/api/v1/treat/customer/name/{name}` | 按顾客姓名查询（姓名需唯一） |
-| GET | `/api/v1/treat/visited?ids=` | 按顾客批量查就诊次数（`ids` 逗号分隔必填，缺失 400）：treats 表按顾客聚合计数，回 `[{ customerId, visits }]`；无诊疗记录的顾客（含不存在的 id）不出现在结果里。排班页「首诊/复诊」角标依据——visits ≥ 1 = 复诊、无记录 = 首诊（treats 无项目维度，按顾客口径；疗程卡标记优先） |
-| GET | `/api/v1/treat/history` | 分页查询某顾客的诊疗历史（`customerId` 必填，按创建时间倒序） |
-| GET | `/api/v1/treat/fuzzy` | 模糊检索（传 `id` 单查；否则按 `name` / `age` / `phone` 圈定顾客后分页） |
-| PUT | `/api/v1/treat/` | 按 id 全量更新接诊单：id/customerId 必填且须存在，字段以请求体为准（不带 `staffId` 即清空署名），回包含顾客姓名/年龄/性别与接诊医师署名（更新后驱逐 findById 缓存） |
-| DELETE | `/api/v1/treat/{id}` | 删除诊疗单 |
+| POST | `/api/v1/treat/` | Create a treatment record (`customerId` must point to an existing patient); may carry `staffId` to attribute the treating physician (optional, echoed back as `staffName`); the pulse presentation supports cun/guan/chi (寸/关/尺) per-position fields for both hands (`pulseCunLeft`/`pulseGuanLeft`/`pulseChiLeft`/`pulseCunRight`/`pulseGuanRight`/`pulseChiRight`, plus the overall `pulse`/`pulseLeft`/`pulseRight` and the supplementary `pulseInfo`) |
+| GET | `/api/v1/treat/{id}` | Query by id |
+| GET | `/api/v1/treat/customer/{id}` | Query all treatment records by patient id |
+| GET | `/api/v1/treat/customer/name/{name}` | Query by patient name (the name must be unique) |
+| GET | `/api/v1/treat/visited?ids=` | Batch-query visit counts by patient (`ids` comma-separated, required; missing returns 400): counts the treats table grouped by patient and returns `[{ customerId, visits }]`; patients without treatment records (including non-existent ids) do not appear in the result. This is the basis for the "first visit / return visit" badge on the scheduling page — visits ≥ 1 = return visit, no record = first visit (treats has no per-item dimension, counting is per patient; the treatment-course card marker takes precedence) |
+| GET | `/api/v1/treat/history` | Paged query of a patient's treatment history (`customerId` required, descending by creation time) |
+| GET | `/api/v1/treat/fuzzy` | Fuzzy search (pass `id` for a single lookup; otherwise narrow down patients by `name` / `age` / `phone` and page the results) |
+| PUT | `/api/v1/treat/` | Full update of the treatment record by id: id/customerId required and must exist; fields follow the request body (omitting `staffId` clears the attribution); the response includes the patient name/age/gender and the treating physician attribution (evicts the findById cache after the update) |
+| DELETE | `/api/v1/treat/{id}` | Delete a treatment record |
 
-字段含义见[数据模型 · treats 表](/server/data-model#treats-诊疗单)。针灸处方字段（`acuMethod` 针法 ≤30 字、`retentionMinutes` 留针分钟 1-240 可空、`manipulation` 手法 ≤30 字、`moxaMethod` 灸法 ≤60 字（如 艾条悬灸，每穴 15 分钟）、`acuCourse` 疗程/频次 ≤100 字）随接诊单创建/更新保存，越界 400；空白文本按空处理。见 TreatAcuHttpTest。
+For field meanings see [Data model · treats table](/server/data-model#treats-—-treatment-record-core-business-table). Acupuncture prescription fields (`acuMethod` needling method ≤30 characters, `retentionMinutes` needle retention minutes 1-240 nullable, `manipulation` manipulation technique ≤30 characters, `moxaMethod` moxibustion method ≤60 characters (e.g. "moxa stick suspended moxibustion, 15 minutes per acupoint"), `acuCourse` course/frequency ≤100 characters) are saved with the treatment record on create/update; out-of-range values return 400; blank text is treated as empty. See TreatAcuHttpTest.
 
-## 反馈与复盘 `/api/v1/review`
+## Feedback and Retrospective `/api/v1/review`
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/review/` | 保存每日总结（按当天 0 点 upsert，同日覆盖） |
-| GET | `/api/v1/review/day?day=` | 按日期查询每日总结（不存在返回空模板） |
-| POST | `/api/v1/review/staff` | 新建员工日复盘（只传 `name` 可自动回填员工 id） |
-| POST | `/api/v1/review/customer` | 新建顾客回访记录（只传 `name` 可自动回填顾客 id，`day` 为回访日） |
-| GET | `/api/v1/review/staff/list/day?day=` | 按日查询全部员工复盘 |
-| GET | `/api/v1/review/customer/list/day?day=` | 按日查询全部顾客回访 |
-| GET | `/api/v1/review/customer/list/customer?customerId=` | 按顾客查询全部回访计划（回访日倒序，首条即最近安排；`advice` 为回访原因，供档案页下次回访统计/回访提醒） |
-| POST | `/api/v1/review/staff/bulk` | 批量保存员工复盘（逐条写入） |
-| POST | `/api/v1/review/customer/bulk` | 批量保存顾客回访 |
-| DELETE | `/api/v1/review/staff/{id}` | 删除员工复盘 |
-| DELETE | `/api/v1/review/customer/{id}` | 删除顾客回访 |
-| GET | `/api/v1/review/{id}` | 按 id 查询每日复盘总结（不存在报 400） |
-| DELETE | `/api/v1/review/{id}` | 按 id 删除每日复盘总结（不存在报 400；演示环境口径，无留痕） |
+| POST | `/api/v1/review/` | Save the daily summary (upsert keyed on midnight of the current day; same-day saves overwrite) |
+| GET | `/api/v1/review/day?day=` | Query the daily summary by date (returns an empty template if none exists) |
+| POST | `/api/v1/review/staff` | Create a staff daily retrospective (passing only `name` auto-fills the staff id) |
+| POST | `/api/v1/review/customer` | Create a patient follow-up record (passing only `name` auto-fills the patient id; `day` is the follow-up day) |
+| GET | `/api/v1/review/staff/list/day?day=` | Query all staff retrospectives for a day |
+| GET | `/api/v1/review/customer/list/day?day=` | Query all patient follow-ups for a day |
+| GET | `/api/v1/review/customer/list/customer?customerId=` | Query all follow-up plans for a patient (descending by follow-up day, the first entry is the nearest scheduled one; `advice` is the follow-up reason, used by the record page for next-follow-up statistics/reminders) |
+| POST | `/api/v1/review/staff/bulk` | Batch-save staff retrospectives (written entry by entry) |
+| POST | `/api/v1/review/customer/bulk` | Batch-save patient follow-ups |
+| DELETE | `/api/v1/review/staff/{id}` | Delete a staff retrospective |
+| DELETE | `/api/v1/review/customer/{id}` | Delete a patient follow-up |
+| GET | `/api/v1/review/{id}` | Query a daily retrospective summary by id (returns 400 if it does not exist) |
+| DELETE | `/api/v1/review/{id}` | Delete a daily retrospective summary by id (returns 400 if it does not exist; demo-environment behavior, no audit trail) |
 
-## 卡项 `/api/v1/item`
+## Service Card `/api/v1/item`
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/item/` | 创建卡项（名称唯一、价格、描述；`durationMinutes` 单次时长分钟可空，展示用不参与结算；`category` 类目 0 医馆服务（缺省）/ 1 皮肤管理 / 2 身体护理 / 3 中医美容） |
-| PUT | `/api/v1/item/` | 更新卡项 |
-| GET | `/api/v1/item/page` | 分页查询（`name` 包含匹配不区分大小写、`price` 精确、`category` 精确，可叠加；不传即不过滤。2026-10-19 收口：`name`/`price` 此前静默忽略。排序 `sort` 升序、`id` 倒序。ItemFilterHttpTest + ItemCategoryHttpTest 锁死） |
-| GET | `/api/v1/item/{id}` | 按 id 查询 |
-| GET | `/api/v1/item/name/{name}` | 按名称查询（`{name}` 为路径变量；PathLookupHttpTest 锁死） |
-| DELETE | `/api/v1/item/{id}` | 删除，返回删除前的卡项 |
+| POST | `/api/v1/item/` | Create a service card (unique name, price, description; `durationMinutes` per-session duration in minutes is optional — display-only, not involved in settlement; `category` 0 clinic service (default) / 1 skin care / 2 body care / 3 TCM beauty) |
+| PUT | `/api/v1/item/` | Update a service card |
+| GET | `/api/v1/item/page` | Paged query (`name` substring match case-insensitive, `price` exact, `category` exact; combinable, omitted means no filtering. 2026-10-19: `name`/`price` used to be silently ignored. Order: `sort` asc, `id` desc. Locked by ItemFilterHttpTest + ItemCategoryHttpTest) |
+| GET | `/api/v1/item/{id}` | Query by id |
+| GET | `/api/v1/item/name/{name}` | Query by name (`{name}` is a path variable; locked down by PathLookupHttpTest) |
+| DELETE | `/api/v1/item/{id}` | Delete; returns the service card as it was before deletion |
 
-## 员工与考勤（诊所运营） `/api/v1/staff`
+## Staff and Attendance (Clinic Operations) `/api/v1/staff`
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/staff/` | 创建员工（账号唯一、密码 2-20 位、手机号查重；`title` 职务可空，排班页医师名册=在职且职务含「医师」；`famousLevel` 名医等级 0-3，0 普通、1-3 名医，非法值 400） |
-| PUT | `/api/v1/staff/` | 更新员工（携带 `password` 则同步改密；`title` 职务同步更新；`famousLevel` 同创建口径，传 null 不改） |
-| GET | `/api/v1/staff/page` | 分页查询员工（`name` 可选、按包含不区分大小写；按 `famousLevel` 降序、同等级按创建时间升序） |
-| GET | `/api/v1/staff/{id}` | 按 id 查询 |
-| GET | `/api/v1/staff/name/{name}` | 按姓名查询（`{name}` 为路径变量；PathLookupHttpTest 锁死） |
-| GET | `/api/v1/staff/phone/{phone}` | 按手机号查询（`{phone}` 为路径变量，与按姓名查询互不串；StaffLookupTest + PathLookupHttpTest 锁死） |
-| DELETE | `/api/v1/staff/{id}` | 删除员工 |
-| POST | `/api/v1/staff/sign` | 签到 / 签退（`signType`：1 上班、0 下班） |
-| GET | `/api/v1/staff/timesheet/today` | 本人今日考勤（打卡明细与总时长） |
-| GET | `/api/v1/staff/timesheet/month?month=` | 按月全员考勤统计（1-12，仅当年） |
-| GET | `/api/v1/staff/timesheet/week?weekDate=` | 周班次对照：`weekDate` 所在周（周一至周日）员工 × 7 天，计划班次（`staff_shifts` 按星期）对照实际打卡（同日最早上班/最晚下班、整小时取整，历史日缺下班卡计 0）；`weekDate` 空取当周，非法格式 400 |
-| POST | `/api/v1/staff/leave/` | 提交请假：`staffId` + `leaveType`（0 病假 / 1 事假）+ `reason` + `startTime`/`endTime` 必填，结束不早于起始；回包含联出员工名。记录口径：不改员工登录状态、无审批流 |
-| GET | `/api/v1/staff/leave/page` | 请假分页（current、pageSize、staffId 可空），联出员工名，id 倒序 |
-| DELETE | `/api/v1/staff/leave/{id}` | 删除请假记录（演示环境口径，无留痕） |
+| POST | `/api/v1/staff/` | Create a staff member (unique account, password 2-20 characters, phone number deduplicated; `title` job title optional — the scheduling page's physician roster = active staff whose title contains "医师" (physician); `famousLevel` famous-doctor level 0-3, where 0 is ordinary and 1-3 are famous doctors; invalid values return 400) |
+| PUT | `/api/v1/staff/` | Update a staff member (including `password` changes the password as well; `title` is updated in sync; `famousLevel` follows the same rules as create, passing null leaves it unchanged) |
+| GET | `/api/v1/staff/page` | Paged query of staff (optional `name`, case-insensitive contains; descending by `famousLevel`, ascending by creation time within the same level) |
+| GET | `/api/v1/staff/{id}` | Query by id |
+| GET | `/api/v1/staff/name/{name}` | Query by name (`{name}` is a path variable; locked down by PathLookupHttpTest) |
+| GET | `/api/v1/staff/phone/{phone}` | Query by phone number (`{phone}` is a path variable and does not interfere with the by-name lookup; locked down by StaffLookupTest + PathLookupHttpTest) |
+| DELETE | `/api/v1/staff/{id}` | Delete a staff member |
+| POST | `/api/v1/staff/sign` | Sign in / sign out (`signType`: 1 = clock in, 0 = clock out) |
+| GET | `/api/v1/staff/timesheet/today` | Today's attendance for the current user (clock-in/out details and total duration) |
+| GET | `/api/v1/staff/timesheet/month?month=` | Monthly attendance statistics for all staff (1-12, current year only) |
+| GET | `/api/v1/staff/timesheet/week?weekDate=` | Weekly shift comparison: the week containing `weekDate` (Monday through Sunday) as staff × 7 days, planned shifts (`staff_shifts` by weekday) compared against actual clock-ins (earliest clock-in / latest clock-out per day, rounded to whole hours; past days missing a clock-out count as 0); an empty `weekDate` takes the current week, invalid formats return 400 |
+| POST | `/api/v1/staff/leave/` | Submit a leave request: `staffId` + `leaveType` (0 sick leave / 1 personal leave) + `reason` + `startTime`/`endTime` required, the end must not be earlier than the start; the response includes the joined staff name. Recording convention: it does not change the staff member's login status and there is no approval flow |
+| GET | `/api/v1/staff/leave/page` | Paged leave requests (current, pageSize, staffId optional), staff name joined, descending by id |
+| DELETE | `/api/v1/staff/leave/{id}` | Delete a leave record (demo-environment behavior, no audit trail) |
 
-::: tip 考勤口径
-时长按整小时统计，不足 1 小时不显示；同日多次上班卡取最早、下班卡取最晚；未打下班卡但已上班的按当前时间计算。详见[管理端](/web)页面说明。
+::: tip Attendance conventions
+Durations are counted in whole hours; anything under 1 hour is not shown. With multiple clock-ins on the same day the earliest is taken, and with multiple clock-outs the latest; if someone has clocked in but not out, the current time is used. See the [admin console](/web) page documentation for details.
 :::
 
-## 员工班表 `/api/v1/shift`（需登录）
+## Staff Shift Table `/api/v1/shift` (login required)
 
-周期班表（按周循环）：员工 × 星期（`weekday` 1 周一 … 7 周日）× `HH:mm` 时段，同一员工同一星期仅一条班次。
+Recurring shift table (weekly cycle): staff × weekday (`weekday` 1 = Monday … 7 = Sunday) × `HH:mm` time range; each staff member has at most one shift per weekday.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/shift/` | 加排班：`staffId` + `weekday`（1-7）+ `start`/`end`（HH:mm，start < end）必填；员工须存在、同员工同星期唯一（重复 400「员工周X已有班次」），回包含联出员工姓名与星期文案 |
-| PUT | `/api/v1/shift/` | 按 id 全量更新；换员工/星期撞已有班次报 400 |
-| GET | `/api/v1/shift/page` | 班次分页（current、pageSize、staffId/weekday 可空过滤），按员工、星期升序 |
-| GET | `/api/v1/shift/staff/{staffId}` | 某员工整周班次（weekday 升序，考勤/预约侧取数入口） |
-| GET | `/api/v1/shift/{id}` | 班次详情（联员工姓名） |
-| DELETE | `/api/v1/shift/{id}` | 删除班次（演示环境口径，无留痕） |
+| POST | `/api/v1/shift/` | Add a shift: `staffId` + `weekday` (1-7) + `start`/`end` (HH:mm, start < end) required; the staff member must exist and the staff-plus-weekday combination is unique (duplicates return 400 “员工周X已有班次” — the staff member already has a shift on this weekday); the response includes the joined staff name and weekday text |
+| PUT | `/api/v1/shift/` | Full update by id; changing the staff member/weekday to collide with an existing shift returns 400 |
+| GET | `/api/v1/shift/page` | Paged shifts (current, pageSize, optional staffId/weekday filters), ascending by staff member then weekday |
+| GET | `/api/v1/shift/staff/{staffId}` | A staff member's shifts for the whole week (ascending by weekday; the data entry point for attendance and scheduling) |
+| GET | `/api/v1/shift/{id}` | Shift details (staff name joined) |
+| DELETE | `/api/v1/shift/{id}` | Delete a shift (demo-environment behavior, no audit trail) |
 
-::: tip 班表口径
-班表只做排班参考，考勤打卡仍以 signs 为准：班表删除/调整不回写任何打卡记录，与签到/请假/预约暂无联动。
+::: tip Shift table conventions
+The shift table is for scheduling reference only; attendance still follows signs: deleting or adjusting shifts does not write back to any clock-in records, and there is currently no linkage with sign-in, leave, or appointments.
 :::
 
-## 顾客选服务 Kiosk `/api/v1/kiosk`（kiosk.md K2）
+## Patient Service-Selection Kiosk `/api/v1/kiosk` (kiosk.md K2)
 
-免登录（前台大屏自助入口，见[顾客选服务设计](/design/kiosk)）；浏览只读 + 下单、自助约期、openid 绑定三个写入口。
+Unauthenticated (front-desk large-screen self-service entry, see the [patient service-selection design](/design/kiosk)); read-only browsing plus three write entry points: ordering, self-service scheduling, and openid binding.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/kiosk/items` | 上架卡项列表（enabled=1，sort+name 升序），只透 id/name/price/cover/description/durationMinutes（时长可空，供小程序预约页展示服务时长，服务端不编造；2026-10-19 补入） |
-| POST | `/api/v1/kiosk/orders` | 下单：body `{ phone, name?, itemIds[] }`。手机号须 `1\d{10}`；卡项须存在且上架（先全量校验再建档）；按手机号幂等建档（缺称呼默认「到店客人」），逐项落 `status=0` 订单并取卡项现价快照。返回 `{ customerId, customerName, orders[{id,itemId,itemName,price}], totalFee }` |
-| POST | `/api/v1/kiosk/appointments` | 自助约期：body `{ phone, name?, itemId?, startTime }`。时段 `yyyy-MM-dd HH:mm` **整点**、`09:00–17:00` 且晚于当前时刻；卡项可空（到店再定），须存在且上架；频控同手机号当日 `status IN (0,1)` 限 1 条（超出 400「当日已有预约，请到店或致电改约」）；按手机号幂等建档，落 `duration=60`、`status=0`、`staffId=null`、remark「小程序自助」的预约。返回 `{ customerId, customerName, appointmentId, startTime, itemName?, status: 0 }`。口径见[小程序自助约期设计](/design/app-booking) |
-| POST | `/api/v1/kiosk/sms-code` | 短信验证码（`sms_verified` 查卡与 `openid_only` 绑定共用，`off` 模式 400）：body `{ phone }`，发 6 位码落 `sms_codes`（5 分钟有效、一次性）。本系统无短信网关，发码为服务端桩——码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），不对外泄露 |
-| POST | `/api/v1/kiosk/openid-session` | 小程序登录换 openid（仅 `openid_only` 模式可用，其余模式 400）：body `{ code }`（`wx.login` 临时凭证），服务端经微信 jscode2session 换 openid 返回 `{ openid }`；需配置 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置时 400 明确拒绝（不静默）；微信返回错误映射 400；每次尝试（含拒绝）落 `card_lookup_logs` 审计；`session_key` 不出服务端 |
-| POST | `/api/v1/kiosk/card-lookup` | 手机查卡：body `{ phone?, openid?, smsCode? }`；按 `sinomed.phone-lookup.mode` 走 openid 或短信双因子，命中返回 `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`；未命中/被拒不返回任何卡项，每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
-| POST | `/api/v1/kiosk/openid-bind` | openid 自助绑定（仅 `openid_only` 模式可用，其余模式 400；2026-10-15 代决）：body `{ openid, phone, smsCode }`，用一次性短信验证码自证手机号后把 openid 绑到该手机号对应的顾客档案（免前台免桌面）。同档案重复绑定幂等成功；openid 已绑其他档案 400 拒绝（不静默改绑，需前台处理）；缺 openid / 缺手机号或验证码 / 验证码错 / 该手机号无顾客档案均 400。返回 `{ message }`，每次尝试（含拒绝）落 `card_lookup_logs` 审计（result `bind_ok` / `bind_conflict`） |
-| POST | `/api/v1/kiosk/my-appointments` | 手机自助查预约（跨设备）：body `{ phone, smsCode }`（仅 `sms_verified` 模式可用，与查卡同一套一次性验证码），返回 `{ appointments: [{ appointmentId, startTime, itemName, status }] }`——该手机号**未过期**（今天 0 点起）的待到店预约（status=0），新约在前，无预约返回空数组；每次尝试（含拒绝）落 `card_lookup_logs` 审计。口径见[手机查卡设计](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定)（同一身份查询通道） |
-| POST | `/api/v1/kiosk/appointment-cancel` | 手机自助取消预约（2026-10-16 代决，`app-booking.md` 拍板 2 的「取消不核验身份」前提已因双因子落地失效；仅 `sms_verified` 模式可用）：body `{ phone, smsCode, appointmentId }`，验证码一次性（查预约用过的码取消须重新取码，缺预约 id 不烧码）；只允许取消本人 status=0 且未过期的预约（0→9），非本人 / 已受理或已过号 / 已取消 / 已过期 / 未知预约均 400 不静默；取消后该时段按「每时段限约 1 位」自动释放、当日频控随之解除。返回 `{ message }`，每次尝试（含拒绝）落 `card_lookup_logs` 审计（result `cancel_ok` / `missing_appointment` / `not_owner` / `not_cancelable`） |
+| GET | `/api/v1/kiosk/items` | List of listed service cards (enabled=1, ascending by sort+name), exposing only id/name/price/cover/description/durationMinutes (nullable duration, shown on the mini-program booking page; not invented by the server — added 2026-10-19) |
+| POST | `/api/v1/kiosk/orders` | Place an order: body `{ phone, name?, itemIds[] }`. The phone number must match `1\d{10}`; service cards must exist and be listed (everything is validated up front before the record is created); a patient record is created idempotently by phone number (when no name is given it defaults to “到店客人” — walk-in guest), and one `status=0` order is written per item with a snapshot of the service card's current price. Returns `{ customerId, customerName, orders[{id,itemId,itemName,price}], totalFee }` |
+| POST | `/api/v1/kiosk/appointments` | Self-service scheduling: body `{ phone, name?, itemId?, startTime }`. The slot must be `yyyy-MM-dd HH:mm` **on the hour**, within `09:00–17:00`, and later than the current moment; the service card is optional (decided in person at the clinic) but must exist and be listed; rate limiting allows at most 1 appointment with `status IN (0,1)` per phone number per day (exceeding returns 400 “当日已有预约，请到店或致电改约” — an appointment already exists today, please visit or call to change it); a patient record is created idempotently by phone number, and an appointment is written with `duration=60`, `status=0`, `staffId=null`, and the remark “小程序自助” (mini program self-service). Returns `{ customerId, customerName, appointmentId, startTime, itemName?, status: 0 }`. For the conventions see the [mini program self-service scheduling design](/design/app-booking) |
+| POST | `/api/v1/kiosk/sms-code` | SMS verification code (shared by `sms_verified` card lookup and `openid_only` binding; `off` mode returns 400): body `{ phone }`; issues a 6-digit code stored in `sms_codes` (valid for 5 minutes, one-time use). The system has no SMS gateway, so code issuance is a server-side stub — the code only goes to the database and the log (`SMS_CODE_DEMO phone=… code=…`) and is never exposed externally |
+| POST | `/api/v1/kiosk/openid-session` | Mini program login exchanged for an openid (available only in `openid_only` mode; other modes return 400): body `{ code }` (the `wx.login` temporary credential); the server exchanges it for an openid via WeChat jscode2session and returns `{ openid }`; requires `WECHAT_APP_ID`/`WECHAT_APP_SECRET` to be configured — when they are not, it rejects explicitly with 400 (no silent fallback); WeChat errors are mapped to 400; every attempt (including rejections) is written to the `card_lookup_logs` audit; the `session_key` never leaves the server |
+| POST | `/api/v1/kiosk/card-lookup` | Card lookup by phone: body `{ phone?, openid?, smsCode? }`; follows `sinomed.phone-lookup.mode` to use openid or SMS two-factor; a hit returns `{ customerId, customerName, cards: [{ cardId, itemId, itemName, totalTimes, remainingTimes, status, validUntil }] }`; on a miss or rejection no card data is returned at all, and every attempt (including rejections) is written to the `card_lookup_logs` audit. For the conventions see the [card lookup by phone design](/design/kiosk#phone-card-lookup-mini-program-my-cards-2026-10-14-ruling) |
+| POST | `/api/v1/kiosk/openid-bind` | openid self-service binding (available only in `openid_only` mode; other modes return 400; decided on the user's behalf 2026-10-15): body `{ openid, phone, smsCode }`; after ownership of the phone number is proven with a one-time SMS code, the openid is bound to the patient record for that phone number (no front desk, no desktop needed). Repeated binding to the same record succeeds idempotently; if the openid is already bound to another record it is rejected with 400 (no silent rebinding — the front desk must handle it); a missing openid / missing phone number or code / wrong code / no patient record for the phone number all return 400. Returns `{ message }`; every attempt (including rejections) is written to the `card_lookup_logs` audit (result `bind_ok` / `bind_conflict`) |
+| POST | `/api/v1/kiosk/my-appointments` | Self-service appointment lookup by phone (cross-device): body `{ phone, smsCode }` (available only in `sms_verified` mode, the same one-time codes as card lookup); returns `{ appointments: [{ appointmentId, startTime, itemName, status }] }` — the phone number's **not yet expired** (from midnight today) not-yet-arrived appointments (status=0), newest bookings first, an empty array when there are none; every attempt (including rejections) is written to the `card_lookup_logs` audit. For the conventions see the [card lookup by phone design](/design/kiosk#phone-card-lookup-mini-program-my-cards-2026-10-14-ruling) (the same identity lookup channel) |
+| POST | `/api/v1/kiosk/appointment-cancel` | Self-service appointment cancellation by phone (decided on the user's behalf 2026-10-16; `app-booking.md` ruling 2's premise "cancellation verifies no identity" lapsed once two-factor verification landed; available only in `sms_verified` mode): body `{ phone, smsCode, appointmentId }`, the code is one-time (a code already spent on lookup must be re-issued for cancellation; a missing appointment id does not burn the code); only the caller's own status=0 not-yet-expired appointment may be cancelled (0→9); not the owner / already received or skipped / already cancelled / already expired / unknown appointment are all refused with 400 (no silent paths); after cancellation the slot is released per the "one booking per slot" rule and the same-day frequency cap lifts accordingly. Returns `{ message }`; every attempt (including rejections) is written to the `card_lookup_logs` audit (result `cancel_ok` / `missing_appointment` / `not_owner` / `not_cancelable`) |
 
-## 微信公众号 `/api/v1/wx`（第一期骨架，设计稿见 wechat-official-account.md）
+## WeChat Official Account `/api/v1/wx` (phase-1 skeleton; design doc: wechat-official-account.md)
 
-| GET | `/api/v1/wx/callback/{accountId}` | 公众号后台服务器配置验证（免登录，`SecurityConfig` 放行；签名 = `SHA1(token,timestamp,nonce 字典序拼接)`）：通过原样返回 `echostr`；验签失败回空 body；模块关闭（`sinomed.official-account.enabled` 缺省 false）/ 账号不存在或停用一律回 `success` 拒处理并落 `wx_message_logs` 拒绝审计（result `disabled` / `account_missing` / `bad_signature`），不静默 |
-| POST | `/api/v1/wx/callback/{accountId}` | 消息推送回调（免登录靠验签，明文/兼容/安全三模式）：明文报文走三段 `signature`（SHA1 字典序）验签；报文含 `<Encrypt>`（兼容/安全模式）改走 `msg_signature` 四段验签（token,timestamp,nonce,encrypt）→ AES-256-CBC 解密（`WxMsgCryptor`，密钥 = `wx_accounts.aes_key` 动态解密列，receiveid 绑定 appId；官方规范手写、OpenSSL 已知向量锚定，不引 SDK）后进主流程；安全模式账号收到明文推送按伪造拒绝（`missing_encrypt`）；信封验签不过或解密失败回空 body 落审计（`bad_msg_signature`/`bad_encrypt`）；安全模式回复包加密信封（`Encrypt`/`MsgSignature`/`TimeStamp`/`Nonce`，时间戳取服务器当前时间、Nonce 回带入站值），`success` 与空体保持明文；排重按 `MsgId`（消息）或 `FromUserName:CreateTime:Event`（事件）排重（微信 5s 超时重试 3 次）→ 全量落 `wx_message_logs`（`direction=in/out/reject`）→ 路由：`subscribe`/`unsubscribe` 维护 `wx_fans` 粉丝行（取关保留行不回复）、`text` 按启用规则 `priority` 升序做关键词匹配（exact 全等 / contains 包含），未命中走 `fallback` 兜底，`image` 先拉取 `PicUrl` 落 `wx_materials` 素材台账（`type=temp`，落盘 `sinomed.official-account.material-dir`，单文件上限 `material-max-bytes` 缺省 10MB；同 `(account, media_id)` 跳过重下，下载失败/超限只记 warn 不落台账、回调仍走兜底），`voice` 等其余仅落流水+兜底；被动回复 `text` XML（中英文内容 UTF-8，CDATA 转义），无回复回 `success`（微信 5s 约束）；请求体收原始字节按 UTF-8 解码（微信 Content-Type 常不带 charset） |
-| POST | `/api/v1/wx/bind/{accountId}/code` | 粉丝绑定取码（免登录，粉丝 H5 侧；`SecurityConfig` 放行 `/api/v1/wx/bind/**`）：复用 Kiosk 短信通道桩 `sms_codes`（6 位、5 分钟、一次性，无真实短信网关，发码只落库与日志）；body `{ phone }`，手机号格式 `1` 开头 11 位；模块关闭/账号停用 400 且落 `wx_binding_logs` 审计（`disabled`/`account_missing`），不静默 |
-| POST | `/api/v1/wx/bind/{accountId}` | 粉丝↔顾客绑定（免登录，双因子自证；设计稿第一期交付物 5）：body `{ openid | ticket, phone, smsCode }`——openid 来自 H5 网页授权（授权本身凭据门控，先建后激活），也可只传网页授权一次性 `ticket` 由服务端兑换 openid（§5.6：兑换即废、5 分钟有效，无效/过期 400 落 `bad_ticket` 审计），码走上端点；通过写 `wx_fans.customer_id`（粉丝行不存在时补建 `subscribe=1`），每次尝试（含拒绝）落 `wx_binding_logs`：`ok`/`missing_code`/`bad_code`/`used_code`/`expired_code`/`no_customer`/`bound_other`（该粉丝已绑他档，不静默改绑）/`conflict`（该顾客已被其他粉丝绑定，判公众号内部语义、与小程序 `customer.openid` 互不影响）；同档案重复绑定幂等回执；手机号格式错 400 不落审计（非尝试语义，同 Kiosk） |
-| GET | `/api/v1/wx/oauth/{accountId}/start` | 网页授权发起（免登录，粉丝侧；设计稿 §5.6）：302 到 `open.weixin.qq.com/connect/oauth2/authorize`（`scope=snsapi_base` 只取 openid，`redirect_uri`=`oauth-redirect-base` 配置下的 `/api/v1/wx/oauth/{accountId}/callback`），`state`=`accountId|nonce|过期秒` + HMAC-SHA1(token) 无状态防伪（10 分钟，不需服务端会话）；模块关闭/账号停用/未配回跳基址 400 并落 `wx_message_logs` 拒绝审计（`disabled`/`account_missing`/`missing_redirect_base`），不静默 |
-| GET | `/api/v1/wx/oauth/{accountId}/callback` | 网页授权回调（免登录）：`state` 常量时间验签 → `code` 经微信 `sns/oauth2/access_token` 换 openid（出网基址可配 `wechat-api-base-url`，AppSecret 取自 `wx_accounts` 动态解密列）→ 发一次性 ticket（内存 5 分钟单次有效，openid 不下发前端）→ 302 回 `{oauth-redirect-base}/h5/wx/bind?account={accountId}#ticket=...`（account 必随回跳下发，页面凭它拼绑定端点；落地页为服务端 classpath 静态单页 `/h5/wx/bind`，`SecurityConfig` 放行 `/h5/**`）；`state` 伪造/过期/换码失败 400 并落拒绝审计（`bad_state`/`bad_exchange`），失败流程不建粉丝行 |
-| POST | `/api/v1/wx/fans/{accountId}/unbind` | 管理端解绑（需登录；设计稿 §4.7）：清 `wx_fans.customer_id`（保留粉丝行）并落审计 `unbind`；无粉丝行/未绑定分别 400 审计 `no_fan`/`not_bound`；顾客取关不自动解绑，换人关注属线下场景走管理端 |
-| GET | `/api/v1/wx/materials/page` | 素材台账只读分页（管理端，需登录；设计稿 §4.5「供管理端查看」）：粉丝消息图片等素材台账，分页 `current`/`pageSize`，`accountId`/`materialType`/`startTime`/`endTime` AND 过滤（时间窗格式同 message-logs），默认 `createTime`+`id` 倒序最新在前；返回 `WxMaterialView`（id/accountId/mediaId/materialType/name/url/localPath/size/mimeType/createTime，`localPath` 非空=有本地副本可取图）；不依赖模块开关，不含密钥列 |
-| GET | `/api/v1/wx/materials/{id}` | 取素材本地文件（管理端，需登录；图片预览用）：按台账 id 返回本地副本字节，`Content-Type` 取台账 `mimeType`（坏值兜底 `application/octet-stream`），带 `Content-Length`；`local_path` 相对 `sinomed.official-account.material-dir` 解析且 normalize 后必须仍在根目录内（防 `../` 越权读任意文件）；无本地副本/文件缺失/路径越界/未知 id 统一 400（`ResponseExceptionAdvice` 口径，无 404 特例） |
-| GET | `/api/v1/wx/message-logs` | 消息流水只读列表（管理端，需登录；第一期交付物 4，不做对话式 UI）：分页 `current`/`pageSize`（1 起），可选过滤 `accountId`/`fromUser`/`direction`（in 入站、out 出站回复、reject 拒绝审计）/`msgType`/`result`（ok/disabled/account_missing/bad_signature/duplicate）/`startTime`/`endTime`（`yyyy-MM-dd[ HH:mm:ss]`，转 Date 比较），AND 语义；默认 `createTime`+`id` 倒序最新在前；返回 `PageResp<WxMessageLogView>`（含 `customerName`：该粉丝已绑定顾客的姓名，设计稿第一期验收「已绑定顾客发消息可见对应顾客」；不含服务端排重字段 dedupeKey）；不依赖模块开关——disabled 期间的 reject 审计也可查 |
-| GET | `/api/v1/wx/accounts` | 公众号账号列表（管理端，需登录；规则/粉丝页选账号用）：单店量小不分页，id 升序；返回数组形 `WxAccountView`（id/appId/accountName/accountType/verified/enabled/encryptMode/remark/createTime）——**绝不下发密钥列**（appSecret/token/aesKey），改密钥走部署配置/SQL 不提供读回口 |
-| GET | `/api/v1/wx/auto-replies/page` | 自动回复规则分页（管理端，需登录；第二期「管理端规则编辑」服务端半边，规则不再手工改库）：分页 `current`/`pageSize`（1 起），可选过滤 `accountId`/`ruleType`（subscribe/keyword/fallback）/`enabled`（1 启用、0 停用），AND 语义；默认 `priority`+`id` 升序（小者先试）；返回 `PageResp<WxAutoReplyView>`；不依赖模块开关 |
-| POST | `/api/v1/wx/auto-replies` | 创建自动回复规则（管理端，需登录）：body `{ accountId, ruleType, keyword?, matchType?, replyType?, content, priority?, enabled? }`；`ruleType` 限 subscribe/keyword/fallback，`matchType` 限 exact/contains（缺省 exact），`replyType` 第一期仅 text，`content` 非空；keyword 型必填关键词，非 keyword 型关键词服务端强制清空（不污染匹配）；`subscribe`/`fallback` 同账号同时最多一条启用（服务层约束，无 DB 唯一——避免草稿态冲突），已有启用规则时 400 需先停用旧的；body 带 id 会被忽略（防误覆盖已有规则）；返回规则视图 |
-| PUT | `/api/v1/wx/auto-replies` | 更新自动回复规则（管理端，需登录）：body 同创建且 `id` 必填；id 不存在或 `id` 缺省 400；校验与创建同口径（含单条启用约束） |
-| DELETE | `/api/v1/wx/auto-replies/{id}` | 删除自动回复规则（管理端，需登录）：id 不存在 400；返回 `{message}` |
-| GET | `/api/v1/wx/menus` | 菜单列表（管理端，需登录；设计稿 §4.3「编辑/草稿」本地半边，推送见 `POST /menus/push/{accountId}`）：两级菜单平铺返回（`parentId` 表达层级），可选过滤 `accountId`，`sort`+`id` 升序；返回 `WxMenuView[]`（不分页——微信协议每号上限 3 一级 ×5 二级）；不依赖模块开关，先建后激活 |
-| POST | `/api/v1/wx/menus` | 创建菜单（管理端，需登录）：body `{ accountId, parentId?, name, menuType, url?, mediaId?, miniprogramAppid?, miniprogramPagepath?, eventKey?, sort?, enabled? }`；校验与 `saveMenu` 同口径：`menuType` 限微信协议 9 值且一级仅 view/click（扫码/媒体类只能做二级）；菜单名加权校验（非 ASCII 记 2 分、ASCII 记 1 分，一级 ≤8 分、二级 ≤16 分，即「4/8 汉字或 2 倍字母」）；`parentId` 必须指向同账号顶级菜单（最多两级）；每号 ≤3 一级、每个一级 ≤5 二级；view 必填 http(s) 地址、click/扫码/媒体/位置类必填事件 key、view_miniprogram 必填 appid+pagepath+备用网页 url（低版本客户端兜底，微信协议必填）；非 view 系类型的 url 服务端强制清空；缺省 `sort`=0、`enabled`=1；body 带 id 会被忽略；返回菜单视图 |
-| PUT | `/api/v1/wx/menus` | 更新菜单（管理端，需登录）：body 同创建且 `id` 必填；校验与创建同口径；不能跨账号移动（子菜单会悬空）；返回菜单视图 |
-| DELETE | `/api/v1/wx/menus/{id}` | 删除菜单（管理端，需登录）：该菜单下还有二级菜单时 400（先删子）；id 不存在 400；返回 `{message}` |
-| POST | `/api/v1/wx/menus/push/{accountId}` | 推送菜单到微信（管理端，需登录；设计稿 §4.3「推送」半边，服务端已交付、真实出网压凭据）：取 access_token（`cgi-bin/token`，出网基址可配 `wechat-api-base-url`）→ POST `cgi-bin/menu/create`；只推 `enabled`=1（草稿不推送），顶级按 sort 序、带子的父级只发 `name`+`sub_button`（微信忽略父级动作），无子父级与子级带自身类型字段（view 带 url、view_miniprogram 带 url+appid+pagepath、其余带 key）；缺 AppSecret/无启用一级菜单在出网前 400，微信 errcode 非 0 一律 400 透传 errcode/errmsg 不静默；返回 `{message}` 带推送一级菜单数；不做 token 缓存（管理端手工触发低频，已代决） |
-| GET | `/api/v1/wx/capabilities/{accountId}` | 账号能力矩阵（需登录）：按 `wx_accounts.account_type` + `verified` 返回 `{ accountId, accountName, accountType, verified, callback, materials, webAuth, menuManagement, customerService, massMessaging, templateMessage }`——模板消息仅服务号；菜单/客服/群发 = 服务号或已认证；管理端据此隐藏降级入口，不写死枚举分支；账号不存在 400 |
+| GET | `/api/v1/wx/callback/{accountId}` | Server-configuration verification from the WeChat console (no login; whitelisted in `SecurityConfig`; signature = `SHA1(token,timestamp,nonce sorted and concatenated)`): on success echoes `echostr` verbatim; a failed check returns an empty body; with the module off (`sinomed.official-account.enabled`, default false) or an account missing/disabled it always returns `success` refusing to process, with a rejection audit row in `wx_message_logs` (result `disabled` / `account_missing` / `bad_signature`) — never silent |
+| POST | `/api/v1/wx/callback/{accountId}` | Message/event push callback (no login, trusted via signature; plaintext/compatible/safe modes): a plaintext body is verified with the 3-part `signature` (sorted SHA1); a body carrying `<Encrypt>` (compatible/safe) is verified with the 4-part `msg_signature` (token,timestamp,nonce,encrypt) and then AES-256-CBC decrypted (`WxMsgCryptor`, key = the dynamically decrypted `wx_accounts.aes_key` column, receiveid bound to the appId; hand-written to the official spec, anchored by OpenSSL known-answer vectors, no SDK) before entering the main flow; a plaintext push to a safe-mode account is treated as forged (`missing_encrypt`); a failed envelope check or decrypt returns an empty body with reject audits (`bad_msg_signature`/`bad_encrypt`); safe-mode replies are sealed into the encrypted envelope (`Encrypt`/`MsgSignature`/`TimeStamp`/`Nonce`, server-side timestamp, nonce echoed from the push) while `success` and empty bodies stay plaintext; dedupe by `MsgId` (messages) or `FromUserName:CreateTime:Event` (events; WeChat retries 3× on 5s timeout) → write every message to `wx_message_logs` (`direction=in/out/reject`) → route: `subscribe`/`unsubscribe` maintain the `wx_fans` row (unsubscribe keeps the row and does not reply), `text` runs keyword matching over enabled rules by ascending `priority` (exact equals / contains), falling back to the `fallback` rule; `image` first downloads its `PicUrl` into the `wx_materials` ledger (`type=temp`, stored under `sinomed.official-account.material-dir`, per-file cap `material-max-bytes` default 10MB; the same `(account, media_id)` is not re-downloaded, and failures/oversize only log a warn with no ledger row while the callback still falls back), `voice` and the rest are logged with only the fallback reply; the passive reply is a `text` XML (UTF-8, CDATA-escaped), `success` when there is nothing to reply (WeChat's 5-second constraint); the request body is read as raw bytes and decoded UTF-8 (WeChat's Content-Type often carries no charset) |
+| POST | `/api/v1/wx/bind/{accountId}/code` | Fan-binding SMS code (login-free, fan-side H5; `SecurityConfig` permits `/api/v1/wx/bind/**`): reuses the Kiosk SMS stub channel `sms_codes` (6 digits, 5 min, one-time; no real SMS gateway — codes are stored and logged only); body `{ phone }`, phone must be an 11-digit number starting with `1`; module off / account disabled returns 400 with a `wx_binding_logs` audit (`disabled`/`account_missing`), never silent |
+| POST | `/api/v1/wx/bind/{accountId}` | Fan ↔ customer binding (login-free, two-factor self-attestation; phase-1 deliverable 5): body `{ openid | ticket, phone, smsCode }` — openid comes from H5 OAuth (credential-gated, activate-when-ready) or a one-time OAuth `ticket` redeemed server-side (§5.6: single-use, 5 min; invalid/expired returns 400 audited as `bad_ticket`), code from the endpoint above; on success writes `wx_fans.customer_id` (fan row created with `subscribe=1` if absent); every attempt (including rejections) lands in `wx_binding_logs`: `ok`/`missing_code`/`bad_code`/`used_code`/`expired_code`/`no_customer`/`bound_other` (fan already bound elsewhere, never silently rebound)/`conflict` (customer already bound by another fan — judged on OA-internal semantics, independent of the mini-program `customer.openid`); rebinding the same customer is idempotent; malformed phone returns 400 without an audit row (not an attempt, same as Kiosk) |
+| GET | `/api/v1/wx/oauth/{accountId}/start` | Web-auth start (login-free, fan side; design §5.6): 302 to `open.weixin.qq.com/connect/oauth2/authorize` (`scope=snsapi_base`, openid only; `redirect_uri` = the configured `oauth-redirect-base` + `/api/v1/wx/oauth/{accountId}/callback`); `state` = `accountId|nonce|expiry-epoch` + HMAC-SHA1(token) stateless forgery guard (10 min, no server session needed); module off / account disabled / redirect base unset returns 400 with a `wx_message_logs` reject audit (`disabled`/`account_missing`/`missing_redirect_base`), never silent |
+| GET | `/api/v1/wx/oauth/{accountId}/callback` | Web-auth callback (login-free): constant-time `state` verification → `code` exchanged for openid via WeChat `sns/oauth2/access_token` (outbound base URL configurable via `wechat-api-base-url`, AppSecret read from the dynamically decrypted `wx_accounts` column) → a one-time ticket is issued (in-memory, 5 min, single-use; openid never reaches the frontend) → 302 to `{oauth-redirect-base}/h5/wx/bind?account={accountId}#ticket=...` (the account must ride the redirect so the page can build the bind endpoint URL; the landing page is a server-side classpath static page at `/h5/wx/bind`, permitted by `SecurityConfig` `/h5/**`); forged/expired `state` or failed exchange returns 400 with reject audits (`bad_state`/`bad_exchange`); failed flows never create a fan row |
+| POST | `/api/v1/wx/fans/{accountId}/unbind` | Admin unbind (login required; design §4.7): clears `wx_fans.customer_id` (fan row kept) and audits `unbind`; missing fan row / not bound return 400 audited as `no_fan`/`not_bound`; unsubscribing never auto-unbinds — re-binding to a different person is an offline scenario handled by admins |
+| GET | `/api/v1/wx/materials/page` | Material ledger read-only page (admin, login required; design §4.5 "for admin viewing"): the ledger of fan-message images and other media, paginated `current`/`pageSize`, AND-filtered by `accountId`/`materialType`/`startTime`/`endTime` (time windows formatted like message-logs), default `createTime`+`id` descending (newest first); returns `WxMaterialView` (id/accountId/mediaId/materialType/name/url/localPath/size/mimeType/createTime — non-empty `localPath` means a local copy can be fetched); independent of the module switch, no secret columns |
+| GET | `/api/v1/wx/materials/{id}` | Fetch a material's local file (admin, login required; image preview): returns the local copy bytes by ledger id with `Content-Type` from the ledger `mimeType` (bad values fall back to `application/octet-stream`) and `Content-Length`; `local_path` is resolved against `sinomed.official-account.material-dir` and, once normalized, must stay inside that root (blocks `../` traversal into arbitrary files); no local copy / file missing / path escaping / unknown id uniformly return 400 (`ResponseExceptionAdvice` convention, no 404 special case) |
+| GET | `/api/v1/wx/message-logs` | Read-only message log list (admin, login required; phase-1 deliverable 4, no conversational UI): pagination `current`/`pageSize` (1-based); optional filters `accountId`/`fromUser`/`direction` (in = inbound, out = outbound reply, reject = rejection audit)/`msgType`/`result` (ok/disabled/account_missing/bad_signature/duplicate)/`startTime`/`endTime` (`yyyy-MM-dd[ HH:mm:ss]`, compared as Date), AND semantics; default order `createTime`+`id` descending (newest first); returns `PageResp<WxMessageLogView>` (with `customerName`: the bound customer name for that fan — phase-1 acceptance "messages from bound customers show the customer"; excludes server-internal dedupeKey); independent of the module switch — reject audits from the disabled period stay queryable |
+| GET | `/api/v1/wx/accounts` | WeChat account list (admin, login required; account picker for rules/fans pages): no pagination for a single store, id ascending; returns a JSON array of `WxAccountView` (id/appId/accountName/accountType/verified/enabled/encryptMode/remark/createTime) — **secret columns are never returned** (appSecret/token/aesKey); to change secrets use deployment config/SQL, no read-back endpoint |
+| GET | `/api/v1/wx/auto-replies/page` | Auto-reply rule list (admin, login required; phase-2 "rule editing" server half, rules no longer hand-edited in SQL): pagination `current`/`pageSize` (1-based); optional filters `accountId`/`ruleType` (subscribe/keyword/fallback)/`enabled` (1 = enabled, 0 = disabled), AND semantics; default order `priority`+`id` ascending (lowest priority number wins); returns `PageResp<WxAutoReplyView>`; independent of the module switch |
+| POST | `/api/v1/wx/auto-replies` | Create an auto-reply rule (admin, login required): body `{ accountId, ruleType, keyword?, matchType?, replyType?, content, priority?, enabled? }`; `ruleType` restricted to subscribe/keyword/fallback, `matchType` restricted to exact/contains (defaults to exact), `replyType` is text only in phase 1, `content` required; a keyword rule requires a keyword, and any keyword on a non-keyword rule is cleared server-side (must not pollute matching); at most one enabled `subscribe`/`fallback` per account at a time (service-layer constraint, no DB unique — draft-state conflicts avoided): if one is already enabled, 400 — disable the old one first; an `id` in the body is ignored (prevents accidental overwrite); returns the rule view |
+| PUT | `/api/v1/wx/auto-replies` | Update an auto-reply rule (admin, login required): body as create with `id` required; 400 when the id does not exist or is missing; same validation as create (including the single-enabled constraint) |
+| DELETE | `/api/v1/wx/auto-replies/{id}` | Delete an auto-reply rule (admin, login required): 400 when the id does not exist; returns `{message}` |
+| GET | `/api/v1/wx/menus` | Menu list (admin, login required; design §4.3 local "edit/draft" half — see `POST /menus/push/{accountId}` for pushing): two-level menus returned flat (`parentId` expresses hierarchy), optional `accountId` filter, `sort`+`id` ascending; returns `WxMenuView[]` (unpaged — WeChat caps each account at 3 top × 5 sub); independent of the module switch, build first activate later |
+| POST | `/api/v1/wx/menus` | Create a menu (admin, login required): body `{ accountId, parentId?, name, menuType, url?, mediaId?, miniprogramAppid?, miniprogramPagepath?, eventKey?, sort?, enabled? }`; validation matches `saveMenu`: `menuType` restricted to the 9 WeChat protocol values with view/click only at level 1 (scan/media types are sub-menu only); weighted name check (non-ASCII counts 2, ASCII counts 1; level 1 ≤8, level 2 ≤16 — i.e. "4/8 Chinese chars or twice as many letters"); `parentId` must reference a same-account top-level menu (two levels max); ≤3 top menus per account and ≤5 sub-menus per top; view requires an http(s) URL, click/scan/media/location types require an event key, view_miniprogram requires appid+pagepath plus a fallback web url (required by the WeChat protocol as the low-version-client fallback); URLs on non-view types are cleared server-side; defaults `sort`=0, `enabled`=1; an `id` in the body is ignored; returns the menu view |
+| PUT | `/api/v1/wx/menus` | Update a menu (admin, login required): body as create with `id` required; same validation as create; cross-account moves rejected (sub-menus would dangle); returns the menu view |
+| DELETE | `/api/v1/wx/menus/{id}` | Delete a menu (admin, login required): 400 while sub-menus remain (delete them first); 400 when the id does not exist; returns `{message}` |
+| POST | `/api/v1/wx/menus/push/{accountId}` | Push menus to WeChat (admin, login required; design §4.3 "push" half — server side delivered, real outbound stays credential-gated): fetch access_token (`cgi-bin/token`, outbound base configurable via `wechat-api-base-url`) then POST `cgi-bin/menu/create`; pushes only `enabled`=1 (drafts excluded), top menus in sort order; a parent with sub-menus sends only `name`+`sub_button` (WeChat ignores parent actions), parents without children and sub-menus send their own type fields (view carries url, view_miniprogram carries url+appid+pagepath, others carry key); missing AppSecret or no enabled top menus rejected with 400 before any outbound call, non-zero WeChat errcode rejected with 400 passing errcode/errmsg through, never silent; returns `{message}` with the pushed top-menu count; no token cache (manual admin trigger, low frequency — decided) |
+| GET | `/api/v1/wx/capabilities/{accountId}` | Account capability matrix (login required): from `wx_accounts.account_type` + `verified` returns `{ accountId, accountName, accountType, verified, callback, materials, webAuth, menuManagement, customerService, massMessaging, templateMessage }` — template messages are service-account only; menus/customer-service/mass = service account or verified; the admin UI hides gated entries accordingly, no hardcoded enum branches; unknown account returns 400 |
 
-## 打印模板 `/api/v1/print`（desktop.md D7）
+## Print Templates `/api/v1/print` (desktop.md D7)
 
-免登录（空白版式、不含业务数据；桌面工作站壳未登录也要拉模板，见[桌面版设计](/design/desktop)）。
+Unauthenticated (blank layouts with no business data; the desktop workstation shell pulls templates even when not logged in, see the [desktop design](/design/desktop)).
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/print/templates` | 全部白名单模板（prescription / receipt）与内容摘要版本 `{ version, templates[{ name, content }] }`；版本为内容 SHA-256 前 16 位，内容不变则不变。模板解析：`data/printtemplates/{name}.html`（`PRINT_TEMPLATES_DIR` 可配）覆盖目录优先，缺失回落 jar 内置版式——模板更新只需改服务端文件，不发壳版本 |
-| GET | `/api/v1/print/receipt/{settlementId}` | **结算小票套打（需登录）**：按结算单填充 80mm 小票模板，直接返回可打印 HTML（`text/html`）。单号 `S+结算单id`；次卡抵扣（实收 0）金额列显示「次卡抵扣」；抬头机构名可用 `sinomed.receipt.clinic-name` 配置覆盖；顾客/员工名做 HTML 转义。结算单不存在报 400 |
+| GET | `/api/v1/print/templates` | All whitelisted templates (prescription / receipt) with a content-digest version `{ version, templates[{ name, content }] }`; the version is the first 16 hex characters of the content's SHA-256 and stays the same as long as the content does. Template resolution: `data/printtemplates/{name}.html` (`PRINT_TEMPLATES_DIR` is configurable) — the override directory wins, falling back to the layout built into the jar when missing, so updating a template only requires changing the server-side file, no shell release needed |
+| GET | `/api/v1/print/receipt/{settlementId}` | **Settlement receipt overprint (login required)**: fills the 80mm receipt template from the settlement and returns printable HTML directly (`text/html`). The receipt number is `S+<settlement id>`; for a visit-card write-off (actual amount 0) the amount column reads “次卡抵扣” (visit-card write-off); the header clinic name can be overridden with the `sinomed.receipt.clinic-name` config; patient/staff names are HTML-escaped. Returns 400 if the settlement does not exist |
 
-## 订单 `/api/v1/order`（kiosk.md K3，需登录）
+## Orders `/api/v1/order` (kiosk.md K3, login required)
 
-> 多品项：订单明细落 `order_item` 表（name/price 为下单时刻快照，qty≥1，subtotal=单价×数量），订单接口统一联出 `items[]`；存量单无明细行时按 `itemId+price` 回退一行数量 1。`orders.price` 语义：单行=行小计，多行=各行小计合计。
+> Multi-item: order line items go to the `order_item` table (name/price are snapshots from the moment of ordering, qty≥1, subtotal = unit price × quantity); the order endpoints uniformly join out `items[]`; for legacy orders without line-item rows, a single row of quantity 1 is derived from `itemId+price`. Semantics of `orders.price`: single row = the row subtotal, multiple rows = the sum of the row subtotals.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/order/` | 前台建单：`customerId` 必填（顾客须存在），`staffId` 可选记录建单人；单品传 `itemId`（卡项须存在且启用），多品项传 `items[{itemId,qty}]`（qty≥1，逐行校验，`price`=各行小计合计，`itemId` 记首行）；价格取卡项现价快照，落 `status=0` 待接待 |
-| PUT | `/api/v1/order/remark` | 整单备注：body `{id, remark}`，≤200 字，空串/null 清空；超长报 400 |
-| GET | `/api/v1/order/page` | 分页（current、pageSize、status 可空、pending 可空 `true`=只看待结算 0/1），按创建时间倒序（同秒按 id 倒序），联出顾客名/手机号、卡项名、明细行 `items` 与结算支付方式 `payType` |
-| GET | `/api/v1/order/{id}` | 详情（联顾客名、卡项名与明细行 `items`、备注 `remark`） |
-| PUT | `/api/v1/order/status` | 状态流转：`0→1`、`1→2`，`0/1→9` 取消；其余组合报错（body 带 id 与 status） |
-| GET | `/api/v1/order/summary` | 按顾客汇总：`customerId` 必填，返回 `{ orders, amount }`（订单数与金额合计） |
-| DELETE | `/api/v1/order/{id}` | 删除，仅 `status=9`（已取消）可删，连同明细行 |
+| POST | `/api/v1/order/` | Front-desk order creation: `customerId` required (the patient must exist), `staffId` optional to record who created it; single item passes `itemId` (the service card must exist and be enabled), multiple items pass `items[{itemId,qty}]` (qty≥1, validated row by row, `price` = sum of the row subtotals, `itemId` records the first row); prices take a snapshot of the service card's current price, and the order is written with `status=0` pending check-in |
+| PUT | `/api/v1/order/remark` | Order-level remark: body `{id, remark}`, ≤200 characters; an empty string/null clears it; overlong values return 400 |
+| GET | `/api/v1/order/page` | Paged query (current, pageSize, optional status; optional pending where `true` = only pending settlement 0/1), descending by creation time (then by id within the same second), joining out the patient name/phone, service card name, line items `items`, and the settlement payment method `payType` |
+| GET | `/api/v1/order/{id}` | Details (patient name, service card name, line items `items`, and remark `remark` joined) |
+| PUT | `/api/v1/order/status` | Status transitions: `0→1`, `1→2`, and `0/1→9` cancel; other combinations are rejected (the body carries id and status) |
+| GET | `/api/v1/order/summary` | Summary by patient: `customerId` required, returns `{ orders, amount }` (order count and total amount) |
+| DELETE | `/api/v1/order/{id}` | Delete; only orders with `status=9` (cancelled) can be deleted, together with their line items |
 
-## 预约 `/api/v1/appointment`（需登录）
+## Appointments `/api/v1/appointment` (login required)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/appointment/` | 新建预约：`customerId` + `startTime` 必填，`itemId`/`staffId`/`roomId`/`duration`/`remark` 可选；新预约一律 `status=0` 待到店；**每时段限约 1 位**——同医师同日同小时（floor 到整点桶）已有 `status IN (0,1)` 预约报 400「该时段已约满（每时段限约 1 位），请换医师或时段」，`staffId` 为空（自助约期，到店分配）归同一空组互斥；`roomId` 非空时**工位维同样互斥**（同工位同小时跨技师也拒，报 400「该工位该时段已被占用」；美容业态 b 双维冲突，AppointmentRoomConflictHttpTest 锁死，工位须存在） |
-| GET | `/api/v1/appointment/page` | 分页（current、pageSize、status 可空、date 可空 `yyyy-MM-dd` 按日过滤），联出顾客名/手机号、卡项名、员工名、工位名 |
-| PUT | `/api/v1/appointment/status` | 状态流转：只允许 `0→1`（到店接待，随后从接诊页建单）、`0→8`（过号）与 `0→9`（取消）；过号/取消为终态，其余组合报错。`0→1` **自动叫号联动**（docs/tablet.md「到号自动叫号」）：接待即落一条 `queue_calls`（号码=当日接待序号补零两位、诊室=接诊医师名+「诊室」/未指派「待分配诊室」、姓名脱敏、广播全部屏），过号/取消不叫号 |
-| DELETE | `/api/v1/appointment/{id}` | 删除，仅 `status=9`（已取消）可删 |
+| POST | `/api/v1/appointment/` | Create an appointment: `customerId` + `startTime` required, `itemId`/`staffId`/`roomId`/`duration`/`remark` optional; new appointments always get `status=0` not yet arrived; **at most 1 booking per slot** — when an appointment with `status IN (0,1)` already exists for the same physician on the same day and hour (floored to the hour bucket), it returns 400 “该时段已约满（每时段限约 1 位），请换医师或时段” (this slot is fully booked, at most 1 booking per slot, please pick a different physician or slot); an empty `staffId` (self-service booking, assigned on arrival) belongs to the same empty group and is mutually exclusive within it; a non-empty `roomId` is **mutually exclusive on the workstation axis too** (the same workstation in the same hour is refused even across technicians, 400 「该工位该时段已被占用」— this workstation is occupied; two-dimension conflict per beauty phase b, locked by AppointmentRoomConflictHttpTest; the workstation must exist) |
+| GET | `/api/v1/appointment/page` | Paged query (current, pageSize, optional status; optional date `yyyy-MM-dd` to filter by day), joining out the patient name/phone, service card name, staff name, and workstation name |
+| PUT | `/api/v1/appointment/status` | Status transitions: only `0→1` (arrived and checked in, after which the order is created from the treatment page), `0→8` (skipped), and `0→9` (cancelled) are allowed; skipped/cancelled are terminal states and other combinations are rejected. `0→1` triggers the **automatic queue-calling linkage** (docs/tablet.md "到号自动叫号"): checking in immediately writes one `queue_calls` record (number = the day's check-in sequence zero-padded to two digits, room = the treating physician's name + “诊室” (consultation room) or “待分配诊室” (room to be assigned) when unassigned, name masked, broadcast to all screens); skipping or cancelling does not call the queue |
+| DELETE | `/api/v1/appointment/{id}` | Delete; only appointments with `status=9` (cancelled) can be deleted |
 
-::: tip 预约口径
-时段为开始时刻 + 时长（分钟）；状态：`0` 待到店、`1` 已接待、`8` 过号、`9` 已取消（8/9 为终态）。每时段限约 1 位（原型 admin-booking 口径）：同医师同日同小时已有待到店/已接待预约即拒，取消/过号后时段自动释放；自助约期（staffId 空）与已指派医师分属不同组互不影响。到店接待后请从接诊页发起接诊，预约状态不随接诊单自动回写。
+::: tip Appointment conventions
+A slot is the start time + duration (minutes); statuses: `0` not yet arrived, `1` checked in, `8` skipped, `9` cancelled (8/9 are terminal). At most 1 booking per slot (per the admin-booking prototype): a request is rejected when a not-yet-arrived or checked-in appointment already exists for the same physician on the same day and hour; cancelling or skipping automatically releases the slot; self-service bookings (empty staffId) and physician-assigned ones belong to different groups and do not affect each other. After check-in, start the treatment from the treatment page — the appointment status is not written back automatically from the treatment record.
 :::
 
-## 提成 `/api/v1/commission`（需登录，美容业态 c）
+## Commission `/api/v1/commission` (login required, beauty phase c)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/commission/rule` | 规则列表（全量按 id 倒序；`itemId` 可选按卡项过滤） |
-| POST | `/api/v1/commission/rule` | 新建规则：`itemId` + `title`（岗位，`staffs.title` 精确匹配）+ `ratio`（整数百分比 0–100）必填；同项目同岗位唯一（一岗一比例） |
-| PUT | `/api/v1/commission/rule` | 更新规则：`id` 必填，可改 `title`/`ratio`；itemId 建议删了重建 |
-| DELETE | `/api/v1/commission/rule/{id}` | 删除规则（硬删；已生成记录不受影响，快照在记录里） |
-| GET | `/api/v1/commission/record/page` | 记录分页（current、pageSize，`orderId`/`staffId` 可选过滤、两参同传按 AND 叠加——2026-10-19 收口：此前同传静默忽略 `staffId`），按 id 倒序，联出员工名 |
-| GET | `/api/v1/commission/record/summary` | 按员工合计（工资基数）：`staffId`/`start`（含）/`end`（不含）可空；净额 = 正向 + 冲销 |
+| GET | `/api/v1/commission/rule` | Rule list (all, by id descending; optional `itemId` filters by service card) |
+| POST | `/api/v1/commission/rule` | Create a rule: `itemId` + `title` (the position, exact match on `staffs.title`) + `ratio` (integer percent 0–100) all required; one rule per card per position (one ratio per position) |
+| PUT | `/api/v1/commission/rule` | Update a rule: `id` required, may change `title`/`ratio`; delete-and-recreate is preferred for changing `itemId` |
+| DELETE | `/api/v1/commission/rule/{id}` | Delete a rule (hard delete; generated records are unaffected — snapshots live in the records) |
+| GET | `/api/v1/commission/record/page` | Paged records (current, pageSize; optional `orderId`/`staffId` filters — passing both combines with AND; 2026-10-19: `staffId` used to be silently ignored when both passed), by id descending, joining out the staff name |
+| GET | `/api/v1/commission/record/summary` | Per-staff totals (the payroll base): optional `staffId`/`start` (inclusive)/`end` (exclusive); net = positive + reversal |
 
-::: tip 提成口径
-P0 固定比例「项目×岗位」（docs/design/salon-extension.md §2-c）：岗位取 `staffs.title`，与排班医师名册同一岗位口径；医师/技师共用本套规则（同表区分），不建并行实体。**记账锚点**：业绩归属 = `orders.staff_id`（建单人），结算完成时按 `order_items` 行小计 × 比例生成记录（行小计/比例/卡项名均为快照）；**按业绩不按实收**——次卡抵扣实收 0 也照记；整数元向下取整。员工无归属（前台单）、员工无岗位、岗位无规则，任一缺失不落记录（0 不建规则即得）。**退单**写等额负向冲销（remark「退单冲销 #结算id」），净额归零；重收后按新结算单重新记账。存量单无 `order_item` 明细行的不记账（明细行随多品项建单落库）。阶梯/多人分佣规则引擎为 P1。
+::: tip Commission conventions
+P0 fixed ratio "card × position" (docs/design/salon-extension.md §2-c): the position is `staffs.title` — the same position vocabulary as the schedule's physician roster; physicians and technicians share this one rule set (distinguished in the same table), never a parallel one. **Booking anchor**: performance attribution = `orders.staff_id` (the order creator); when a settlement completes, one record per `order_items` line is written as line subtotal × ratio (subtotal/ratio/card-name are all snapshots); **by performance, not by paid amount** — card-deduction settlements with 0 paid still book; integer yuan, rounded down. Any missing piece — no staff on the order (front-desk orders), no position on the staff, no rule for that position — means nothing is booked (0 = simply no rule). **Refunds** write equal negative reversal entries (remark 「退单冲销 #结算id」), net back to zero; re-settling books anew against the new settlement. Legacy orders without `order_item` lines are not booked. Tiered/multi-party rule engines are P1.
 :::
 
-## 工位 `/api/v1/room`（需登录，美容业态 b）
+## Workstations `/api/v1/room` (login required, beauty phase b)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/room/` | 全量工位（含停用，按 id 升序）；历史预约仍引用停用工位，故不隐藏 |
-| GET | `/api/v1/room/{id}` | 按 id 查询 |
-| POST | `/api/v1/room/` | 新建工位：`name` 必填且唯一，`enabled` 缺省 1 在用 |
-| PUT | `/api/v1/room/` | 更新工位：改名/停用（`enabled=0`）皆走此接口；停用不影响历史预约，新建预约表单只列在用工位 |
-| DELETE | `/api/v1/room/{id}` | 删除，硬删；历史预约联不出工位名时显示为空 |
+| GET | `/api/v1/room/` | All workstations (including disabled ones, ordered by id); historical appointments still reference disabled workstations, so none are hidden |
+| GET | `/api/v1/room/{id}` | Get by id |
+| POST | `/api/v1/room/` | Create a workstation: `name` required and unique, `enabled` defaults to 1 (in use) |
+| PUT | `/api/v1/room/` | Update a workstation: rename or disable (`enabled=0`) both go through this endpoint; disabling does not affect historical appointments, and the booking form only lists workstations in use |
+| DELETE | `/api/v1/room/{id}` | Delete, hard delete; historical appointments show an empty workstation name when the join finds nothing |
 
-::: tip 工位口径
-工位是预约的资源维度（美容业态 b，docs/design/salon-extension.md §2-b）：美容项目预约占工位，同工位同小时只排一位（技师+工位双维限约）；医馆预约不选工位（`roomId` 空），旧口径不变。与叫号展示文本 `queue_calls.room` 无关——那是叫号屏展示字段，不是可预约资源。
+::: tip Workstation conventions
+A workstation is the resource axis of appointments (beauty phase b, docs/design/salon-extension.md §2-b): beauty bookings occupy a workstation, at most one per workstation per hour (technician + workstation two-dimension conflict check); clinic appointments leave `roomId` empty and keep the old behavior. Unrelated to the queue display text `queue_calls.room` — that is a display field on the queue screen, not a bookable resource.
 :::
 
-## 储值 `/api/v1/recharge`（需登录）
+## Stored Value `/api/v1/recharge` (login required)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/recharge/` | 储值充值：`customerId` + `money`（>0），顾客须已建档；落一条正数流水 |
-| GET | `/api/v1/recharge/balance` | 顾客储值余额：流水合计（`customerId` 必填），无流水为 0 |
-| GET | `/api/v1/recharge/page` | 流水分页（current、pageSize、customerId 可空），联出顾客名；`money` 为负的行是储值支付扣减 |
+| POST | `/api/v1/recharge/` | Top up stored value: `customerId` + `money` (>0); the patient must already have a record; writes one positive ledger entry |
+| GET | `/api/v1/recharge/balance` | Patient stored-value balance: the sum over the ledger (`customerId` required), 0 when there are no entries |
+| GET | `/api/v1/recharge/page` | Paged ledger (current, pageSize, optional customerId), patient name joined; rows with negative `money` are deductions from stored-value payments |
 
-## 收费 `/api/v1/settlement`（需登录）
+## Charging `/api/v1/settlement` (login required)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/settlement/` | 收款结算：`orderId` + `payType`（`1` 储值 / `2` 微信 / `3` 支付宝 / `4` 现金 / `5` 次卡抵扣）；订单状态 `0/1 → 2` 已完成；储值支付校验余额并落负数流水，不足报 400；次卡抵扣按订单卡项扣 1 次、实收记 0，无有效余次卡报 400；防重复收款按「最近一张结算单未退款」判断（退费重收后一单可多张结算单）；**结算完成自动落提成记录**（美容业态 c：订单明细行小计 × 规则比例，见下方提成组） |
-| GET | `/api/v1/settlement/page` | 结算单分页（current、pageSize），联出顾客名，时间倒序 |
-| GET | `/api/v1/settlement/report/month?month=` | 月度收费报表：`month=yyyy-MM` 必填（格式非法/月份不存在报 400）；按结算时间聚合当月结算单——`totalCount` 单数、`totalMoney` 实收合计（元）、`cardCount` 次卡核销单数、`days[]` 逐日单数/实收（只列有结算的日，升序）、`payTypes[]` 支付方式构成（`payType`/`payTypeText`/单数/实收，只列出现过的，升序）；储值充值不计入营收 |
-| GET | `/api/v1/settlement/report/trend?months=` | 经营趋势：`months` 1-24 可空（缺省 6，越界报 400）；近 N 月（含当月）逐月聚合实收/结算单数/次卡核销单数与接诊量（`rows[]`：`month`/`money`/`count`/`cardCount`/`treatCount`），无数据月零填充、月份升序 |
-| POST | `/api/v1/settlement/{id}/refund` | 退单：`reason` 必填 ≤100 字；一笔结算只能退一次（`refund_logs.settlement_id` 唯一兜底，已退款报 400「该结算已退款」）；退款 = 退整单、按原 `payType` 原路退回——储值补正数流水（note「退单 #结算id」）、次卡作废该订单核销流水并回补余次（金额记 0）、微信/支付宝/现金仅落退款记录；订单 `2 → 1` 已接单可重收；回退款单视图（联顾客/操作人名）；**退单自动冲销该结算单的提成记录**（等额负向，净额归零） |
-| GET | `/api/v1/settlement/reconciliation?date=` | 日对账单：`date=yyyy-MM-dd` 必填（缺失/非法报 400）；按自然日聚合收款（单数/实收/`incomePayTypes[]`/次卡核销单列）、充值（笔数/金额单列不计营收，只含真实充值——储值支付扣减归收款侧、退款补回归退款侧）、退款（笔数/金额/`refundPayTypes[]` 按原支付方式 + 明细行）；`netMoney` = 实收 - 退款，`cashNetMoney` = 现金收款 - 现金退款（钱箱核对用） |
+| POST | `/api/v1/settlement/` | Take payment and settle: `orderId` + `payType` (`1` stored value / `2` WeChat / `3` Alipay / `4` cash / `5` visit-card write-off); the order status goes `0/1 → 2` completed; stored-value payments check the balance and write a negative ledger entry, returning 400 on insufficient funds; a visit-card write-off deducts 1 visit from the order's service card and records the actual amount as 0, returning 400 when no card with valid remaining visits exists; duplicate charging is prevented by checking "the most recent settlement is not refunded" (after a refund and re-charge, one order can have multiple settlements)；**settling automatically books commission records** (beauty phase c: order item line subtotal × rule ratio, see the commission group below) |
+| GET | `/api/v1/settlement/page` | Paged settlements (current, pageSize), patient name joined, newest first |
+| GET | `/api/v1/settlement/report/month?month=` | Monthly charging report: `month=yyyy-MM` required (invalid format / non-existent month returns 400); aggregates the month's settlements by settlement time — `totalCount` settlement count, `totalMoney` total actual amount received (yuan), `cardCount` visit-card write-off settlement count, `days[]` per-day counts/actual amounts (only days with settlements, ascending), `payTypes[]` payment-method breakdown (`payType`/`payTypeText`/count/actual amount, only methods that occurred, ascending); stored-value top-ups are not counted as revenue |
+| GET | `/api/v1/settlement/report/trend?months=` | Business trend: `months` 1-24 optional (default 6, out-of-range returns 400); aggregates the actual amount / settlement count / visit-card write-off count / treatment volume month by month over the last N months including the current one (`rows[]`: `month`/`money`/`count`/`cardCount`/`treatCount`), zero-filled for months without data, months ascending |
+| POST | `/api/v1/settlement/{id}/refund` | Refund: `reason` required, ≤100 characters; a settlement can be refunded only once (uniqueness of `refund_logs.settlement_id` as the backstop; an already refunded settlement returns 400 “该结算已退款” — this settlement has already been refunded); a refund = the whole settlement refunded via the original `payType` — stored value gets a compensating positive ledger entry (note “退单 #结算id”), a visit card voids that order's write-off entry and restores the visits (amount recorded as 0), WeChat/Alipay/cash only record the refund; the order goes `2 → 1` accepted and can be charged again; returns the refund view (patient/operator names joined)；**a refund automatically reverses the settlement's commission records** (equal negative entries, net back to zero) |
+| GET | `/api/v1/settlement/reconciliation?date=` | Daily reconciliation: `date=yyyy-MM-dd` required (missing/invalid returns 400); aggregates by calendar day the payments (count/actual amount/`incomePayTypes[]`/visit-card write-offs listed separately), top-ups (count/amount listed separately and not counted as revenue, including only real top-ups — stored-value payment deductions go to the payment side and refund compensations to the refund side), and refunds (count/amount/`refundPayTypes[]` by original payment method + line items); `netMoney` = actual amount received - refunds, `cashNetMoney` = cash payments - cash refunds (for cash-drawer checking) |
 
-::: tip 收费口径
-实收金额取订单价格快照（空价格按 0 收）；微信/支付宝为**到店扫码收款**（2026-10-12 拍板）——结算台出示商户收款码（`/api/v1/pay-qrcode/{method}` 出图，缺图 404 页面如实提示），顾客系统外扫码支付、系统只按所选方式记账，不拉起真实收银网关；小票走 `/api/v1/print/receipt/{settlementId}` 服务端套打（80mm HTML，浏览器打印）；次卡抵扣需顾客持本单卡项的有效余次卡（多张按早发的先扣）；**处方饮片行进结算：裁定不做**——收费以卡项订单结算为准，处方计价为试算/提示口径（原型 billing 饮片行为示意）。已结算订单的支付方式从订单分页 `payType` 联出。月度收费报表（`GET /report/month`）只统计结算单——储值充值本身不计入营收，次卡核销实收 0、单列 `cardCount`。退费与日对账已实装（[reconciliation.md](../design/reconciliation.md)）：退款整单原路退回、一单只退一次、理由必填；日对账按自然日三段聚合，充值单列不计营收，现金净额供钱箱核对；不做部分退款/跨日冲正/发票/在线支付真实退款。
+::: tip Charging conventions
+The actual amount received takes the order's price snapshot (an empty price is charged as 0); WeChat/Alipay are **on-site scan-to-pay** (decided 2026-10-12) — the settlement counter displays the merchant's payment QR code (served as an image by `/api/v1/pay-qrcode/{method}`; a missing image gets a 404 and the page says so honestly), the patient scans and pays outside the system, and the system only books the amount under the chosen method without invoking a real cashiering gateway; receipts go through the server-side overprint at `/api/v1/print/receipt/{settlementId}` (80mm HTML, printed from the browser); a visit-card write-off requires the patient to hold a card with valid remaining visits for this order's service card (with multiple cards, earlier-issued ones are deducted first); **prescription processed-herb lines entering settlement: decided not to do** — charging is based on service-card order settlement, and prescription pricing is a trial-calculation/advisory convention (the processed-herb lines in the billing prototype are illustrative). The payment method of a settled order is joined out as `payType` from the order pagination. The monthly charging report (`GET /report/month`) counts only settlements — stored-value top-ups themselves are not revenue, visit-card write-offs have an actual amount of 0 and are listed separately as `cardCount`. Refunds and daily reconciliation are implemented ([reconciliation.md](../design/reconciliation.md)): refunds return the whole settlement via the original route, one refund per settlement, reason required; daily reconciliation aggregates three sections by calendar day, top-ups are listed separately and not counted as revenue, and the cash net amount is for cash-drawer checking; no partial refunds / cross-day reversals / invoices / real online-payment refunds.
 :::
 
-## 收款码 `/api/v1/pay-qrcode`（需登录）
+## Payment QR Codes `/api/v1/pay-qrcode` (login required)
 
-> 到店扫码收款出图：读 `{sinomed.pay.qrcodes-dir:data/payqrcodes}/` 目录（同 printtemplates 的 data/ 目录约定，商户放图即生效不用重构建）；纯出图不接支付网关、无回调，钱货系统外完成。收款码是商户资产，未登录不出图。
+> Serves images for on-site scan-to-pay: reads the `{sinomed.pay.qrcodes-dir:data/payqrcodes}/` directory (the same data/ directory convention as printtemplates — the merchant drops an image in and it takes effect, no rebuild needed); purely serves images with no payment gateway and no callbacks; the money changes hands outside the system. Payment QR codes are merchant assets and are not served to unauthenticated callers.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| GET | `/api/v1/pay-qrcode/{method}` | 取商户收款码图片：`method` 白名单 `wechat`/`alipay`（之外一律 404，封死路径拼接）；依次找 `{method}.png`/`.jpg`/`.jpeg`，按扩展名给 `image/png`/`image/jpeg`；文件缺失 404——页面据此如实提示未配置，不做假码。img 标签带不上 Bearer，页面用 fetch+blob 取图（同小票补打口径） |
+| GET | `/api/v1/pay-qrcode/{method}` | Get the merchant's payment QR code image: `method` is whitelisted to `wechat`/`alipay` (anything else always gets a 404, closing off path concatenation); looks for `{method}.png`/`.jpg`/`.jpeg` in order and serves `image/png`/`image/jpeg` per the extension; a missing file gets a 404 — the page honestly reports it as unconfigured rather than faking a code. img tags cannot carry the Bearer token, so the page fetches the image via fetch+blob (same convention as receipt reprinting) |
 
-## 次卡 `/api/v1/card`（需登录）
+## Visit Cards `/api/v1/card` (login required)
 
-顾客持卡（次数卡/疗程卡——推拿、艾灸等按疗程计次的服务项目即疗程卡口径）：发卡即全量次数，结算按卡项抵扣并落核销流水；`validUntil` 有效期可空=长期有效，过期卡不参与抵扣（口径见 [data-model](/server/data-model)）。
+Patient-held cards (count cards / treatment-course cards — service items counted by course such as tuina and moxibustion follow the treatment-course card convention): issuing a card grants the full visit count, and settlement deducts against the service card and writes a write-off ledger entry; `validUntil` expiry is optional = valid forever, and expired cards do not participate in write-offs (see [data-model](/server/data-model) for the conventions).
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/card/` | 发卡：`customerId` + `itemId` + `totalTimes`（≥1）必填，`sourceOrderId` 可空（溯源购卡订单），`validUntil` 可空=长期有效（毫秒数，过期卡不参与抵扣）；余次=总次数、状态有效 |
-| GET | `/api/v1/card/list` | 按顾客查持卡（`customerId` 必填），新卡在前，联出顾客名与卡项名 |
-| GET | `/api/v1/card/customers?ids=` | 批量按顾客查持卡（`ids` 逗号分隔，可空列表返回 `[]`），联出顾客名与卡项名；排班格位疗程标记等聚合场景一次拉齐，避免逐顾客查询 |
-| PUT | `/api/v1/card/{id}/status?status=` | 停用 / 恢复（`1` 有效 / `0` 停用）；停用卡不参与抵扣 |
-| GET | `/api/v1/card/{id}/usages` | 按持卡查核销记录（新记录在前）：每次结算抵扣一条，含 `timesUsed`（第几次，1 起）、`orderId`、`staffId/staffName`（服务员工，取订单 staffId）、`createTime`；持卡不存在报 400 |
-| POST | `/api/v1/card/{id}/adjust` | 赠次（疗程卡营销）：`times`（1-99）+ `reason`（必填 ≤100 字）必填；有效卡 total/remaining 各加 N，落调整流水；停用卡报 400（先恢复）；过期不拦 |
-| POST | `/api/v1/card/{id}/transfer` | 转卡（疗程卡营销）：`customerId`（目标顾客）+ `reason`（必填 ≤100 字）必填；换归属顾客（余次/有效期照旧），落调整流水；停用卡/目标顾客不存在/已是该顾客持卡均报 400 |
-| GET | `/api/v1/card/{id}/adjusts` | 按持卡查调整流水（新记录在前）：赠次/转卡留痕，含 `type`（1 赠次/2 转卡）、`times`、`customerId/customerName`（转卡目标）、`reason`、`staffId/staffName`（操作人，取当前登录账号）、`createTime`；持卡不存在报 400 |
+| POST | `/api/v1/card/` | Issue a card: `customerId` + `itemId` + `totalTimes` (≥1) required, `sourceOrderId` optional (traces the purchasing order), `validUntil` optional = valid forever (milliseconds; expired cards do not participate in write-offs); remaining visits = total visits, status active |
+| GET | `/api/v1/card/list` | List a patient's cards (`customerId` required), newest cards first, patient name and service card name joined |
+| GET | `/api/v1/card/customers?ids=` | Batch-query cards by patients (`ids` comma-separated; an empty list returns `[]`), patient names and service card names joined; aggregate scenarios such as the treatment-course markers on scheduling grid cells pull everything at once instead of querying per patient |
+| PUT | `/api/v1/card/{id}/status?status=` | Deactivate / restore (`1` active / `0` deactivated); deactivated cards do not participate in write-offs |
+| GET | `/api/v1/card/{id}/usages` | List a card's write-off records (newest first): one per settlement deduction, containing `timesUsed` (which use, starting at 1), `orderId`, `staffId/staffName` (the serving staff, taken from the order's staffId), and `createTime`; returns 400 if the card does not exist |
+| POST | `/api/v1/card/{id}/adjust` | Gift visits (treatment-course card marketing): `times` (1-99) + `reason` (required, ≤100 characters) required; for an active card, N is added to both total/remaining and an adjustment entry is written; a deactivated card returns 400 (restore it first); expiry is not blocked |
+| POST | `/api/v1/card/{id}/transfer` | Transfer card (treatment-course card marketing): `customerId` (target patient) + `reason` (required, ≤100 characters) required; reassigns the owning patient (remaining visits/expiry unchanged) and writes an adjustment entry; a deactivated card / non-existent target patient / card already held by that patient all return 400 |
+| GET | `/api/v1/card/{id}/adjusts` | List a card's adjustment entries (newest first): the audit trail of gifted visits/transfers, containing `type` (1 gift / 2 transfer), `times`, `customerId/customerName` (transfer target), `reason`, `staffId/staffName` (operator, taken from the currently logged-in account), and `createTime`; returns 400 if the card does not exist |
 
-抵扣本身不走本组：在结算接口选 `payType=5`，按订单卡项扣 1 次，同一事务落一条核销流水（无单不落——手工划扣不做，核销随结算发生）。
+The deduction itself does not go through this group: choose `payType=5` on the settlement endpoint, which deducts 1 visit against the order's service card and writes one write-off ledger entry in the same transaction (no entry without an order — manual deductions are not supported; write-offs happen together with settlement).
 
-## 处方 `/api/v1/prescription`（需登录）
+## Prescriptions `/api/v1/prescription` (login required)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/prescription/price` | 处方试算（不开方只算钱）：body 传 `herbs`（herb/weight）+ `doses`，按药材字典实时计价返回 `{ totalFen, perDoseFen, doses, herbCount, pricedHerbCount, unknownHerbs[] }`；未收录药名不计费 |
-| POST | `/api/v1/prescription/compatibility` | 配伍审方：body `{ herbs: ["药名", …] }`，按经典十八反（禁忌）/十九畏（慎用）比对；自由文本药名按别名包含匹配（「法半夏」命中「半夏」）；返回 `{ checked, findings[] }`（`findings` 空即未发现配伍禁忌）；提示不拦截，是否照用由医师判断 |
-| POST | `/api/v1/prescription/allergy-check` | 过敏审方：body `{ customerId, herbs: ["药名", …] }`，按顾客过敏史（`customer_histories` type=0）比对，记录原文包含药名（≥2 字，单字如「参」不参与防误报）即命中；返回 `{ customerId, checked, findings[] }`（finding 含 `herb`/`historyId`/`content` 史原文；同味命中多条史各报一条；`findings` 空即未命中）；既往史不参与；未知顾客/空白名单 400；提示不拦截，是否照用由医师判断 |
-| POST | `/api/v1/prescription/dose-check` | 剂量审方：body `{ herbs: [{ herb, weight }] }`，按药材字典单剂克数上限（`herbs.dose_max`，可空=不预警）比对单剂克数：`weight` **严格大于**上限才命中（等值不提示）；返回 `{ checked, limited, findings[], unmatched[] }`（`checked` 去空白后参与比对数；`limited` 已设上限条目数，同名多味重复计；finding 含 `herb`/`weight`/`limit`；字典未收录药名进 `unmatched` 无参照；未设上限不参与）；空白名单 400；提示不拦截，是否照用由医师判断 |
-| POST | `/api/v1/prescription/` | 开方：`customerId` + `herbs`（至少 1 味：`herb` 药名 + `weight` 剂量克，`special` 特殊煎法/`process` 炮制可选）必填；`treatId`/`staffId`/`reviewStaffId`（药师审核）/`checkStaffId`（调配复核，签名行存档、员工 id 校验）/`doses`（默认 7）/`usage`（煎法）/`takeMethod`（服法）/`remark` 可选；`prescriptionType=1` 为膏方（落「待制作」，`craft` 记收膏方式如 炼蜜/清膏/糖膏/阿胶收膏，不计袋数）；`prescriptionType=0`（默认）且 `decoction=true` 时代煎（袋数=剂数，落「待煎」，`deliveryType` 0 自取 / 1 同城配送 随方存档，不代煎忽略）；返回创建后的处方（含药味） |
-| PUT | `/api/v1/prescription/{id}/decoction?status=` | 代煎流转（汤剂专用）：只允许 待煎(1)→可取(2)→已取(3) 顺序推进；未选代煎(0)/回退/跳跃报 400；回包为流转后的完整处方视图。代煎袋数=剂数，服务费=袋数×3 元（300 分/袋）实时算不落库、`decoctionFeeFen` 随视图返回（提示口径，收费仍以卡项订单结算为准） |
-| PUT | `/api/v1/prescription/{id}/paste?status=` | 膏方领取流转：只允许 待制作(1)→可取(2)→已取(3) 顺序推进；非膏方（`prescriptionType=0`）报 400「不是膏方」；回退/跳跃报 400「流转无效」；回包为流转后的完整处方视图 |
-| POST | `/api/v1/prescription/{id}/dispense` | 药房发药：待发药(0)→已发药(1) 单向，落发药流水（`dispense_logs`）；操作人取当前登录账号（自动带出路径留空）；body 可选 `{ note }`（≤100 字）；已发药再发报 400「处方已发药」；代煎/膏方走「已取」领取时自动置已发药（流水 note 写来源），无需重复点发药 |
-| GET | `/api/v1/prescription/page` | 分页（current、pageSize、customerId 可空），联出顾客名、医师名与药味，id 倒序 |
-| GET | `/api/v1/prescription/dispense/page` | 药房工作台分页：`dispenseStatus` 可空（0 待发药 / 1 已发药）、`customerKeyword` 按顾客姓名/手机模糊可空，id 倒序；联顾客姓名手机、类型/剂数/药味数与代煎/膏方状态文案 |
-| GET | `/api/v1/prescription/{id}` | 处方详情（含按 sort 排序的药味） |
-| DELETE | `/api/v1/prescription/{id}` | 删除处方（连同药味；演示环境口径，无留痕） |
+| POST | `/api/v1/prescription/price` | Prescription trial calculation (pricing only, no prescription written): the body passes `herbs` (herb/weight) + `doses`; prices in real time against the herb dictionary and returns `{ totalFen, perDoseFen, doses, herbCount, pricedHerbCount, unknownHerbs[] }`; herb names not in the dictionary are not charged |
+| POST | `/api/v1/prescription/compatibility` | Compatibility review: body `{ herbs: ["herb name", …] }`; checks against the classic 十八反 (eighteen incompatibilities, contraindicated) / 十九畏 (nineteen antagonisms, use with caution); free-text herb names match by alias containment (“法半夏” hits “半夏”); returns `{ checked, findings[] }` (an empty `findings` means no incompatibility was found); the notice does not block — whether to proceed is the physician's judgment |
+| POST | `/api/v1/prescription/allergy-check` | Allergy review: body `{ customerId, herbs: ["herb name", …] }`; checks against the patient's allergy history (`customer_histories` type=0) — a herb name (≥2 characters; single characters like “参” are excluded to prevent false positives) contained in the record's original text is a hit; returns `{ customerId, checked, findings[] }` (each finding contains `herb`/`historyId`/`content`, the history text; a herb hitting multiple history records yields one finding per record; an empty `findings` means no hit); past history does not participate; unknown patient / empty list returns 400; the notice does not block — whether to proceed is the physician's judgment |
+| POST | `/api/v1/prescription/dose-check` | Dosage review: body `{ herbs: [{ herb, weight }] }`; checks grams per dose against the herb dictionary's per-dose gram ceiling (`herbs.dose_max`, optional = no warning): a `weight` **strictly greater** than the ceiling is a hit (equal values do not warn); returns `{ checked, limited, findings[], unmatched[] }` (`checked` is the number of entries that participated after trimming blanks; `limited` is the number of entries with a ceiling set, counting repeated herbs of the same name; each finding contains `herb`/`weight`/`limit`; herb names not in the dictionary go to `unmatched` with no reference; entries without a ceiling do not participate); an empty list returns 400; the notice does not block — whether to proceed is the physician's judgment |
+| POST | `/api/v1/prescription/` | Write a prescription: `customerId` + `herbs` (at least 1 herb: `herb` name + `weight` in grams, optional `special` special decoction method / `process` processing) required; `treatId`/`staffId`/`reviewStaffId` (pharmacist review)/`checkStaffId` (dispensing check; the signature is stored and the staff id validated)/`doses` (default 7)/`usage` (decoction method)/`takeMethod` (administration)/`remark` optional; `prescriptionType=1` means a paste (recorded as “待制作” pending preparation, with `craft` recording the finishing method such as 炼蜜 (refined honey) / 清膏 (clear paste) / 糖膏 (sugar paste) / 阿胶收膏 (Ejiao finishing); no bag count); with `prescriptionType=0` (default) and `decoction=true` it is a decoction service (bag count = doses, recorded as “待煎” pending decoction, `deliveryType` 0 pickup / 1 same-city delivery stored with the prescription and ignored when there is no decoction service); returns the created prescription (including herbs) |
+| PUT | `/api/v1/prescription/{id}/decoction?status=` | Decoction service status flow (decoctions only): only 待煎 (pending decoction, 1) → 可取 (ready for pickup, 2) → 已取 (picked up, 3) may advance in order; no decoction service selected (0) / going back / skipping returns 400; the response is the full prescription view after the transition. The decoction bag count = doses and the service fee = bags × 3 yuan (300 fen per bag) is computed on the fly, not stored, and returned as `decoctionFeeFen` with the view (advisory only — charging is still based on service-card order settlement) |
+| PUT | `/api/v1/prescription/{id}/paste?status=` | Paste pickup status flow: only 待制作 (pending preparation, 1) → 可取 (ready for pickup, 2) → 已取 (picked up, 3) may advance in order; a non-paste (`prescriptionType=0`) returns 400 “不是膏方” (not a paste); going back or skipping returns 400 “流转无效” (invalid transition); the response is the full prescription view after the transition |
+| POST | `/api/v1/prescription/{id}/dispense` | Pharmacy dispensing: 待发药 (pending dispensing, 0) → 已发药 (dispensed, 1), one-way, writing a dispensing ledger entry (`dispense_logs`); the operator is taken from the currently logged-in account (filled in automatically, leave the path empty); the body may optionally carry `{ note }` (≤100 characters); dispensing an already-dispensed prescription returns 400 “处方已发药” (the prescription has already been dispensed); when a decoction/paste reaches “已取” (picked up) it is automatically marked dispensed (the ledger note records the source), so there is no need to click dispense again |
+| GET | `/api/v1/prescription/page` | Paged query (current, pageSize, optional customerId), patient name, physician name, and herbs joined, descending by id |
+| GET | `/api/v1/prescription/dispense/page` | Pharmacy workbench pagination: `dispenseStatus` optional (0 pending dispensing / 1 dispensed), `customerKeyword` optional fuzzy match on patient name/phone, descending by id; joins the patient name and phone, type/doses/herb count, and the decoction/paste status text |
+| GET | `/api/v1/prescription/{id}` | Prescription details (including herbs ordered by sort) |
+| DELETE | `/api/v1/prescription/{id}` | Delete a prescription (together with its herbs; demo-environment behavior, no audit trail) |
 
-## 病症处方模板 `/api/v1/prescription/template`（需登录）
+## Syndrome Prescription Templates `/api/v1/prescription/template` (login required)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/prescription/template/` | 建模板：`name`（病症名，1–20 字，唯一）+ `herbs`（至少 1 味：herb + weight，special 可选）必填；`doses`（默认 7）/`decoction`（0 无需 / 1 代煎，默认 0）/`usage`/`remark`/`enabled`（默认 1）可选 |
-| PUT | `/api/v1/prescription/template/` | 按 id 全量更新（药味全量替换）；换名撞其他模板报 400 |
-| GET | `/api/v1/prescription/template/enabled` | 上架模板（enabled=1，id 升序，附药味）——开方页「套用模板」取数入口 |
-| GET | `/api/v1/prescription/template/page` | 分页（id 倒序，含停用；`name` 模糊过滤可选），联出药味 |
-| GET | `/api/v1/prescription/template/{id}` | 模板详情（含按 sort 排序的药味；不存在报 400） |
-| DELETE | `/api/v1/prescription/template/{id}` | 删除模板（连同药味；不影响已开处方；演示环境口径，无留痕） |
+| POST | `/api/v1/prescription/template/` | Create a template: `name` (syndrome name, 1–20 characters, unique) + `herbs` (at least 1: herb + weight, special optional) required; `doses` (default 7)/`decoction` (0 not needed / 1 decoction service, default 0)/`usage`/`remark`/`enabled` (default 1) optional |
+| PUT | `/api/v1/prescription/template/` | Full update by id (herbs fully replaced); renaming to collide with another template returns 400 |
+| GET | `/api/v1/prescription/template/enabled` | Listed templates (enabled=1, ascending by id, herbs included) — the data entry point for "apply template" on the prescription-writing page |
+| GET | `/api/v1/prescription/template/page` | Paged query (descending by id, including disabled; optional fuzzy `name` filter), herbs joined |
+| GET | `/api/v1/prescription/template/{id}` | Template details (including herbs ordered by sort; returns 400 if it does not exist) |
+| DELETE | `/api/v1/prescription/template/{id}` | Delete a template (together with its herbs; does not affect written prescriptions; demo-environment behavior, no audit trail) |
 
-## 外治处方模板 `/api/v1/therapy-template`（需登录）
+## External Therapy Prescription Templates `/api/v1/therapy-template` (login required)
 
-耳穴压豆、穴位贴敷、艾灸、拔罐等外治法的常用组合（方法 + 取穴部位 + 疗程），口径同病症模板：只存建议值，接诊页「套用外治模板」回填后随诊疗单自由改（不写回模板），停用不在接诊页出现。
+Common combinations for external therapies such as ear-point seed pressing, acupoint application, moxibustion, and cupping (method + point selection sites + course), following the same conventions as syndrome templates: only suggested values are stored; "apply external therapy template" on the treatment page pre-fills them, after which they can be freely edited with the treatment record (nothing is written back to the template), and disabled templates do not appear on the treatment page.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/therapy-template/` | 建模板：`name`（模板名，1–20 字，唯一，如「失眠·耳穴压豆」）+ `method`（外治方法，≤10 字）必填；`target`（取穴/部位）/`course`（疗程/频次）/`note`（注意事项）各限 100 字可选；`enabled`（默认 1） |
-| PUT | `/api/v1/therapy-template/` | 按 id 全量更新；换名撞其他模板报 400 |
-| GET | `/api/v1/therapy-template/enabled` | 上架模板（enabled=1，名称升序）——接诊页「套用外治模板」取数入口 |
-| GET | `/api/v1/therapy-template/page` | 分页（id 倒序，含停用；`name` 模糊 / `method` 精确过滤可选） |
-| GET | `/api/v1/therapy-template/{id}` | 模板详情（不存在报 400） |
-| DELETE | `/api/v1/therapy-template/{id}` | 删除模板（不影响已接诊记录；演示环境口径，无留痕） |
+| POST | `/api/v1/therapy-template/` | Create a template: `name` (template name, 1–20 characters, unique, e.g. “失眠·耳穴压豆”) + `method` (external therapy method, ≤10 characters) required; `target` (point selection/sites)/`course` (course/frequency)/`note` (precautions) each optional up to 100 characters; `enabled` (default 1) |
+| PUT | `/api/v1/therapy-template/` | Full update by id; renaming to collide with another template returns 400 |
+| GET | `/api/v1/therapy-template/enabled` | Listed templates (enabled=1, ascending by name) — the data entry point for "apply external therapy template" on the treatment page |
+| GET | `/api/v1/therapy-template/page` | Paged query (descending by id, including disabled; optional fuzzy `name` / exact `method` filters) |
+| GET | `/api/v1/therapy-template/{id}` | Template details (returns 400 if it does not exist) |
+| DELETE | `/api/v1/therapy-template/{id}` | Delete a template (does not affect existing treatment records; demo-environment behavior, no audit trail) |
 
-::: tip 处方口径
-药材名为自由文本——配伍审方（十八反/十九畏，静态规则）、过敏审方（按顾客过敏史原文匹配）与计价（按药材字典实时试算）已实装；审方提示不拦截，计价无快照、随字典改价同步，未收录药名如实标「未比价」不计费；代煎领取已实装（袋数=剂数、待煎→可取→已取单向流转，无加急/回退）；膏方已实装（`prescriptionType=1`，开方落「待制作」，`craft` 记收膏方式，按料计不走代煎袋数，领取流转 待制作→可取→已取 单向推进，与代煎各自独立互不影响）；药房发药已实装（`dispense_status` 0 待发药/1 已发药 单向 + `dispense_logs` 流水，`POST /{id}/dispense` 与 `GET /dispense/page` 工作台，代煎/膏方「已取」自动置已发药）；病症处方模板已实装（模板名唯一、只存建议值，套用后随处方自由增减不写回模板，停用不出现在开方页）；外治处方模板已实装（`/api/v1/therapy-template`，接诊页套用带出方法/取穴/疗程建议，口径同病症模板）；方剂库已实装（经典方参考，开方页按方名/拼音检索一键带出全方，带出后随处方自由增减不写回方剂库）；库存为规划功能；剂量为单剂克数（可小数），`special` 记录先煎/后下/包煎等煎法。
+::: tip Prescription conventions
+Herb names are free text — compatibility review (the eighteen incompatibilities/nineteen antagonisms, static rules), allergy review (matching against the patient's allergy history text), and pricing (real-time trial calculation against the herb dictionary) are implemented; review notices do not block, pricing keeps no snapshot and follows dictionary price changes, and herb names not in the dictionary are honestly labeled “未比价” (not priced) and not charged; the decoction service pickup is implemented (bag count = doses, 待煎→可取→已取 pending decoction → ready for pickup → picked up, one-way flow, no rush jobs or rollback); pastes are implemented (`prescriptionType=1`, written as “待制作” pending preparation with `craft` recording the finishing method, counted per batch without decoction bag counts, pickup flow 待制作→可取→已取 pending preparation → ready for pickup → picked up, one-way, independent of the decoction service); pharmacy dispensing is implemented (`dispense_status` 0 pending/1 dispensed, one-way, + the `dispense_logs` ledger, `POST /{id}/dispense` and the `GET /dispense/page` workbench, with decoction/paste “已取” picked up automatically marking dispensed); syndrome prescription templates are implemented (unique template names, suggested values only, freely added or removed after applying without writing back, disabled ones absent from the prescription-writing page); external therapy prescription templates are implemented (`/api/v1/therapy-template`, applying one on the treatment page brings in the method/point selection/course suggestions, same conventions as syndrome templates); the formula library is implemented (classic formula reference, searched by formula name or pinyin on the prescription-writing page to bring in the whole formula with one click, freely adjusted afterwards without writing back to the library); inventory is a planned feature; dosages are grams per single dose (decimals allowed), and `special` records decoction methods such as 先煎 (decoct first), 后下 (added late), and 包煎 (wrapped decoction).
 :::
 
-## 方剂库 `/api/v1/formula`（需登录）
+## Formula Library `/api/v1/formula` (login required)
 
-经典方剂参考库（方名唯一，`pinyin` 为全拼小写字母检索码）。与病症模板的分工：方剂只存「方名 + 药味组成 + 出处/功效」文献参考值，不带剂数/代煎等开方建议；开方页「方剂库」按方名或拼音检索带出全方，带出后随处方自由增减、不写回方剂库。
+A classic formula reference library (unique formula names; `pinyin` is the full-pinyin lowercase search code). Division of labor with syndrome templates: formulas store only literary reference values — "formula name + herb composition + source/efficacy" — without prescription-writing suggestions such as doses or decoction service; the "formula library" on the prescription-writing page searches by formula name or pinyin to bring in the whole formula, which can then be freely adjusted with the prescription and is never written back to the library.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/formula/` | 收录方剂：`name`（1–20 字，唯一）+ `pinyin`（全拼小写字母，录入自动转小写）+ `herbs`（至少 1 味：herb + weight，special 可选）必填；`source`（出处）/`indication`（功效主治）可选 |
-| PUT | `/api/v1/formula/` | 按 id 全量更新（药味全量替换）；换名撞其他方剂报 400 |
-| GET | `/api/v1/formula/page` | 分页（id 倒序；`keyword` 模糊匹配方名**或拼音码**，如「逍遥」或「xiaoyao」），联出药味 |
-| GET | `/api/v1/formula/{id}` | 方剂详情（含按 sort 排序的药味；不存在报 400） |
-| DELETE | `/api/v1/formula/{id}` | 删除方剂（连同药味；不影响已开处方；演示环境口径，无留痕） |
+| POST | `/api/v1/formula/` | Add a formula: `name` (1–20 characters, unique) + `pinyin` (full-pinyin lowercase, lowercased automatically on entry) + `herbs` (at least 1: herb + weight, special optional) required; `source` (origin)/`indication` (efficacy and indications) optional |
+| PUT | `/api/v1/formula/` | Full update by id (herbs fully replaced); renaming to collide with another formula returns 400 |
+| GET | `/api/v1/formula/page` | Paged query (descending by id; `keyword` fuzzy-matches the formula name **or pinyin code**, e.g. “逍遥” or “xiaoyao”), herbs joined |
+| GET | `/api/v1/formula/{id}` | Formula details (including herbs ordered by sort; returns 400 if it does not exist) |
+| DELETE | `/api/v1/formula/{id}` | Delete a formula (together with its herbs; does not affect written prescriptions; demo-environment behavior, no audit trail) |
 
-## 药材字典 `/api/v1/herb`
+## Herb Dictionary `/api/v1/herb`
 
-需登录；处方计价的比价依据。药材名唯一、与处方药名**精确同名匹配**（「炙甘草」不匹配「甘草」）；价格为每克分价（int），计价 = Σ round(分价 × 单剂克数) × 剂数。
+Login required; the pricing reference for prescription calculation. Herb names are unique and match prescription herb names **by exact name** (“炙甘草” does not match “甘草”); the price is fen per gram (int), and the total = Σ round(fen-per-gram × grams per dose) × doses.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/herb/` | 收录药材（name 唯一，price 每克分价 >0；重名报「药材已收录」；`stockMin`/`stockMax` 库存上下限可空=不预警） |
-| PUT | `/api/v1/herb/` | 更新药材（改价/改名，名称查重不含自身；`stockMin`/`stockMax` 随更新整量覆盖，传 null 即清除） |
-| DELETE | `/api/v1/herb/{id}` | 删除药材（演示口径无引用检查，删后相关药味转「未比价」） |
-| GET | `/api/v1/herb/page` | 分页（current、pageSize、keyword 名称包含过滤），名称升序 |
+| POST | `/api/v1/herb/` | Add an herb (unique name, price in fen per gram >0; a duplicate name reports “药材已收录” (herb already recorded); `stockMin`/`stockMax` stock floor/ceiling optional = no warning) |
+| PUT | `/api/v1/herb/` | Update an herb (price/name changes; duplicate-name checking excludes itself; `stockMin`/`stockMax` are wholly overwritten on update, passing null clears them) |
+| DELETE | `/api/v1/herb/{id}` | Delete an herb (demo convention with no reference check; affected herbs become “未比价” (not priced) afterward) |
+| GET | `/api/v1/herb/page` | Paged query (current, pageSize, keyword name-contains filter), ascending by name |
 
-## 饮片库存 `/api/v1/herb-stock`（需登录）
+## Processed Herb Inventory `/api/v1/herb-stock` (login required)
 
-只记流水，当前库存 = 入库合计 - 出库合计（克）；出库按效期先进先出（FEFO）消耗批次，批次效期用于近期到期预警。台账口径，不涉采购单据与结算。
+Only ledger entries are recorded; current stock = total stock-in - total stock-out (grams); stock-out consumes batches first-expiry-first-out (FEFO), and batch expiry dates drive near-expiry warnings. Ledger-book convention — no purchase documents or settlement involved.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/herb-stock/` | 登记出入库：`herbId` + `type`（1 入库 / 0 出库）+ `quantity`（克，正整数）必填；入库可带 `expiry`（yyyy-MM-dd，不得早于今天）/`supplier`（≤50 字）/`note`（≤100 字）；出库不得超过当前库存（400「出库数量超过当前库存：N 克」），出库流水不带效期 |
-| GET | `/api/v1/herb-stock/page` | 流水分页（current、pageSize、herbId/type 可空过滤），联出药材名，id 倒序 |
-| GET | `/api/v1/herb-stock/balance?expiryWithinDays=30` | 库存余额：各药材当前克数 + 最早未消耗批次效期（FEFO）+ 距效期天数 + `warnExpiry`（阈值内到期或已过期，默认 30 天，上限 365）+ `stockMin`/`stockMax`/`warnStock`（药材字典设了库存上下限时，低于下限或高于上限标 `warnStock`）；无流水的药材不成行，名称升序 |
-| DELETE | `/api/v1/herb-stock/{id}` | 删除流水（演示口径无留痕，余额按剩余流水重算；流水不存在 400） |
+| POST | `/api/v1/herb-stock/` | Register stock-in/stock-out: `herbId` + `type` (1 stock-in / 0 stock-out) + `quantity` (grams, positive integer) required; stock-in may carry `expiry` (yyyy-MM-dd, not earlier than today)/`supplier` (≤50 characters)/`note` (≤100 characters); stock-out may not exceed current stock (400 “出库数量超过当前库存：N 克” — the stock-out quantity exceeds current stock: N grams); stock-out entries carry no expiry |
+| GET | `/api/v1/herb-stock/page` | Paged ledger (current, pageSize, optional herbId/type filters), herb name joined, descending by id |
+| GET | `/api/v1/herb-stock/balance?expiryWithinDays=30` | Stock balance: for each herb, the current grams + the earliest unconsumed batch expiry (FEFO) + days until expiry + `warnExpiry` (expiring within the threshold or already expired; default 30 days, capped at 365) + `stockMin`/`stockMax`/`warnStock` (when the herb dictionary has a stock floor/ceiling set, being below the floor or above the ceiling flags `warnStock`); herbs without ledger entries produce no row, ascending by name |
+| DELETE | `/api/v1/herb-stock/{id}` | Delete a ledger entry (demo convention, no audit trail; the balance is recalculated from the remaining entries; returns 400 if the entry does not exist) |
 
-## 穴位字典 `/api/v1/acupoint`（需登录）
+## Acupoint Dictionary `/api/v1/acupoint` (login required)
 
-经络穴位参考库（穴名唯一，`pinyin` 为全拼小写字母检索码，归经必填）。接诊单取穴字段仍为自由文本——字典只做选穴辅助，接诊页按穴名或拼音检索、选中即追加进取穴文本。
+A meridian-acupoint reference library (unique acupoint names; `pinyin` is the full-pinyin lowercase search code; the meridian is required). The point selection field on treatment records remains free text — the dictionary only assists selection: the treatment page searches by acupoint name or pinyin, and the selected entry is appended to the point selection text.
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/acupoint/` | 收录穴位：`name`（1–10 字，唯一）+ `pinyin`（全拼小写字母，录入自动转小写）+ `meridian`（归经，≤20 字）必填；`location`（体表定位）/`indication`（主治）可选 |
-| PUT | `/api/v1/acupoint/` | 按 id 全量更新；换名撞其他穴位报 400 |
-| GET | `/api/v1/acupoint/page` | 分页（id 倒序；`keyword` 模糊匹配穴名**或拼音码**，如「足三」或「zusanli」） |
-| GET | `/api/v1/acupoint/{id}` | 穴位详情（不存在报 400） |
-| DELETE | `/api/v1/acupoint/{id}` | 删除穴位（不影响已开接诊单；演示环境口径，无留痕） |
+| POST | `/api/v1/acupoint/` | Add an acupoint: `name` (1–10 characters, unique) + `pinyin` (full-pinyin lowercase, lowercased automatically on entry) + `meridian` (the meridian it belongs to, ≤20 characters) required; `location` (surface location)/`indication` (indications) optional |
+| PUT | `/api/v1/acupoint/` | Full update by id; renaming to collide with another acupoint returns 400 |
+| GET | `/api/v1/acupoint/page` | Paged query (descending by id; `keyword` fuzzy-matches the acupoint name **or pinyin code**, e.g. “足三” or “zusanli”) |
+| GET | `/api/v1/acupoint/{id}` | Acupoint details (returns 400 if it does not exist) |
+| DELETE | `/api/v1/acupoint/{id}` | Delete an acupoint (does not affect existing treatment records; demo-environment behavior, no audit trail) |
 
-## 广告投屏 `/api/v1/ads`（tablet.md T1/T2）
+## Advertising Screens `/api/v1/ads` (tablet.md T1/T2)
 
-管理接口需登录；下发与媒体静态资源免登录（内网屏设备约定，见[平板展示设计](/design/tablet)）。
+Management endpoints require login; playlist delivery and media static resources are unauthenticated (intranet screen device convention, see the [tablet display design](/design/tablet)).
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST/PUT | `/api/v1/ads/materials` | 新建 / 更新素材（name、type 1图2视频、url、durationMs、enabled、sort；`category` 分类（素材子标题，可空）；叠加层文案 kicker 眉题 / title 大标题 / copy 文案 / price 价格行 均可空，四项全空即纯素材播放，随 playlist 下发平板排版层） |
-| DELETE | `/api/v1/ads/materials/{id}` | 删除素材 |
-| GET | `/api/v1/ads/materials/page` | 素材分页（current、pageSize） |
-| POST | `/api/v1/ads/materials/upload` | multipart 上传媒体，落盘 `data/ads/yyyyMM/`，返回 `{ url, originalName, size }` |
-| POST/PUT | `/api/v1/ads/schedules` | 新建 / 更新排期（screenId、materialId、`name` 排期名可空（屏幕状态展示）、weekdays `1=周一…7=周日` 逗号分隔可空、start/end `HH:mm` 可空、enabled） |
-| DELETE | `/api/v1/ads/schedules/{id}` | 删除排期 |
-| GET | `/api/v1/ads/schedules/page` | 排期分页 |
-| POST/PUT | `/api/v1/ads/screens` | 新建 / 更新屏（code 唯一、name、location、enabled） |
-| DELETE | `/api/v1/ads/screens/{id}` | 删除屏 |
-| GET | `/api/v1/ads/screens/page` | 屏分页 |
-| GET | `/api/v1/ads/playlist?screen={code}` | 平板下发：心跳更新 `last_seen_at`，按星期/时段命中排期取素材（无排期兜底全部启用素材），返回 `{ version, items[] }`；`version` 为素材+排期的 `max(update_time)` 内容戳。屏 code 不存在报 400 |
+| POST/PUT | `/api/v1/ads/materials` | Create / update a material (name, type 1 image 2 video, url, durationMs, enabled, sort; `category` category (material subtitle, optional); overlay copy kicker eyebrow line / title headline / copy body text / price price line, all optional — when all four are empty it plays as a pure material; delivered with the playlist to the tablet layout layer) |
+| DELETE | `/api/v1/ads/materials/{id}` | Delete a material |
+| GET | `/api/v1/ads/materials/page` | Paged materials (current, pageSize) |
+| POST | `/api/v1/ads/materials/upload` | multipart media upload, saved to `data/ads/yyyyMM/`, returns `{ url, originalName, size }` |
+| POST/PUT | `/api/v1/ads/schedules` | Create / update a schedule (screenId, materialId, `name` schedule name optional (shown in screen status), weekdays `1=Monday…7=Sunday` comma-separated optional, start/end `HH:mm` optional, enabled) |
+| DELETE | `/api/v1/ads/schedules/{id}` | Delete a schedule |
+| GET | `/api/v1/ads/schedules/page` | Paged schedules |
+| POST/PUT | `/api/v1/ads/screens` | Create / update a screen (unique code, name, location, enabled) |
+| DELETE | `/api/v1/ads/screens/{id}` | Delete a screen |
+| GET | `/api/v1/ads/screens/page` | Paged screens |
+| GET | `/api/v1/ads/playlist?screen={code}` | Tablet delivery: the heartbeat updates `last_seen_at`; materials are picked from the schedules matching the weekday/time slot (falling back to all enabled materials when no schedule matches), returning `{ version, items[] }`; `version` is a content stamp of `max(update_time)` over materials + schedules. Returns 400 for an unknown screen code |
 
-媒体文件经 `/media/**` 静态映射到上传目录（`sinomed.ads.upload-dir`，默认 `data/ads`），免登录直读。
+Media files are statically mapped via `/media/**` to the upload directory (`sinomed.ads.upload-dir`, default `data/ads`) and read directly without login.
 
-## 叫号 `/api/v1/calls`（tablet.md T8）
+## Queue Calling `/api/v1/calls` (tablet.md T8)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/calls` | 前台叫号（需登录）：number、room 必填，patientMasked 可选，screenId 为空 = 全部屏广播；定向屏需存在且启用 |
-| GET | `/api/v1/calls/latest?screen={code}&since={id}` | 平板游标拉取（免登录）：`since` 之后、广播 + 定向本屏的记录按 id 升序，返回 `{ since, calls[] }`；`since` 回传下次调用。屏 code 不存在报 400 |
-| GET | `/api/v1/calls/recent` | 管理端最近 20 条（需登录），按 id 倒序 |
+| POST | `/api/v1/calls` | Front-desk queue call (login required): number and room required, patientMasked optional, empty screenId = broadcast to all screens; a targeted screen must exist and be enabled |
+| GET | `/api/v1/calls/latest?screen={code}&since={id}` | Tablet cursor pull (unauthenticated): records after `since`, both broadcast and targeted to this screen, ascending by id, returning `{ since, calls[] }`; pass `since` back on the next call. Returns 400 for an unknown screen code |
+| GET | `/api/v1/calls/recent` | The 20 most recent for the admin console (login required), descending by id |
 
-## 错误追踪 `/error`
+## Error Tracking `/error`
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/error` | 接收前端错误上报并写入日志 |
+| POST | `/error` | Receives frontend error reports and writes them to the log |
 
-## 通用约定
+## General Conventions
 
-- **分页请求**：`current`（1 起始）、`pageSize`；**分页响应**：`{ data, total, pages, success }`。
-- **路径绑定**：个别接口（按姓名 / 名称查询等）的 `{xxx}` 占位符需出现在 URL 中，实际取值来自同名查询参数。
-- **错误响应**：400 参数或业务校验失败、401 未认证、403 账号锁定、500 系统错误，响应体为 `{ message, ... }`。
-- **在线调试**：服务端启动后打开 <http://127.0.0.1:2347/doc.html>（Knife4j 中文界面）可直接调试。
+- **Pagination request**: `current` (starting at 1), `pageSize`; **pagination response**: `{ data, total, pages, success }`.
+- **Path binding**: for a few endpoints (lookup by name etc.) the `{xxx}` placeholder must appear in the URL, with the actual value taken from the query parameter of the same name.
+- **Error responses**: 400 parameter or business validation failure, 401 unauthenticated, 403 account locked, 500 system error; the response body is `{ message, ... }`.
+- **Online debugging**: once the server is up, open <http://127.0.0.1:2347/doc.html> (the Knife4j Chinese interface) to debug directly.
+

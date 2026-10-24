@@ -1,37 +1,35 @@
-# 药房与发药流转（口径设计稿）
+# Pharmacy and Dispensing Flow (Policy Design Draft)
 
-> 🌐 [English](./dispensing.en.md) · **本页为中文**
+> Status: **Implemented (2026-10-11)**. Two deviations from the finalized policy: ① on the auto-derived path (decoction service / paste 「已取」) the flow entry's operator is left empty and the note records the source (the finalized text said "take the acting operator") — the automatic path has no human confirmation, so leaving it empty is more honest; ② workbench search was merged into a single `customerKeyword` parameter (name and phone matched by the same fuzzy match). Test landing points match section 5 (`DispenseTest` 5 cases + `DispenseHttpTest` 1 case).
+> Related: [服务端接口](../server/api.md) prescription group, [数据模型](../server/data-model.md) `prescriptions`/`decoction`/`paste`, the herb stock in/out ledger `/api/v1/herb-stock`, [对齐清单](./alignment.md) P1-32.
 
-> 状态：**已实装（2026-10-11）**。与定稿口径的两处偏差：① 自动带出（代煎/膏方「已取」）流水操作人留空、note 写来源（定稿原文「取做操作用户」）——自动路径没有真人确认，留空更诚实；② 工作台检索合并为 `customerKeyword` 单参数（姓名/手机同一模糊匹配）。测试落点与第五节一致（`DispenseTest` 5 例 + `DispenseHttpTest` 1 例）。
-> 关联：[服务端接口](../server/api.md) 处方组、[数据模型](../server/data-model.md) `prescriptions`/`decoction`/`paste`、饮片出入库台账 `/api/v1/herb-stock`、[对齐清单](./alignment.md) P1-32。
+## 1. Current State and Gap
 
-## 一、现状与缺口
+The Chinese-medicine prescription chain is implemented up to "prescription written + decocted and ready + patient picks it up":
 
-中药处方链路已实装到「处方开出来 + 煎好可取 + 顾客领取」为止：
-
-| 环节 | 现状 |
+| Stage | Current state |
 | ---- | ---- |
-| 开方（药味/剂量/煎法/审方/计价） | 已实装 `prescriptions` + `prescription_items` |
-| 代煎领取（待煎→可取→已取） | 已实装 `decoction_status` |
-| 膏方领取（待制作→可取→已取） | 已实装 `paste_status` |
-| 药房确认发药 | **无**——顾客「取走」这一环没有落库动作，也没有操作人与时间 |
-| 药房工作台 | **无**——只能进处方查询页一条条翻 |
+| Prescribing (herbs / dosages / decoction method / review / pricing) | Implemented: `prescriptions` + `prescription_items` |
+| Decoction-service pickup (to-decoct → ready → picked up) | Implemented: `decoction_status` |
+| Paste pickup (to-prepare → ready → picked up) | Implemented: `paste_status` |
+| Pharmacy dispense confirmation | **Missing** — the "patient took it" step had no database action, no operator, no time |
+| Pharmacy workbench | **Missing** — the only way was paging through the prescription query page one by one |
 
-饮片出入库台账（`/api/v1/herb-stock`）已实装但为**手工登记口径**，与开方不联动；本稿不改变这一点。
+The herb stock in/out ledger (`/api/v1/herb-stock`) is implemented but is **manual-entry policy**, not linked to prescribing; this document does not change that.
 
-## 二、口径（定稿）
+## 2. Policy (finalized)
 
-1. **发药 = 药房对处方的一次出库确认**，落「谁在什么时候发出去的」，与钱无关（退费/收款在结算与 [退费与日对账](./reconciliation.md)）。
-2. **状态机：`待发药(0) → 已发药(1)`，单向**。重复发药报 400；不开放撤销（演示口径与代煎/膏方领取一致——单向流、无回退），发错由演示环境直接删处方处理。
-3. **两条既有子流自动带出发药**，不要求药房重复点按钮：
-   - 代煎处方（`decoction_status` 推进到 `已取(3)`）→ 自动置 `已发药`，流水记一条 `action=1、note=代煎领取自动发药`；
-   - 膏方（`paste_status` 推进到 `已取(3)`）→ 同上，`note=膏方领取自动发药`；
-   - 两条自动流水**不可逆**：已取回不了头，发药也就回不了头。
-4. **普通饮片处方**（不代煎、非膏方）在药房工作台点「发药」，走 `action=1` 手动流水。
-5. **发药不扣库存、不落金额快照**：与既有计价口径一致（价格实时试算、未收录药名不计费），台账仍为手工登记。
-6. **药房工作台只处理中药处方**：西药/成药处方未做，不在本稿范围。
+1. **Dispensing = the pharmacy's single out-of-stock confirmation of a prescription**, recording "who handed it out, when"; it has nothing to do with money (refunds / collection live in settlement and [退费与日对账](./reconciliation.md)).
+2. **State machine: `to-dispense(0) → dispensed(1)`, one-way**. Dispensing again returns 400; no undo is offered (the demo policy matches decoction/paste pickup — one-way flow, no rollback), and a wrong dispense is handled in the demo environment by deleting the prescription outright.
+3. **Two existing sub-flows derive the dispense automatically**, so the pharmacy does not click the button again:
+   - A decoction-service prescription (`decoction_status` advanced to `picked up(3)`) → automatically set to dispensed, with one flow entry `action=1, note=代煎领取自动发药`;
+   - A paste (`paste_status` advanced to `picked up(3)`) → same, with `note=膏方领取自动发药`;
+   - Both automatic entries are **irreversible**: "picked up" cannot be walked back, so neither can "dispensed".
+4. **Ordinary herbal prescriptions** (no decoction service, not a paste) are dispensed by clicking "Dispense" in the pharmacy workbench, producing a manual `action=1` flow entry.
+5. **Dispensing deducts no stock and stores no amount snapshot**: consistent with the existing pricing policy (prices are trial-computed in real time; herb names missing from the catalog are not billed); the ledger stays manual.
+6. **The pharmacy workbench handles Chinese-medicine prescriptions only**: Western / patent-medicine prescriptions are not built and are out of this document's scope.
 
-### 数据
+### Data
 
 ```
 prescriptions 加三列：
@@ -47,29 +45,29 @@ dispense_logs（发药流水，单向追加）：
   create_time / update_time
 ```
 
-索引：`dispense_logs` prescription_id、`prescriptions` dispense_status。无软删（演示口径无留痕）。
+Indexes: `dispense_logs` prescription_id, `prescriptions` dispense_status. No soft delete (demo policy keeps no trail).
 
-### 接口（需登录）
+### Endpoints (login required)
 
-| 方法 | 路径 | 功能 |
+| Method | Path | Purpose |
 | ---- | ---- | ---- |
-| POST | `/api/v1/prescription/{id}/dispense` | 发药：`待发药→已发药`；已发药报 400「处方已发药」；处方不存在报 400 |
-| GET | `/api/v1/prescription/dispense/page` | 药房工作台分页：`dispenseStatus` 可空（0 待发药 / 1 已发药）、`customerName`/`phone` 可模糊，id 倒序；联顾客姓名手机、代煎/膏方状态 |
+| POST | `/api/v1/prescription/{id}/dispense` | Dispense: `to-dispense → dispensed`; an already-dispensed prescription returns 400 「处方已发药」 (prescription already dispensed); a missing prescription returns 400 |
+| GET | `/api/v1/prescription/dispense/page` | Pharmacy workbench paging: `dispenseStatus` optional (0 to-dispense / 1 dispensed), `customerName`/`phone` fuzzy, id descending; joins patient name and phone plus decoction / paste status |
 
-## 三、非目标（本稿明确不做）
+## 3. Non-Goals (explicitly not done in this document)
 
-- 不做西药/中成药处方与药品目录（features.md「处方(西药/成药)」行仍为未实现）。
-- 不做采购单据、盘点、报损、多库房（饮片库存仍为出入库台账口径）。
-- 不做发药与开方的库存扣减联动。
-- 不做退费/收款联动（归 [退费与日对账](./reconciliation.md)）。
-- 不做条码/扫码发药、分剂量分包、颗粒机对接。
+- No Western / patent-medicine prescriptions or drug catalog (the features.md "Prescription (Western/patent medicine)" row stays unimplemented).
+- No purchase documents, stocktaking, damage write-offs, or multiple warehouses (herb inventory stays on the in/out-ledger policy).
+- No stock-deduction linkage between dispensing and prescribing.
+- No refund / collection linkage (owned by [退费与日对账](./reconciliation.md)).
+- No barcode / scan-to-dispense, dose-split packaging, or granule-machine integration.
 
-## 四、web 落点
+## 4. Web Landing Points
 
-- 已实装 `/prescription/dispensary`（药房工作台，仅登录）：待发药/已发药/全部三态切换带计数，顾客姓名/手机检索，列表=处方号/顾客(姓名+脱敏手机)/类型/剂数/药味数/代煎/膏方/发药状态与时间/开方时间，行操作「发药」（弹窗带可选备注 ≤100 字，单向确认；已发药行只读）。
-- 处方查询页详情抽屉补发药状态与时间，附「确认发药」快捷按钮（带备注的发药走工作台）；代煎/膏方推进「已取」即自动发药，无需重复点。
+- Implemented `/prescription/dispensary` (pharmacy workbench, login only): a to-dispense / dispensed / all three-state toggle with counts, patient name / phone search, list = prescription number / patient (name + masked phone) / type / doses / herb count / decoction / paste / dispense status and time / prescribed-at time, and a "Dispense" row action (dialog with an optional note ≤100 chars, one-way confirm; dispensed rows are read-only).
+- The prescription query page's detail drawer gained dispense status and time plus a "Confirm dispense" shortcut button (dispensing with a note goes through the workbench); advancing a decoction / paste to "picked up" dispenses automatically — no repeat click.
 
-## 五、测试落点
+## 5. Test Landing Points
 
-- `DispenseTest`：手动发药、重复发药 400、不存在 400、代煎领取自动带出发药、膏方领取自动带出发药、流水顺序与 note。
-- `DispenseHttpTest`：发药 → 工作台分页过滤（dispenseStatus/customerName）→ 已发药不可重复发；未登录 401。
+- `DispenseTest`: manual dispense, repeat dispense 400, not-found 400, decoction pickup auto-derives dispense, paste pickup auto-derives dispense, flow order and note.
+- `DispenseHttpTest`: dispense → workbench paging filters (dispenseStatus/customerName) → an already-dispensed prescription cannot be dispensed again; unauthenticated 401.

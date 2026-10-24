@@ -1,86 +1,84 @@
-# 小程序自助约期（免登录写入口）· 设计草案
+# Mini Program Self-Service Booking (Unauthenticated Write Endpoint) · Design Draft
 
-> 🌐 [English](./app-booking.en.md) · **本页为中文**
-
-::: tip 状态：已实施（2026-10-10）
-§7 拍板点已裁定（见「拍板记录」），§8 落地清单已全部落地：服务端 `36102cf`、小程序 `f7ccbbf`。本文保留完整口径作实现依据。
-**2026-10-16 更新**：顾客侧自助取消已实装（拍板 2 前提失效，见拍板记录补记）——`POST /api/v1/kiosk/appointment-cancel` + 小程序「我的」页取消按钮。
+::: tip Status: implemented (2026-10-10)
+The decision points in §7 have been ruled on (see "Decision record"), and every item of the §8 implementation checklist has landed: server `36102cf`, mini program `f7ccbbf`. This document keeps the full agreed policy as the implementation reference.
+**2026-10-16 update**: patient-side self-service cancellation is implemented (ruling 2's premise lapsed; see the decision-record note) — `POST /api/v1/kiosk/appointment-cancel` + a cancel button on the mini program's "Me" page.
 :::
 
-## 1. 目标与范围
+## 1. Goals and Scope
 
-小程序（`app/`，Taro）顾客**自助约期**：选日期 → 选时段 → 选项目（可跳过）→ 提交，落一条 `status=0` 待到店预约；到店后前台在管理端照常「到店接待 → 发起接诊」。
+Self-service booking for patients in the mini program (`app/`, Taro): pick a date → pick a slot → pick a service item (skippable) → submit, which writes one `status=0` not-yet-arrived appointment; after arrival, the front desk proceeds in the admin console as usual with "check-in → start treatment".
 
-MVP **不做**：支付、短信/验证码、顾客侧取消、同时段冲突校验、周期性排班、跨门店。
+**Not in the MVP**: payment, SMS/verification codes, patient-side cancellation, same-slot conflict checking, recurring schedules, cross-store support.
 
-## 2. 与 Kiosk 口径对齐
+## 2. Policy Alignment with the Kiosk
 
-顾客选服务 Kiosk（[设计文档](/design/kiosk)）已实装免登录闭环，自助约期**沿用同一套口径**，不开新模式：
+The patient self-service Kiosk ([设计文档](/design/kiosk)) already implements a closed unauthenticated loop; self-service booking **reuses that exact policy** instead of opening a new model:
 
-| 口径 | Kiosk（已实装） | 自助约期（本草案） |
+| Policy | Kiosk (implemented) | Self-service booking (this draft) |
 | ---- | ---- | ---- |
-| 免登录区 | `/api/v1/kiosk/**`（SecurityConfig 既有 permitAll） | **同一个 matcher**，新增路径落在其中，安全配置零改动 |
-| 结构 | 浏览只读 + **唯一写入口** `POST /kiosk/orders` | 浏览复用 + **唯一写入口** `POST /kiosk/appointments` |
-| 建档 | 按手机号幂等建档（缺省名「到店客人」） | 同一口径，复用同一 customers 行 |
-| 支付 | 不做，到店结算 | 不做，到店接待后照常 |
-| 写范围 | 1 条顾客档案 + N 条 status=0 订单 | 0~1 条顾客档案 + 1 条 status=0 预约 |
-| 不暴露 | 任何查询/删除能力 | 同样不暴露（响应只含本次预约自身） |
+| Unauthenticated zone | `/api/v1/kiosk/**` (existing permitAll in SecurityConfig) | **The same matcher**; the new path lands inside it, so the security config changes zero lines |
+| Structure | Read-only browsing + **the single write endpoint** `POST /kiosk/orders` | Browsing reused + **the single write endpoint** `POST /kiosk/appointments` |
+| Record creation | Idempotent patient-record creation keyed on phone number (default name 「到店客人」, Walk-in Guest) | Same policy, reusing the same customers row |
+| Payment | Not done; settled in store | Not done; proceeds as usual after in-store check-in |
+| Write scope | 1 patient record + N status=0 orders | 0–1 patient records + 1 status=0 appointment |
+| Never exposed | Any query/delete capability | Equally not exposed (the response contains only this appointment itself) |
 
-## 3. API 面（拍板后新增，仅此一个写入口）
+## 3. API Surface (added after the ruling; this is the one and only write endpoint)
 
-### POST `/api/v1/kiosk/appointments`（免登录）
+### POST `/api/v1/kiosk/appointments` (unauthenticated)
 
-| 项 | 说明 |
+| Item | Description |
 | ---- | ---- |
-| Request | `{ phone, name?, itemId?, startTime }`；`phone` 11 位格式校验；`startTime` `yyyy-MM-dd HH:mm` **整点**且必须晚于当前时刻；`itemId` 可空（到店再定，须存在且上架）；`name` 可空（缺省「到店客人」） |
-| 服务端补齐 | `duration=60`、`staffId=null`（到店分配）、`status=0` 待到店、`remark` 记「小程序自助」（见 §4 来源口径） |
+| Request | `{ phone, name?, itemId?, startTime }`; `phone` validated as an 11-digit number; `startTime` in `yyyy-MM-dd HH:mm`, **on the hour**, and later than the current moment; `itemId` optional (chosen in store; must exist and be listed); `name` optional (defaults to 「到店客人」, Walk-in Guest) |
+| Filled in server-side | `duration=60`, `staffId=null` (assigned on arrival), `status=0` not yet arrived, `remark` records 「小程序自助」 (mini program self-service) — see the source policy in §4 |
 | Response | `{ customerId, customerName, appointmentId, startTime, itemName?, status: 0 }` |
-| 400 | 手机号格式 / 时间格式或非整点 / 过去时刻 / 越界时段（见 §4）/ 卡项不存在或已下架 / 当日已有未完成预约（频控） |
+| 400 | Bad phone format / bad time format or not on the hour / a time in the past / a slot out of range (see §4) / service card not found or delisted / an unfinished appointment already exists today (rate limit) |
 
-浏览**零新增**：项目列表直接用既有 `GET /api/v1/kiosk/items`。
+Browsing gets **zero new endpoints**: the item list uses the existing `GET /api/v1/kiosk/items` as is.
 
-## 4. 安全边界（拍板重点）
+## 4. Security Boundary (the focus of the rulings)
 
-免登录写入口的固有风险与对策（如实，不含未实现的控制）：
+The inherent risks of an unauthenticated write endpoint and the countermeasures (stated as they are; nothing not yet implemented is claimed):
 
-- **灌单/滥用**：同手机号当日 `status IN (0,1)` 的预约**限 1 条**，超出报 400「当日已有预约，请到店或致电改约」。实现走既有 customers（按手机号查）+ appointments（按顾客按日数）查询，不加表不加索引（演示规模够用）。
-- **时段硬约束**：只接受当日之后的整点 `09:00–17:00`（对齐排班网格 9:00–18:00 的最后一格起始），从源头限制垃圾数据形态。
-- **手机号即身份**：演示环境信任手机号，无短信验证——与 kiosk 下单同一口径（kiosk 文档已注明「如暴露公网需另加验证码或屏 token」，本入口同此边界）；验证码/频控网关为规划项。
-- **不暴露横向数据**：响应只含本次预约与顾客自身名字；不提供任何按手机号反查他人的能力；`staffId` 不下发。
-- **来源口径**：`remark` 记「小程序自助」做软标记，**不加表结构**（不加 source 列）。管理端列表/排班网格里「未指派」即含此类，演示可接受；若后续要硬区分再加 `source` 字段（规划）。
+- **Order flooding / abuse**: per phone number, at most **1** appointment per day with `status IN (0,1)`; anything beyond returns 400 「当日已有预约，请到店或致电改约」 ("an appointment already exists today; please reschedule in store or by phone"). Implemented on the existing customers (query by phone) + appointments (count per customer per day) queries — no new tables, no new indexes (sufficient at demo scale).
+- **Hard slot constraint**: only on-the-hour slots `09:00–17:00` on later days are accepted (aligned with the last cell start of the 9:00–18:00 scheduling grid), which constrains the shape of junk data at the source.
+- **Phone number as identity**: the demo environment trusts the phone number — no SMS verification — the same policy as kiosk ordering (the kiosk doc already notes "add a verification code or screen token if exposed to the public internet"; this endpoint shares that boundary); verification codes / a rate-limiting gateway are planned items.
+- **No lateral data exposure**: the response contains only this appointment and the patient's own name; there is no way to look up other people by phone number; `staffId` is never sent down.
+- **Source policy**: `remark` records 「小程序自助」 (mini program self-service) as a soft marker, with **no schema change** (no source column). Such rows simply show up as "unassigned" in the admin console list / scheduling grid, which is acceptable for the demo; add a `source` field only if a hard distinction is later needed (planned).
 
-## 5. 管理端影响：零改动
+## 5. Admin Console Impact: Zero Changes
 
-预约照常出现在 `/appointment/query` 与 `/appointment/schedule`；接待（0→1）、取消（0→9）、删除（仅 9）流程不变。排班网格「一格多条取第一条 +N」的既有口径天然兜住冲突场景（本来就不做同时段冲突校验，演示边界）。
+Appointments appear as usual in `/appointment/query` and `/appointment/schedule`; check-in (0→1), cancellation (0→9), and deletion (only from 9) flows are unchanged. The scheduling grid's existing "several entries in one cell → take the first, +N" policy naturally absorbs conflicts (same-slot conflict checking was never done in the first place — a demo boundary).
 
-## 6. 小程序端页面（拍板后实现）
+## 6. Mini Program Pages (implemented after the ruling)
 
-- `pages/booking`：日期条（今天起 7 天）→ 时段网格（9:00–17:00 整点，全部展示为可约——服务端不做占用查询，冲突靠到店接待时人工调和）→ 项目选择（复用 `GET /api/v1/kiosk/items`，可跳过；项目带时长则在名称旁显示「·N分钟」——kiosk 项载荷 2026-10-19 起含 `durationMinutes`，无值不显示）→ 手机号 + 姓名提交。
-- 提交成功展示预约号与时段；400 文案原样透出（如「当日已有预约…」）。
-- 首页「预约横幅」（已实装的占位）跳转本页，占位标记随之撤掉。
-- H5 直接联调；微信小程序需把 API 域名加业务域名白名单（部署口径，见[换马甲构建指南](/app-white-label)同源约束）。
+- `pages/booking`: date strip (7 days from today) → slot grid (9:00–17:00 on the hour, all shown as bookable — the server does no occupancy lookup; conflicts are reconciled manually at in-store check-in) → item selection (reuses `GET /api/v1/kiosk/items`, skippable; if an item carries a duration it shows "·N min" beside the name — the kiosk item payload has included `durationMinutes` since 2026-10-19, and is omitted when absent) → submit with phone + name.
+- A successful submission shows the appointment number and slot; 400 messages are surfaced verbatim (e.g. 「当日已有预约…」).
+- The home "booking banner" (an implemented placeholder) navigates to this page, and the placeholder marker is retired along with it.
+- H5 integrates directly; the WeChat mini program needs the API domain added to the business-domain whitelist (a deployment policy; see the same-origin constraints in the [换马甲构建指南](/app-white-label)).
 
-## 7. 拍板记录（2026-10-10 裁定）
+## 7. Decision Record (ruled 2026-10-10)
 
-| # | 问题 | 裁定 | 依据 |
+| # | Question | Ruling | Rationale |
 | ---- | ---- | ---- | ---- |
-| 1 | 频控「1 条/日/手机号」是否合适 | **1 条/日/手机号**（status IN (0,1) 计数，超出 400） | 免登录无验证码，防滥用优先；放宽只是改一个计数阈值的事，真实复约场景出现再调 |
-| 2 | 顾客能否自助取消 | **不做**（仅管理端 0→9 取消）→ **2026-10-16 代决翻案（用户可推翻）** | 原依据「取消不核验身份，无法阻止恶意取消他人约」已失效：2026-10-14/15 手机号+一次性验证码双因子与 openid 绑定落地，身份可核验。已实装 `POST /api/v1/kiosk/appointment-cancel`（仅 `sms_verified` 模式，一次性验证码，只取消本人 status=0 且未过期的预约，非本人/已受理/已过期均 400，同 `card_lookup_logs` 审计；取消后时段自动释放、当日频控解除），小程序「我的」页查预约结果行内「取消」。管理端取消保留并行 |
-| 3 | 时段是否固定 60 分钟 | **固定 60 分钟** | 服务端校验与排班网格展示都简化；管理端建约仍可 30/60/90，两条口径互不影响 |
-| 4 | 是否加 `source` 列 | **不加**，`remark` 记「小程序自助」软标记 | 演示规模软标记够用；加列要动 schema 与既有查询，确有报表需求再迁移 |
+| 1 | Is the "1 per day per phone" rate limit the right fit? | **1 per day per phone** (counting status IN (0,1); beyond that, 400) | Unauthenticated with no verification code, so anti-abuse comes first; loosening it is only a counter-threshold change, to be retuned once real repeat-booking cases appear |
+| 2 | Can patients cancel on their own? | **No** (admin-console 0→9 cancellation only) → **overturned by a decision on the user's behalf 2026-10-16 (the user can overturn)** | The original rationale "cancellation verifies no identity, so maliciously canceling other people's appointments could not be stopped" lapsed: phone-number + one-time-code two-factor verification and openid binding landed on 2026-10-14/15, making identity verifiable. Implemented as `POST /api/v1/kiosk/appointment-cancel` (`sms_verified` mode only, one-time codes, only the caller's own status=0 not-yet-expired appointment; not the owner / already received / already expired are refused with 400, same `card_lookup_logs` audit; the slot is released after cancellation and the same-day frequency cap lifts), with an inline "Cancel" button on the lookup results in the mini program's "Me" page. Admin-console cancellation remains available in parallel |
+| 3 | Should the slot be fixed at 60 minutes? | **Fixed at 60 minutes** | Simplifies both server-side validation and scheduling-grid display; the admin console can still book 30/60/90 — the two policies do not affect each other |
+| 4 | Add a `source` column? | **No**; `remark` records 「小程序自助」 as a soft marker | At demo scale a soft marker is enough; a column would touch the schema and existing queries — migrate only when a real reporting need shows up |
 
-## 8. 落地清单（已完成 2026-10-10）
+## 8. Implementation Checklist (completed 2026-10-10)
 
-| # | 事项 | 验收 |
+| # | Item | Acceptance |
 | ---- | ---- | ---- |
-| A1 ✅ | server：`POST /api/v1/kiosk/appointments`（校验 + 频控 + 幂等建档 + 落约），commit `36102cf` | curl 矩阵 12 例全过：正常约（含无卡项 itemName=null）/ 跨日同手机号归同顾客 / 当日第二条 400 / 过去时刻 400 / 非整点 400 / 越界时段 400 / 格式错 400 / 下架卡项 400 / 无 token 仍可约（免登录区）；落库核验 `duration=60`、`staffId=null`、`status=0`、remark「小程序自助」 |
-| A2 ✅ | app：`pages/booking` 页 + 首页横幅接线 + `bookAppointment` 服务函数，commit `f7ccbbf` | H5（Playwright）全流程走通：横幅入口（规划占位已撤）→ 选日期/时段/项目/手机号 → 成功回执（预约号/时段/项目名）→ 同手机号同日再约透出 400「当日已有预约，请到店或致电改约」；build:h5 + build:weapp 绿 |
-| A3 ✅ | 文档转正：本草案标已实施 + api.md/data-model.md 补口径 + features.md 预约行更新 | docs build 过，状态行与源码一致 |
+| A1 ✅ | server: `POST /api/v1/kiosk/appointments` (validation + rate limit + idempotent record creation + appointment write), commit `36102cf` | The 12-case curl matrix passed in full: normal booking (including no service card, itemName=null) / the same phone on different days resolves to the same patient / a second booking the same day 400 / a past time 400 / off-hour 400 / out-of-range slot 400 / bad format 400 / delisted service card 400 / bookable without a token (unauthenticated zone); the stored row verified as `duration=60`, `staffId=null`, `status=0`, remark 「小程序自助」 |
+| A2 ✅ | app: the `pages/booking` page + home banner wiring + the `bookAppointment` service function, commit `f7ccbbf` | Full flow exercised on H5 (Playwright): banner entry (planning placeholder retired) → pick date / slot / item / phone → success receipt (appointment number / slot / item name) → rebooking the same phone the same day surfaces 400 「当日已有预约，请到店或致电改约」; build:h5 + build:weapp green |
+| A3 ✅ | Docs promoted to final: this draft marked implemented + policy added to api.md/data-model.md + the appointment row updated in features.md | docs build passed; the status line matches the source |
 
-## 9. 后续候选取舍（2026-10-10 裁定）
+## 9. Follow-up Candidate Trade-offs (ruled 2026-10-10)
 
-| 候选 | 裁定 | 依据 |
+| Candidate | Ruling | Rationale |
 | ---- | ---- | ---- |
-| 管理端给「小程序自助」来源加显式筛选 | **不做** | 软标记已在管理端预约列表 remark 列明文可见；拍板 4 已定不加 source 列，加筛选是半个 source 概念。确有报表需求时随 source 列一起迁移 |
-| 小程序登录 / 我的卡项 / 我的预约页 | **不做**（卡点=顾客身份核验） | 免登录手机号直查会造成横向数据暴露（同 §4 边界）；验证码或密码超出演示 MVP 口径（§1）。保持规划占位 |
-| 我的卡项（手机查卡） | **已实装**（2026-10-14 裁定取代上一行该项；本行其余两项维持不做） | 不做裸手机号查卡（隐私红线），改 openid / 短信验证码双因子，按 `sinomed.phone-lookup.mode` 三态开关（默认 `off`）并落 `card_lookup_logs` 审计；首页「我的卡项」区块为入口联动 + 本机摘要回显（称呼/持卡数/查询日期，7 天有效，明细与余次不落本机）。口径见 [kiosk.md](/design/kiosk#手机查卡小程序我的卡项2026-10-14-裁定) |
+| An explicit admin-console filter for the 「小程序自助」 source | **Not doing it** | The soft marker is already plainly visible in the remark column of the admin appointment list; decision 4 settled on no source column, and a filter is half a source concept. When a real reporting need appears, migrate it together with the source column |
+| Mini program login / my service cards / my appointments pages | **Not doing it** (blocker = patient identity verification) | A direct unauthenticated lookup by phone number would expose lateral data (same boundary as §4); verification codes or passwords exceed the demo MVP policy (§1). Kept as planning placeholders |
+| My service cards (card lookup by phone) | **Implemented** (a 2026-10-14 ruling superseded that item of the row above; the row's other two items remain not-done) | No bare-phone-number card lookup (privacy red line); instead openid binding / phone + SMS-code two-factor, selected by the three-state switch `sinomed.phone-lookup.mode` (default `off`), with `card_lookup_logs` audit writes. The home "my service cards" block is entry linkage + a local summary echo (form of address / number of cards held / query date, valid for 7 days; details and remaining visits are never stored on the device). Policy in [kiosk.md](/design/kiosk#phone-card-lookup-mini-program-my-cards-2026-10-14-ruling) |
