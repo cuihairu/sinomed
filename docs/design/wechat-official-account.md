@@ -399,7 +399,7 @@ sinomed:
 ```
 
 - **`enabled=false` is the default**: same "no silence" convention as `sinomed.phone-lookup.mode` default `off` (`application.yml:49`) — with the module off, callbacks return 200 `"success"` plus an audit row, so WeChat doesn't retry forever;
-- **token/aes_key in env is the phase-1 compromise**: single-store deployment avoids DB config; phase 2 moves them into the admin form and env becomes dev/demo-only;
+- **token in env is the phase-1 compromise**: single-store deployment avoids DB config; `aes_key`/`encrypt_mode` are account business data and live in `wx_accounts` columns (safe mode already landed this way), with env reduced to development/demo use only;
 - **No plaintext credentials in the DB**: `wx_accounts.app_secret`/`aes_key` use reversible AES (key from env `WX_OA_CREDENTIAL_KEY`); BCrypt's one-wayness can't work (credentials must be read back to call APIs).
 
 ---
