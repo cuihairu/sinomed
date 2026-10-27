@@ -20,6 +20,9 @@ import com.sinomed.repository.WxMenuRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import com.sinomed.util.DateUtil;
 import com.sinomed.util.WxSignatureUtil;
+import me.chanjar.weixin.mp.api.WxMpMessageRouter;
+import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
+import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.criteria.Predicate;
 import lombok.Data;
@@ -64,6 +67,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -90,6 +94,10 @@ public class WxOfficialAccountService {
     private final WxOauthTicketStore ticketStore;
     private final RestTemplate wechatRestTemplate;
     private final WxMsgCryptor msgCryptor;
+    private final WxMpServiceProvider wxMpServiceProvider;
+
+    /** 账号级消息路由（设计稿 §5.1：WxMpMessageRouter 按 accountId 实例化并缓存，不能单例跨账号） */
+    private final Map<Long, WxMpMessageRouter> routers = new ConcurrentHashMap<>();
 
     /** 绑定短信验证码有效期（分钟），与 Kiosk 短信通道同口径 */
     private static final long BIND_SMS_TTL_MINUTES = 5;
@@ -149,7 +157,8 @@ public class WxOfficialAccountService {
                                     WxMenuRepository menuRepository,
                                     WxOauthTicketStore ticketStore,
                                     RestTemplate wechatRestTemplate,
-                                    WxMsgCryptor msgCryptor) {
+                                    WxMsgCryptor msgCryptor,
+                                    WxMpServiceProvider wxMpServiceProvider) {
         this.accountRepository = accountRepository;
         this.fanRepository = fanRepository;
         this.autoReplyRepository = autoReplyRepository;
@@ -162,6 +171,7 @@ public class WxOfficialAccountService {
         this.ticketStore = ticketStore;
         this.wechatRestTemplate = wechatRestTemplate;
         this.msgCryptor = msgCryptor;
+        this.wxMpServiceProvider = wxMpServiceProvider;
     }
 
     /** GET URL 验证：通过原样返回 echostr；拒绝路径回 "success"/空并落审计 */
@@ -227,14 +237,21 @@ public class WxOfficialAccountService {
             }
         }
 
-        Map<String, String> msg = parseXml(innerXml);
-        String msgType = msg.getOrDefault("MsgType", "none");
-        String fromUser = msg.get("FromUserName");
-        String toUser = msg.get("ToUserName");
-        String event = msg.get("Event");
-        String content = msg.get("Content");
-        String msgId = msg.get("MsgId");
-        String createTime = msg.get("CreateTime");
+        final WxMpXmlMessage msg;
+        try {
+            msg = WxMpXmlMessage.fromXml(innerXml);
+        } catch (RuntimeException e) {
+            // 设计原则：不可解析报文不抛异常（微信会重试放大），落拒绝审计回 success
+            logReject(accountId, "bad_xml", "none", null, null);
+            return "success";
+        }
+        String msgType = msg.getMsgType() == null ? "none" : msg.getMsgType();
+        String fromUser = msg.getFromUser();
+        String toUser = msg.getToUser();
+        String event = msg.getEvent();
+        String content = msg.getContent();
+        String msgId = msg.getMsgId() == null ? null : String.valueOf(msg.getMsgId());
+        String createTime = msg.getCreateTime() == null ? null : String.valueOf(msg.getCreateTime());
 
         String dedupeKey = msgId != null ? "M:" + msgId
                 : (fromUser != null && createTime != null && event != null ? "E:" + fromUser + ":" + createTime + ":" + event : null);
@@ -245,24 +262,77 @@ public class WxOfficialAccountService {
 
         logMessage(accountId, "in", msgType, fromUser, toUser, event != null ? event : content, msgId, dedupeKey);
 
-        String reply;
-        if ("event".equals(msgType)) {
-            reply = routeEvent(accountId, event, fromUser, toUser);
-        } else if ("text".equals(msgType)) {
-            String matched = matchKeywordReply(accountId, content);
-            if (matched == null) {
-                matched = firstRule(accountId, "fallback");
-            }
-            reply = replyTo(accountId, fromUser, toUser, matched);
-        } else {
-            if ("image".equals(msgType)) {
-                // 设计稿 §4.5 第一期：图片消息拉取 PicUrl 落 wx_materials（type=temp，供管理端查看）
-                captureMaterial(accountId, msg.get("MediaId"), msg.get("PicUrl"));
-            }
-            // image/voice/video/link/location 等：第一期落日志 + 兜底（不做识别处理）
-            reply = replyTo(accountId, fromUser, toUser, firstRule(accountId, "fallback"));
-        }
+        // 路由骨架（设计稿 §5.4）：SDK WxMpMessageRouter 按账号实例化 + 同步规则（5s 窗口）；
+        // 规则不命中或 handler 无回复时 Route 返回 null → 回 "success"。repo 侧排重仍由 DB 承担，
+        // SDK 内置内存排重置为 no-op，避免与 wx_message_logs.dedupe_key 双写冲突。
+        WxMpXmlOutMessage out = router(account.get()).route(msg);
+        String reply = out == null ? "success" : out.toXml();
         return sealReply(account.get(), encrypted, nonce, reply);
+    }
+
+    /** 账号级消息路由：懒建缓存（设计稿 §5.1，按 accountId 实例化；配置变更后由 evict 重建） */
+    private WxMpMessageRouter router(WxAccountEntity account) {
+        return routers.computeIfAbsent(account.getId(), id -> buildRouter(account));
+    }
+
+    /** evict 用户：账号凭据/开关变化后清路由与服务缓存，下次回调按新实体重建 */
+    public void evictAccount(long accountId) {
+        wxMpServiceProvider.evict(accountId);
+        routers.remove(accountId);
+    }
+
+    /**
+     * 组装账号消息路由（订阅/取关粉丝维护、文本关键词/兜底、图片素材拉取+兜底、事件日志只读）：
+     * 规则从细到粗、全部同步（微信 5s 窗口内必须回包）；事件类除订阅/取关外无回复（只落流水），
+     * 非文本媒体走兜底；未识别类型最后兜底不抛异常（微信会重试放大）。
+     */
+    private WxMpMessageRouter buildRouter(WxAccountEntity account) {
+        long accountId = account.getId();
+        WxMpMessageRouter router = new WxMpMessageRouter(wxMpServiceProvider.forAccount(account));
+        // SDK 内置单例内存排重会与 wx_message_logs.dedupe_key DB 排重冲突，置为 no-op（见 router() 注释）
+        router.setMessageDuplicateChecker(messageId -> false);
+
+        router.rule().async(false)
+                .event("subscribe")
+                .handler((message, context, mpService, session) -> {
+                    upsertFan(accountId, message.getFromUser(), 1, true);
+                    return textReply(accountId, message, firstRule(accountId, "subscribe"));
+                }).end();
+
+        router.rule().async(false)
+                .event("unsubscribe")
+                .handler((message, context, mpService, session) -> {
+                    upsertFan(accountId, message.getFromUser(), 0, false);
+                    return null; // 微信不收取关回复
+                }).end();
+
+        router.rule().async(false)
+                .msgType("event") // 其余事件（CLICK/VIEW/scan）：第一期只落流水，不做业务路由
+                .handler((message, context, mpService, session) -> null).end();
+
+        router.rule().async(false)
+                .msgType("text")
+                .handler((message, context, mpService, session) -> {
+                    String matched = matchKeywordReply(accountId, message.getContent());
+                    if (matched == null) {
+                        matched = firstRule(accountId, "fallback");
+                    }
+                    return textReply(accountId, message, matched);
+                }).end();
+
+        router.rule().async(false)
+                .msgType("image")
+                .handler((message, context, mpService, session) -> {
+                    // 设计稿 §4.5 第一期：图片消息拉取 PicUrl 落 wx_materials（type=temp，供管理端查看）
+                    captureMaterial(accountId, message.getMediaId(), message.getPicUrl());
+                    return textReply(accountId, message, firstRule(accountId, "fallback"));
+                }).end();
+
+        // voice/video/link/location 等非文本媒体：落日志 + 兜底（不做识别处理）
+        router.rule().async(false)
+                .handler((message, context, mpService, session) ->
+                        textReply(accountId, message, firstRule(accountId, "fallback"))).end();
+        return router;
     }
 
     /**
@@ -305,27 +375,21 @@ public class WxOfficialAccountService {
         return caps;
     }
 
-    private String routeEvent(long accountId, String event, String fromUser, String toUser) {
-        if ("subscribe".equals(event)) {
-            WxFanEntity fan = fanRepository.findByAccountIdAndOpenid(accountId, fromUser).orElseGet(WxFanEntity::new);
-            fan.setAccountId(accountId);
-            fan.setOpenid(fromUser);
-            fan.setSubscribe(1);
+    /** 粉丝维护（设计稿 §4.2）：关注 upsert subscribe=1，取关注保留行 subscribe=0（customer_id 不动） */
+    private void upsertFan(long accountId, String openid, int subscribe, boolean isSubscribe) {
+        if (openid == null) {
+            return;
+        }
+        WxFanEntity fan = fanRepository.findByAccountIdAndOpenid(accountId, openid).orElseGet(WxFanEntity::new);
+        fan.setAccountId(accountId);
+        fan.setOpenid(openid);
+        fan.setSubscribe(subscribe);
+        if (isSubscribe) {
             fan.setSubscribeTime(new Date());
-            fanRepository.save(fan);
-            return replyTo(accountId, fromUser, toUser, firstRule(accountId, "subscribe"));
-        }
-        if ("unsubscribe".equals(event)) {
-            // 取关保留行：subscribe=0，customer_id 不动（再关注后绑定仍在，换人属线下场景走管理端）
-            WxFanEntity fan = fanRepository.findByAccountIdAndOpenid(accountId, fromUser).orElseGet(WxFanEntity::new);
-            fan.setAccountId(accountId);
-            fan.setOpenid(fromUser);
-            fan.setSubscribe(0);
+        } else {
             fan.setUnsubscribeTime(new Date());
-            fanRepository.save(fan);
-            return "success"; // 微信不收取关回复
         }
-        return "success"; // CLICK/VIEW/scan 等：第一期仅落流水，不做业务路由
+        fanRepository.save(fan);
     }
 
     /** 关键词匹配：启用规则按 priority 升序，exact 全等 / contains 包含，首个命中生效 */
@@ -355,22 +419,20 @@ public class WxOfficialAccountService {
                 .stream().findFirst().map(WxAutoReplyEntity::getContent).orElse(null);
     }
 
-    /** 被动回复：规则内容为空回 "success"（5s 内无响应微信会重试）；出站落流水 */
-    private String replyTo(long accountId, String fromUser, String toUser, String replyContent) {
-        if (fromUser == null || replyContent == null || replyContent.isBlank()) {
-            return "success";
+    /**
+     * 被动文本回复（设计稿 §5.4）：规则内容为空返回 null（上层回 "success"，5s 内无响应微信会重试）；
+     * 出站落流水后由 SDK builder 产出 XML（子节点 CDATA 转义由 SDK 承担）。
+     */
+    private WxMpXmlOutMessage textReply(long accountId, WxMpXmlMessage msg, String replyContent) {
+        if (msg.getFromUser() == null || replyContent == null || replyContent.isBlank()) {
+            return null;
         }
-        logMessage(accountId, "out", "text", toUser, fromUser, replyContent, null, null);
-        return "<xml><ToUserName><![CDATA[" + escapeCdata(fromUser) + "]]></ToUserName>"
-                + "<FromUserName><![CDATA[" + escapeCdata(toUser == null ? "" : toUser) + "]]></FromUserName>"
-                + "<CreateTime>" + (System.currentTimeMillis() / 1000) + "</CreateTime>"
-                + "<MsgType><![CDATA[text]]></MsgType>"
-                + "<Content><![CDATA[" + escapeCdata(replyContent) + "]]></Content></xml>";
-    }
-
-    /** CDATA 内闭合序列转义（内容含 "]]>" 时防截断） */
-    private static String escapeCdata(String value) {
-        return value.replace("]]>", "]]]]><![CDATA[>");
+        logMessage(accountId, "out", "text", msg.getToUser(), msg.getFromUser(), replyContent, null, null);
+        return WxMpXmlOutMessage.TEXT()
+                .toUser(msg.getFromUser())
+                .fromUser(msg.getToUser())
+                .content(replyContent)
+                .build();
     }
 
     private void logReject(long accountId, String result, String msgType, String fromUser, String toUser) {

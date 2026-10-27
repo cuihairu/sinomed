@@ -275,6 +275,8 @@ WxCallbackController
 - Slow operations (material download, customer binding) **must not block** the reply thread: reply `"success"` first, process async, reach the user via the customer-service API;
 - All replies (passive + customer-service) also land in `wx_message_logs` (`direction=out`), forming a complete conversation record.
 
+**SDK integration delivered (2026-10-27)**: option-a thin wrapper landed as `WxMpServiceProvider` (per-`accountId` `WxMpService` build + `ConcurrentHashMap` cache, design §5.1 instance constraint; `evict(long)` on config change) and an account-level `WxMpMessageRouter` in `WxOfficialAccountService.buildRouter` (lazy cache, all rules `.async(false)` for the 5s window; SDK's built-in in-memory duplicate checker set to no-op because `wx_message_logs.dedupe_key` remains the single dedupe authority — the flow still verifies signatures and decrypts with the hand-written `WxMsgCryptor`, and OAuth's `code→openid` exchange stays the hand-written `RestTemplate` path per D-OA3/D-OA5; the SDK is used only for XML parse + message/event routing, not crypto or web-auth). Covered by `WxMpServiceProviderTest`, `WxSdkContractTest` and the existing callback/material/encrypt HTTP regressions.
+
 ### 5.5 Message Type Matrix (phase 1)
 
 | Type | Receive | Passive reply | Notes |
