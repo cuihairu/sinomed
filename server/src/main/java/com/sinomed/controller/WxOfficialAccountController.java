@@ -25,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -280,7 +281,8 @@ public class WxOfficialAccountController {
     // ---------- 素材台账只读（设计稿 §4.5「供管理端查看」；粉丝发图落盘后此前无处可见；需登录） ----------
 
     @Operation(summary = "素材台账分页", description = "粉丝消息图片等素材的只读台账（含本地副本标记 localPath），"
-            + "按账号/类型/时间窗 AND 过滤，最新在前；不依赖模块开关；需登录")
+            + "按账号/类型/时间窗 AND 过滤，最新在前；不依赖模块开关；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/materials/page")
     public PageResp<WxMaterialView> pageMaterials(@RequestParam int current,
                                                   @RequestParam int pageSize,
@@ -304,7 +306,8 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "取素材本地文件", description = "按台账 id 返回本地副本字节（Content-Type 取台账 mimeType，"
-            + "坏值兜底 octet-stream）；无本地副本/文件缺失/路径越界一律 400；需登录")
+            + "坏值兜底 octet-stream）；无本地副本/文件缺失/路径越界一律 400；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/materials/{id}")
     public ResponseEntity<ByteArrayResource> materialFile(@PathVariable long id) throws IOException {
         WxOfficialAccountService.MaterialFile file = wxOfficialAccountService.loadMaterialFile(id);
@@ -317,8 +320,9 @@ public class WxOfficialAccountController {
 
     @Operation(summary = "本地上传素材", description = "设计稿 §8 二期「永久台账+本仓存储」本地半边："
             + "multipart 上传落 `sinomed.official-account.material-dir` 并写 `wx_materials` 台账行"
-            + "（materialType=permanent，mediaId 留空）；仅 png/jpg/jpeg/webp/gif/mp4、单文件上限"
-            + "material-max-bytes；真实上传到微信仍压正式凭据（二期出网半边）；需登录")
+            + "（materialType 按扩展名取 image/video，mediaId 留空）；仅 png/jpg/jpeg/webp/gif/mp4、单文件上限"
+            + "material-max-bytes；真实上传到微信仍压正式凭据（二期出网半边）；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PostMapping("/materials/upload/{accountId}")
     public WxMaterialView uploadMaterial(@PathVariable("accountId") long accountId,
                                          @RequestParam("file") MultipartFile file) {
@@ -326,7 +330,8 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "删除本地素材", description = "仅删本地治理行（mediaId 为空）；带微信 media_id 的"
-            + "远端台账拒绝本地删除（防误删远端审计）；本地文件一并删除；不存在/非法 400；需登录")
+            + "远端台账拒绝本地删除（防误删远端审计）；本地文件一并删除；不存在/非法 400；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @DeleteMapping("/materials/local/{id}")
     public MessageView deleteLocalMaterial(@PathVariable long id) {
         wxOfficialAccountService.deleteLocalMaterial(id);

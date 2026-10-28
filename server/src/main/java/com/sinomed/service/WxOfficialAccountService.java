@@ -1171,9 +1171,8 @@ public class WxOfficialAccountService {
         if (isBlank(material.getLocalPath())) {
             throw new IllegalArgumentException("该素材无本地副本");
         }
-        Path root = Paths.get(materialDir).toAbsolutePath().normalize();
-        Path target = root.resolve(material.getLocalPath()).normalize();
-        if (!target.startsWith(root) || !Files.isRegularFile(target)) {
+        Path target = resolveLocalPath(material.getLocalPath());
+        if (target == null || !Files.isRegularFile(target)) {
             throw new IllegalArgumentException("素材文件不存在或路径不合法");
         }
         String mime = isBlank(material.getMimeType()) ? "application/octet-stream" : material.getMimeType().trim();
@@ -1185,9 +1184,19 @@ public class WxOfficialAccountService {
         return new MaterialFile(target, mime);
     }
 
+    /** localPath 相对素材根目录解析并校验在根内；路径非法/越界返回 null（缺失文件不在此判，调用方定口径） */
+    private Path resolveLocalPath(String localPath) {
+        if (isBlank(localPath)) {
+            return null;
+        }
+        Path root = Paths.get(materialDir).toAbsolutePath().normalize();
+        Path target = root.resolve(localPath).normalize();
+        return target.startsWith(root) ? target : null;
+    }
+
     /**
      * 本地素材上传（设计稿 §8 二期「素材上传与治理（永久台账+本仓存储）」的本地半边）：
-     * 落 `wx_materials.material_type=permanent`，`local_path` 沿素材根目录、`media_id` 留空
+     * 落 `wx_materials.material_type=image/video`（§4.5 标准枚举），`local_path` 沿素材根目录、`media_id` 留空
      * （本地治理行与微信远端台账互不冲突）；真实上传到微信属二期出网半边，压正式凭据后另接。
      */
     public WxMaterialEntity uploadLocalMaterial(long accountId, MultipartFile file) {
@@ -1204,6 +1213,18 @@ public class WxOfficialAccountService {
         if (!LOCAL_MATERIAL_EXTS.contains(extension)) {
             throw new IllegalArgumentException("仅支持 png/jpg/jpeg/webp/gif/mp4 素材");
         }
+        String mime = file.getContentType() == null ? "" : file.getContentType().trim().toLowerCase(Locale.ROOT);
+        boolean mediaTypeOk = switch (extension) {
+            case "png" -> mime.contains("png");
+            case "jpg", "jpeg" -> mime.contains("jpeg") || mime.contains("jpg");
+            case "gif" -> mime.contains("gif");
+            case "webp" -> mime.contains("webp");
+            case "mp4" -> mime.contains("mp4");
+            default -> false;
+        };
+        if (!mediaTypeOk) {
+            throw new IllegalArgumentException("文件媒体类型与扩展名不符：" + file.getContentType());
+        }
         String relative = Paths.get(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")),
                 UUID.randomUUID() + "." + extension).toString().replace('\\', '/');
         Path target = Paths.get(materialDir, relative);
@@ -1212,7 +1233,7 @@ public class WxOfficialAccountService {
             file.transferTo(target.toAbsolutePath());
             WxMaterialEntity material = new WxMaterialEntity();
             material.setAccountId(account.getId());
-            material.setMaterialType("permanent");
+            material.setMaterialType("mp4".equals(extension) ? "video" : "image");
             material.setName(originalName.isBlank() ? "本地素材" : originalName);
             material.setLocalPath(relative);
             material.setSize(file.getSize());
@@ -1232,7 +1253,12 @@ public class WxOfficialAccountService {
         }
         if (!isBlank(material.getLocalPath())) {
             try {
-                Files.deleteIfExists(loadMaterialFile(id).path());
+                // 文件已丢失时仍清台账行（否则该行永远无法经本端点清理）；缺失按已删处理
+                Path target = resolveLocalPath(material.getLocalPath());
+                if (target == null) {
+                    throw new IllegalArgumentException("素材路径不合法");
+                }
+                Files.deleteIfExists(target);
             } catch (IOException e) {
                 throw new IllegalStateException("素材文件删除失败：" + e.getMessage(), e);
             }
