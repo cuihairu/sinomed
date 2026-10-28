@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -312,5 +313,23 @@ public class WxOfficialAccountController {
                 .contentType(MediaType.parseMediaType(file.mimeType()))
                 .contentLength(bytes.length)
                 .body(new ByteArrayResource(bytes));
+    }
+
+    @Operation(summary = "本地上传素材", description = "设计稿 §8 二期「永久台账+本仓存储」本地半边："
+            + "multipart 上传落 `sinomed.official-account.material-dir` 并写 `wx_materials` 台账行"
+            + "（materialType=permanent，mediaId 留空）；仅 png/jpg/jpeg/webp/gif/mp4、单文件上限"
+            + "material-max-bytes；真实上传到微信仍压正式凭据（二期出网半边）；需登录")
+    @PostMapping("/materials/upload/{accountId}")
+    public WxMaterialView uploadMaterial(@PathVariable("accountId") long accountId,
+                                         @RequestParam("file") MultipartFile file) {
+        return WxMaterialView.from(wxOfficialAccountService.uploadLocalMaterial(accountId, file));
+    }
+
+    @Operation(summary = "删除本地素材", description = "仅删本地治理行（mediaId 为空）；带微信 media_id 的"
+            + "远端台账拒绝本地删除（防误删远端审计）；本地文件一并删除；不存在/非法 400；需登录")
+    @DeleteMapping("/materials/local/{id}")
+    public MessageView deleteLocalMaterial(@PathVariable long id) {
+        wxOfficialAccountService.deleteLocalMaterial(id);
+        return new MessageView("删除成功");
     }
 }

@@ -36,6 +36,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.client.RestTemplate;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
@@ -43,6 +44,7 @@ import org.xml.sax.InputSource;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -117,6 +119,8 @@ public class WxOfficialAccountService {
     /** 需要事件 key 的菜单类型（微信协议：除 view 系外回调都要带 key 路由） */
     private static final Set<String> KEY_MENU_TYPES = Set.of("click", "scancode_push", "scancode_waitmsg",
             "pic_sysphoto", "pic_photo_or_album", "pic_weixin", "location_select");
+    private static final Set<String> LOCAL_MATERIAL_EXTS =
+            Set.of("png", "jpg", "jpeg", "webp", "gif", "mp4");
 
     /** 模块总开关（env WX_OA_ENABLED）；缺省 false=整体关闭，回调拒处理 */
     @Value("${sinomed.official-account.enabled:false}")
@@ -1179,6 +1183,61 @@ public class WxOfficialAccountService {
             mime = "application/octet-stream"; // 台账 mime 来自下载响应头，坏值兜底不让取图 500
         }
         return new MaterialFile(target, mime);
+    }
+
+    /**
+     * 本地素材上传（设计稿 §8 二期「素材上传与治理（永久台账+本仓存储）」的本地半边）：
+     * 落 `wx_materials.material_type=permanent`，`local_path` 沿素材根目录、`media_id` 留空
+     * （本地治理行与微信远端台账互不冲突）；真实上传到微信属二期出网半边，压正式凭据后另接。
+     */
+    public WxMaterialEntity uploadLocalMaterial(long accountId, MultipartFile file) {
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("公众号账号不存在"));
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("上传文件为空");
+        }
+        if (file.getSize() > materialMaxBytes) {
+            throw new IllegalArgumentException("文件超过大小上限：" + materialMaxBytes + " 字节");
+        }
+        String originalName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().trim();
+        String extension = extensionFor(originalName, file.getContentType());
+        if (!LOCAL_MATERIAL_EXTS.contains(extension)) {
+            throw new IllegalArgumentException("仅支持 png/jpg/jpeg/webp/gif/mp4 素材");
+        }
+        String relative = Paths.get(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")),
+                UUID.randomUUID() + "." + extension).toString().replace('\\', '/');
+        Path target = Paths.get(materialDir, relative);
+        try {
+            Files.createDirectories(target.getParent());
+            file.transferTo(target.toAbsolutePath());
+            WxMaterialEntity material = new WxMaterialEntity();
+            material.setAccountId(account.getId());
+            material.setMaterialType("permanent");
+            material.setName(originalName.isBlank() ? "本地素材" : originalName);
+            material.setLocalPath(relative);
+            material.setSize(file.getSize());
+            material.setMimeType(isBlank(file.getContentType()) ? null : file.getContentType().trim());
+            return materialRepository.save(material);
+        } catch (IOException e) {
+            throw new IllegalStateException("素材落盘失败：" + e.getMessage(), e);
+        }
+    }
+
+    /** 删除本地治理素材；有微信 media_id 的远端台账行不走本地删除（防误删远端审计）。 */
+    public void deleteLocalMaterial(long id) {
+        WxMaterialEntity material = materialRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("素材不存在"));
+        if (!isBlank(material.getMediaId())) {
+            throw new IllegalArgumentException("微信素材台账不可本地删除");
+        }
+        if (!isBlank(material.getLocalPath())) {
+            try {
+                Files.deleteIfExists(loadMaterialFile(id).path());
+            } catch (IOException e) {
+                throw new IllegalStateException("素材文件删除失败：" + e.getMessage(), e);
+            }
+        }
+        materialRepository.deleteById(id);
     }
 
     /** 管理端账号列表（规则/粉丝页选账号用，单店量小不分页，id 升序）；密钥列绝不读回（见 WxAccountView） */

@@ -420,7 +420,7 @@ sinomed:
 ### 第二期：运营工具化 ——「菜单 + 素材」
 
 - 自定义菜单管理页：编辑/草稿本地半边已交付（管理端树形 CRUD + 协议校验，见 §4.3）；**推送微信半边已交付**（2026-10-20：服务端 `POST /api/v1/wx/menus/push/{accountId}` 取 token→`menus/create`，只推启用菜单、errcode 透传，本地桩测试零外网见 `WxMenuPushHttpTest` 5 例；web 推送按钮同日接线；真实出网压凭据）；
-- 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用；
+- 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用——**本地半边已交付**（2026-10-28：服务端 `POST /api/v1/wx/materials/upload/{accountId}` multipart 落 `material-dir` 写 permanent 台账 + `DELETE /api/v1/wx/materials/local/{id}` 限本地行删除，类型/大小校验、零外网 HTTP 回归见 `WxMaterialLocalUploadHttpTest` 4 例；真实上传微信出网半边压正式凭据）；
 - 管理端规则编辑 UI（自动回复不再手工改库）——**已全链交付**（2026-10-20：服务端 `/api/v1/wx/auto-replies` 增删改查 + 枚举校验 + subscribe/fallback 单条启用约束 + 管理端账号列表 `/api/v1/wx/accounts`（脱敏不下发密钥列），契约见 docs/server/api.md；web/ 管理端「公众号」页规则表：选账号过滤 + 类型/状态过滤 + 新建/编辑/停用启用/删除）；
 - 安全/兼容模式消息加解密（回调 AES 信封，§5.3）——**已交付**（2026-10-20：`WxMsgCryptor` 官方规范手写落地，含 `<Encrypt>` 报文走 `msg_signature` 四段验签 + AES 解密进主流程、安全模式回复密封、拒绝审计 `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`；测试 `WxMsgCryptorTest` 6 例 OpenSSL KAT + `WxEncryptModeCallbackHttpTest` 5 例）；
 - 管理端消息流水与素材台账查看（第一期 #4 的 UI 半边）——**已交付**（2026-10-20：web/ 公众号页改 Tabs，新增「消息流水」tab（ProTable 服务端分页，账号/粉丝/方向/类型/结果/时间窗过滤，顾客姓名列兑现第一期验收口径）与「素材台账」tab（含本地副本图片 blob 预览）；服务端素材分页+取图端点见 §4.5 尾注）；
