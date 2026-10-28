@@ -167,7 +167,7 @@ Index `(account_id, rule_type, enabled)`. At most one effective `subscribe`/`fal
 | size / mime_type | Long / String | File metadata |
 | create_time / update_time | Date | Audit times |
 
-Unique `(account_id, media_id)`. Phase 1 **only pulls message-embedded temp materials to disk + logs** (downloads PicUrl into `local_path` when an image message arrives, for admin viewing); no upload/manage UI. Read-only ledger viewing landed on 2026-10-20: `GET /api/v1/wx/materials/page` (account/type/time-window AND filters) + `GET /api/v1/wx/materials/{id}` serving the local copy (path-traversal guard, `../` always 400), consumed by the web/ WeChat page's "Material ledger" tab (blob preview carrying the JWT); upload and WeChat-side permanent materials remain the phase-2 push half (credential-gated).
+Unique `(account_id, media_id)`. Phase 1 **only pulls message-embedded temp materials to disk + logs** (downloads PicUrl into `local_path` when an image message arrives, for admin viewing); no upload/manage UI. Read-only ledger viewing landed on 2026-10-20: `GET /api/v1/wx/materials/page` (account/type/time-window AND filters) + `GET /api/v1/wx/materials/{id}` serving the local copy (path-traversal guard, `../` always 400), consumed by the web/ WeChat page's "Material ledger" tab (blob preview carrying the JWT). The local upload half landed on 2026-10-28 (see §8: `POST /api/v1/wx/materials/upload/{accountId}` + `DELETE /api/v1/wx/materials/local/{id}`, MANAGER+ per §6.3); only the real WeChat-side outbound push of permanent materials remains the phase-2 push half (credential-gated).
 
 ### 4.6 Fan Tags: No New Table, Reuse customer_tags
 

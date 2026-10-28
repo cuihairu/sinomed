@@ -167,7 +167,7 @@
 | size / mime_type | Long / String | 文件元信息 |
 | create_time / update_time | Date | 审计时间 |
 
-唯一约束 `(account_id, media_id)`。第一期**只做消息内临时素材的拉取落日志**（收到图片消息时下载 PicUrl 到 `local_path`，供管理端查看），不做上传/管理 UI。台账只读查看已于 2026-10-20 交付：`GET /api/v1/wx/materials/page`（账号/类型/时间窗 AND 过滤）+ `GET /api/v1/wx/materials/{id}` 取本地副本（路径越权防护，`../` 一律 400），web/ 公众号页「素材台账」tab 消费（blob 预览带 JWT）；上传与微信侧永久素材仍属第二期推送半边（压凭据）。
+唯一约束 `(account_id, media_id)`。第一期**只做消息内临时素材的拉取落日志**（收到图片消息时下载 PicUrl 到 `local_path`，供管理端查看），不做上传/管理 UI。台账只读查看已于 2026-10-20 交付：`GET /api/v1/wx/materials/page`（账号/类型/时间窗 AND 过滤）+ `GET /api/v1/wx/materials/{id}` 取本地副本（路径越权防护，`../` 一律 400），web/ 公众号页「素材台账」tab 消费（blob 预览带 JWT）。本地上传半边已于 2026-10-28 交付（见 §8：`POST /api/v1/wx/materials/upload/{accountId}` + `DELETE /api/v1/wx/materials/local/{id}`，均限 MANAGER+，§6.3）；仅真实上传到微信的永久素材出网半边仍属第二期推送半边（压凭据）。
 
 ### 4.6 粉丝标签：不建表，复用 customer_tags
 

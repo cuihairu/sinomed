@@ -192,9 +192,24 @@ class WxMaterialLocalUploadHttpTest {
         assertBadRequest(() -> upload(new byte[600], "big.png", "image/png"), "超限应拒绝");
         // MIME 与扩展名不符：evil.png 配 text/html 应拒绝（审核发现：绕过“仅媒体类型”契约）
         assertBadRequest(() -> upload(new byte[]{0x42}, "evil.png", "text/html"), "png+text/html 应拒绝");
+        // 审核发现：MIME 子串绕过——`text/html; x=png` 曾因 contains("png") 通过，现剥参后基础类型精确匹配必须拒绝
+        assertBadRequest(() -> upload(new byte[]{0x42}, "evil.png", "text/html; x=png"), "png+text/html;x=png 应拒绝");
         // 未知账号 400（文档 api.md:161 契约）
         assertBadRequest(() -> uploadTo(999999L, PNG_BYTES, "doctor.png", "image/png"), "未知账号应 400");
         assertTrue(materialRepository.findAll().isEmpty(), "全部拒绝用例不应给台账落行");
+    }
+
+    @Test
+    void uploadsParameterizedMimeWithCanonicalReplay() {
+        // 审核发现：带参数的合法媒体类型（image/png; x=png）应接受，且入库/回放为规范值而非客户端原值
+        Map<String, Object> row = upload(PNG_BYTES, "param.png", "image/png; x=png");
+        assertEquals("image/png", row.get("mimeType"), "入库 MIME 应为规范 image/png：" + row);
+        var resp = rest.exchange(url("/api/v1/wx/materials/" + row.get("id")),
+                HttpMethod.GET, new HttpEntity<>(authHeaders(token)), byte[].class);
+        assertArrayEquals(PNG_BYTES, resp.getBody(), "带参合法 MIME 上传仍应逐字节读回");
+        String replayed = resp.getHeaders().getContentType() == null ? null
+                : resp.getHeaders().getContentType().toString().split(";")[0].trim();
+        assertEquals("image/png", replayed, "回放 Content-Type 应为规范 image/png 而非客户端原值");
     }
 
     @Test

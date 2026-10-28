@@ -1213,16 +1213,19 @@ public class WxOfficialAccountService {
         if (!LOCAL_MATERIAL_EXTS.contains(extension)) {
             throw new IllegalArgumentException("仅支持 png/jpg/jpeg/webp/gif/mp4 素材");
         }
-        String mime = file.getContentType() == null ? "" : file.getContentType().trim().toLowerCase(Locale.ROOT);
-        boolean mediaTypeOk = switch (extension) {
-            case "png" -> mime.contains("png");
-            case "jpg", "jpeg" -> mime.contains("jpeg") || mime.contains("jpg");
-            case "gif" -> mime.contains("gif");
-            case "webp" -> mime.contains("webp");
-            case "mp4" -> mime.contains("mp4");
-            default -> false;
+        // 客户端 MIME 必须与扩展名的规范媒体类型一致：先剥掉 `;` 后的参数，再对基础媒体类型精确比较
+        // （禁止 `contains` 子串匹配——`text/html; x=png` 会因含 "png" 绕过）；入库记规范值，回放 Content-Type 恒定
+        String baseMime = (file.getContentType() == null ? "" : file.getContentType())
+                .split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+        String canonicalMime = switch (extension) {
+            case "png" -> baseMime.equals("image/png") ? "image/png" : null;
+            case "jpg", "jpeg" -> (baseMime.equals("image/jpeg") || baseMime.equals("image/jpg")) ? "image/jpeg" : null;
+            case "gif" -> baseMime.equals("image/gif") ? "image/gif" : null;
+            case "webp" -> baseMime.equals("image/webp") ? "image/webp" : null;
+            case "mp4" -> baseMime.equals("video/mp4") ? "video/mp4" : null;
+            default -> null;
         };
-        if (!mediaTypeOk) {
+        if (canonicalMime == null) {
             throw new IllegalArgumentException("文件媒体类型与扩展名不符：" + file.getContentType());
         }
         String relative = Paths.get(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")),
@@ -1237,7 +1240,7 @@ public class WxOfficialAccountService {
             material.setName(originalName.isBlank() ? "本地素材" : originalName);
             material.setLocalPath(relative);
             material.setSize(file.getSize());
-            material.setMimeType(isBlank(file.getContentType()) ? null : file.getContentType().trim());
+            material.setMimeType(canonicalMime);
             return materialRepository.save(material);
         } catch (IOException e) {
             throw new IllegalStateException("素材落盘失败：" + e.getMessage(), e);
