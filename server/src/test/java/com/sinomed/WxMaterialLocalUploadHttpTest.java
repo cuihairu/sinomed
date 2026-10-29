@@ -255,6 +255,18 @@ class WxMaterialLocalUploadHttpTest {
 
     @Test
     void userCannotUploadOrDeleteMaterials() {
+        HttpHeaders readHeaders = new HttpHeaders();
+        readHeaders.setBearerAuth(userToken);
+        HttpClientErrorException pageErr = assertThrows(HttpClientErrorException.class,
+                () -> rest.exchange(url("/api/v1/wx/materials/page?current=1&pageSize=10"),
+                        HttpMethod.GET, new HttpEntity<>(readHeaders), Map.class));
+        assertEquals(HttpStatus.FORBIDDEN, pageErr.getStatusCode(), "USER 分页应 403：" + pageErr.getResponseBodyAsString());
+
+        HttpClientErrorException fileErr = assertThrows(HttpClientErrorException.class,
+                () -> rest.exchange(url("/api/v1/wx/materials/1"),
+                        HttpMethod.GET, new HttpEntity<>(readHeaders), Map.class));
+        assertEquals(HttpStatus.FORBIDDEN, fileErr.getStatusCode(), "USER 取文件应 403：" + fileErr.getResponseBodyAsString());
+
         // 普通 USER 上传应 403（设计稿 §6.3 MANAGER+）
         HttpHeaders uploadHeaders = new HttpHeaders();
         uploadHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
