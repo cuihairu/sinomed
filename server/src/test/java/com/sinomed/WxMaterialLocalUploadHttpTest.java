@@ -200,6 +200,22 @@ class WxMaterialLocalUploadHttpTest {
     }
 
     @Test
+    void uploadsMp4WithVideoTypeAndRejectsMimeMismatch() {
+        // 审核发现：新增媒体类型分支只测了 png——mp4 须走 video/mp4 校验且落 materialType=video（§4.5 枚举）
+        Map<String, Object> row = upload(new byte[]{0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70}, "clip.mp4", "video/mp4");
+        assertEquals("video", row.get("materialType"), "mp4 应落 video 台账：" + row);
+        assertEquals("video/mp4", row.get("mimeType"), "mp4 入库 MIME 应为规范 video/mp4：" + row);
+        assertTrue(((String) row.get("localPath")).endsWith(".mp4"), "mp4 扩展名应取文件名：" + row);
+
+        // 类型映射写错（如落 image）或校验漏判（MIME 与扩展名不符放行）都会让既有 6 例全绿，此处锁定
+        long videoRowsBefore = materialRepository.findAll().stream().filter(m -> "video".equals(m.getMaterialType())).count();
+        assertBadRequest(() -> upload(new byte[]{0x42}, "evil.mp4", "video/quicktime"), "mp4+video/quicktime 应拒绝");
+        assertBadRequest(() -> upload(new byte[]{0x42}, "clip.mp4", "application/octet-stream"), "mp4+octet-stream 应拒绝");
+        long videoRowsAfter = materialRepository.findAll().stream().filter(m -> "video".equals(m.getMaterialType())).count();
+        assertEquals(videoRowsBefore, videoRowsAfter, "拒绝用例不应新增 video 台账行");
+    }
+
+    @Test
     void uploadsParameterizedMimeWithCanonicalReplay() {
         // 审核发现：带参数的合法媒体类型（image/png; x=png）应接受，且入库/回放为规范值而非客户端原值
         Map<String, Object> row = upload(PNG_BYTES, "param.png", "image/png; x=png");
