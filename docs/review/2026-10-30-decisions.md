@@ -172,10 +172,17 @@
 
 **已执行（无需密钥/账号/用户私有数据）：**
 - 决策第 2 项「素材远端上传另建开发范围」：核查确认全仓无微信永久素材上传实现——`WxOfficialAccountService.uploadLocalMaterial` javadoc 自述 `media_id` 留空（`WxOfficialAccountService.java:1199-1202`），`server/src/main` 无 `getMaterialService`/`MaterialUploadResult`/`WxMpMaterial` 任何引用；按决策在 `todo.md` 另立开发范围条目，不标记为单纯外部阻塞。
+- 事实复核（2026-10-30）：决策正文三处关键 claim 与仓库一致——web 管理页素材区确实只读（`web/src/pages/Wx/Index/index.tsx` 仅调 `/materials/page` 与 blob 预览，上传/删除只有服务端端点）；`KioskController` sms-code 与 `WxOfficialAccountService` 绑定取码均为短信桩（只落库+日志）；`PayQrCodeController` 存在且仅为收款码展示。无需修正正文。
+- 配套检查表已落 `docs/review/2026-10-30-decision-checklists.md`（commit `c992461`）：
+  - 第 1 项 ✅ 小程序真机联调验收清单（A 登录/B 绑定分开验收 + 短信独立上线门槛）
+  - 第 2 项 ✅ 公众号分段联调检查表（P1–P5 前置配置分项 + V1–V3 验证顺序）与素材验收卡 A/B
+  - 第 3 项 ✅ 支付需求卡模板 + 网关验收清单
+  - 第 4 项 ✅ 立项场景卡模板（四件事 + 客服接待时间/无人提示）
+  - 第 5 项 ✅ 规则页走查清单（操作序列 + 边界用例 + 记录模板）
 
 **需用户输入，暂缓（跳过，对应决策各「立即执行动作」）：**
-- 第 1 项全部：小程序账号管理员/所属主体/拟用域名、真实 appid+AppSecret、部署注入、真机联调、短信服务与费用负责人。
-- 第 2 项：公众号账号类型/认证/实际可用能力/域名管理员、`WX_OA_CREDENTIAL_KEY`/回调 token/`WX_OA_OAUTH_REDIRECT_BASE` 部署配置、公众号 appid/AppSecret（ADMIN 入口）、逐项分段联调、网页授权全流程（待真实短信送达）。
-- 第 3 项：业务负责人需求卡（付款场景/通道/收款主体/退款/对账/费用范围）。
-- 第 4 项：业务负责人场景卡（服务谁/解决什么问题/谁日常负责/什么指标）。
-- 第 5 项：规则页操作走查需实际使用者参与；按决策「明确不做」本轮不启动服务、不生成构建产物。
+- 第 1 项 待用户：小程序账号管理员/所属主体/拟用域名、真实 appid+AppSecret、部署注入、真机联调、短信服务与费用负责人。
+- 第 2 项 待用户：公众号账号类型/认证/实际可用能力/域名管理员、`WX_OA_CREDENTIAL_KEY`/回调 token/`WX_OA_OAUTH_REDIRECT_BASE` 部署配置、公众号 appid/AppSecret（ADMIN 入口）、逐项分段联调、网页授权全流程（待真实短信送达）。
+- 第 3 项 待用户：业务负责人填需求卡（模板已备，见 checklists §4）。
+- 第 4 项 待用户：业务负责人填场景卡（模板已备，见 checklists §5）。
+- 第 5 项 待用户：确认是否已有走查记录；没有则指定一名实际使用者走查（按决策「明确不做」本轮不启动服务、不生成构建产物）。
