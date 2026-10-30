@@ -94,7 +94,7 @@
 | remark | String | 备注 |
 | create_time / update_time | Date | 审计时间 |
 
-唯一约束 `app_id`；索引 `enabled`。第一期**配置入口**：优先直接写库（管理端表单）或 env 覆盖，`WechatClient` 现有「未配置明确拒绝」口径沿用（不静默跳过）。
+唯一约束 `app_id`；索引 `enabled`。第一期**配置入口**（2026-10-30 交付）：`POST /api/v1/wx/accounts` + `PUT /api/v1/wx/accounts/{id}`（仅 ADMIN，§6.3）——管理端表单直接写库（env 仍作单店 token 覆盖）；appSecret/aesKey 落库加密（§7）且绝不明文回显；更新留空=保持既有；`WechatClient` 现有「未配置明确拒绝」口径沿用（不静默跳过）。
 
 ### 4.2 wx_fans — 公众号粉丝（核心，桥接顾客档案）
 
@@ -361,11 +361,11 @@ H5 页 /h5/wx/bind?account=1
 
 复用现有 `Role/Permission` 体系（`security/Role.java:16-38`、`Permission.java:7-15`），**不新增权限枚举**（现网只有 `ADMIN`/`MANAGER` 两档有效）：
 
-- 公众号账号配置（含 AppSecret/Token/AESKey 读写）：`ADMIN`（对齐 `StaffController.java:72` 的 `@PreAuthorize("hasRole('ADMIN')")` 用法）；
+- 公众号账号配置（含 AppSecret/Token/AESKey 读写）：`ADMIN`（2026-10-30 交付：`POST /api/v1/wx/accounts` + `PUT /api/v1/wx/accounts/{id}` 均 `@PreAuthorize("hasRole('ADMIN')")`，对齐 `StaffController.java:72`）；
 - 菜单/自动回复/素材/消息工作台：`MANAGER` 及以上；
 - 回调接口：免登录（§5.1），靠签名验证。
 
-**AppSecret 不回显**：管理端查询接口只返回掩码（`****`），修改时留空=不更新——对齐 `WechatClient.java:15-16`「凭据不下发前端」口径。
+**AppSecret 不回显**：管理端查询接口在配置了密钥时返回掩码（`****`）、未配置时返回 `null`，修改时留空=不更新——对齐 `WechatClient.java:15-16`「凭据不下发前端」口径。
 
 ---
 

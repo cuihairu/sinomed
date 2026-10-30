@@ -259,9 +259,10 @@ class WxAutoReplyAdminHttpTest {
         assertEquals("service", row.get("accountType"));
         assertEquals(1, row.get("verified"));
         assertEquals(1, row.get("enabled"));
-        assertFalse(row.containsKey("appSecret"), "管理端账号列表绝不下发密钥列：" + row.keySet());
-        assertFalse(row.containsKey("token"), "不下发验签 token：" + row.keySet());
-        assertFalse(row.containsKey("aesKey"), "不下发 aesKey：" + row.keySet());
+        // 种子账号未配置任何密钥：未配置字段回显 null，明文绝不下发（§6.3「never echoes back」）
+        assertNull(row.get("appSecret"), "未配置 appSecret 应回显 null：" + row);
+        assertNull(row.get("token"), "未配置 token 应回显 null：" + row);
+        assertNull(row.get("aesKey"), "未配置 aesKey 应回显 null：" + row);
     }
 
     @Test

@@ -94,7 +94,7 @@ Follows repo discipline: JPA entities + `ddl-auto: update` auto-tables, no DB FK
 | remark | String | Notes |
 | create_time / update_time | Date | Audit times |
 
-Unique on `app_id`; index on `enabled`. Phase-1 **configuration entry**: write the DB directly (admin form) or env override; `WechatClient`'s "explicit rejection when unconfigured" convention carries over (no silent skip).
+Unique on `app_id`; index on `enabled`. Phase-1 **configuration entry** (delivered 2026-10-30): `POST /api/v1/wx/accounts` + `PUT /api/v1/wx/accounts/{id}` (ADMIN only, §6.3) — the admin form writes the DB directly (env remains the token override for single-store); appSecret/aesKey are encrypted at rest (§7) and never echo back; empty on update keeps the existing value; `WechatClient`'s "explicit rejection when unconfigured" convention carries over (no silent skip).
 
 ### 4.2 wx_fans — Official Account Fans (core, bridges customer records)
 
@@ -366,11 +366,11 @@ Degradation styling matches the existing admin (disabled + tooltip), no confirm 
 
 Reuse the existing `Role/Permission` system (`security/Role.java:16-38`, `Permission.java:7-15`), **no new permission enums** (only `ADMIN`/`MANAGER` are effectively in use):
 
-- Account configuration (incl. AppSecret/Token/AESKey read/write): `ADMIN` (aligning with `StaffController.java:72`'s `@PreAuthorize("hasRole('ADMIN')")` usage);
+- Account configuration (incl. AppSecret/Token/AESKey read/write): `ADMIN` (delivered 2026-10-30: `POST /api/v1/wx/accounts` + `PUT /api/v1/wx/accounts/{id}` are `@PreAuthorize("hasRole('ADMIN')")`, aligning with `StaffController.java:72`);
 - Menus / auto-replies / materials / message console: `MANAGER` and above;
 - Callback endpoints: no login (§5.1), trusted by signature.
 
-**AppSecret never echoes back**: the admin query returns a mask (`****`); empty on update = keep — aligning with `WechatClient.java:15-16` "credentials never reach the frontend".
+**AppSecret never echoes back**: the admin query returns a mask (`****`) when a secret is configured (`null` when absent); empty on update = keep — aligning with `WechatClient.java:15-16` "credentials never reach the frontend".
 
 ---
 

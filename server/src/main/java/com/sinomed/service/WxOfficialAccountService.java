@@ -1274,6 +1274,70 @@ public class WxOfficialAccountService {
         return accountRepository.findAll(Sort.by("id"));
     }
 
+    /** 账号类型合法值（设计稿 §4.1：service 服务号 / subscription 订阅号） */
+    private static final Set<String> ACCOUNT_TYPES = Set.of("service", "subscription");
+    /** 消息加密模式合法值（设计稿 §4.1：plaintext/compatible/safe） */
+    private static final Set<String> ENCRYPT_MODES = Set.of("plaintext", "compatible", "safe");
+
+    /**
+     * 管理端账号保存（设计稿 §4.1「配置入口」/§6.3「账号配置 ADMIN」/§7 凭据加密落库）：
+     * 创建/更新共用；appSecret/token/aesKey 落库加密（token 列无 converter，属设计稿 §7 env 折中，
+     * 写入即明文列——凭据类仍走加密列），更新时留空=保持既有（不回显、不覆盖）。校验枚举，
+     * appId 必填且同 appId 唯一；凭据写入前需 WX_OA_CREDENTIAL_KEY 已配（WxCredentialCipher 拒绝）。
+     * 配置变更后失效 SDK/路由缓存（下次按新实体重建）。
+     */
+    public WxAccountEntity saveAccount(WxAccountEntity incoming) {
+        WxAccountEntity entity;
+        boolean isCreate = incoming.getId() == null;
+        if (isCreate) {
+            entity = new WxAccountEntity();
+        } else {
+            entity = accountRepository.findById(incoming.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("公众号账号不存在"));
+        }
+        if (isBlank(incoming.getAppId())) {
+            throw new IllegalArgumentException("公众号 AppID 不能为空");
+        }
+        String appId = incoming.getAppId().trim();
+        accountRepository.findAll().stream()
+                .filter(other -> appId.equals(other.getAppId()))
+                .filter(other -> !other.getId().equals(entity.getId()))
+                .findAny()
+                .ifPresent(other -> {
+                    throw new IllegalArgumentException("AppID 已存在：" + appId);
+                });
+        String accountType = isBlank(incoming.getAccountType()) ? "service" : incoming.getAccountType().trim();
+        if (!ACCOUNT_TYPES.contains(accountType)) {
+            throw new IllegalArgumentException("accountType 必须是 service/subscription");
+        }
+        String encryptMode = isBlank(incoming.getEncryptMode()) ? "plaintext" : incoming.getEncryptMode().trim();
+        if (!ENCRYPT_MODES.contains(encryptMode)) {
+            throw new IllegalArgumentException("encryptMode 必须是 plaintext/compatible/safe");
+        }
+        entity.setAppId(appId);
+        entity.setAccountName(isBlank(incoming.getAccountName()) ? appId : incoming.getAccountName().trim());
+        entity.setAccountType(accountType);
+        entity.setVerified(incoming.getVerified() == null ? 0 : incoming.getVerified());
+        entity.setEnabled(incoming.getEnabled() == null ? 1 : incoming.getEnabled());
+        entity.setEncryptMode(encryptMode);
+        entity.setRemark(isBlank(incoming.getRemark()) ? null : incoming.getRemark().trim());
+        // 凭据：更新留空=保持既有（不回显掩码，绝不清除）；创建显式给（可空=不配）。
+        // app_secret/aes_key 走 AES 加密列；token 为设计稿 §7 env 折中列（写入明文列，凭据类仍加密）。
+        if (incoming.getAppSecret() != null && !incoming.getAppSecret().isBlank()) {
+            entity.setAppSecret(incoming.getAppSecret().trim());
+        }
+        if (incoming.getAesKey() != null && !incoming.getAesKey().isBlank()) {
+            entity.setAesKey(incoming.getAesKey().trim());
+        }
+        if (incoming.getToken() != null && !incoming.getToken().isBlank()) {
+            entity.setToken(incoming.getToken().trim());
+        }
+        WxAccountEntity saved = accountRepository.save(entity);
+        // 凭据/开关/类型变更后清路由与服务缓存（设计稿 §5.1 实例约束）
+        evictAccount(saved.getId());
+        return saved;
+    }
+
     /**
      * 图片消息素材拉取（设计稿 §4.5 第一期口径：下载 PicUrl 到 local_path 落 wx_materials 台账）。
      * 同 (account, media_id) 已有台账则跳过重下（微信超时重推同图）；下载失败、非 200、超上限一律

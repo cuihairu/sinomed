@@ -1,6 +1,6 @@
 import { request } from '@umijs/max';
 
-/** 公众号账号（管理端视图：服务端绝不下发 appSecret/token/aesKey） */
+/** 公众号账号（管理端视图：服务端只回显密钥掩码，明文绝不下发） */
 export interface WxAccount {
   id?: number;
   appId?: string;
@@ -11,10 +11,16 @@ export interface WxAccount {
   verified?: number;
   /** 1 启用 / 0 停用 */
   enabled?: number;
-  /** plaintext / 安全模式（第二期 AES） */
+  /** plaintext / compatible / safe */
   encryptMode?: string;
   remark?: string;
   createTime?: string;
+  /** 写入口：AppSecret（服务端加密落库，查询只回显 ****） */
+  appSecret?: string;
+  /** 写入口：消息推送 Token */
+  token?: string;
+  /** 写入口：EncodingAESKey */
+  aesKey?: string;
 }
 
 /** 自动回复规则（docs/server/api.md：/api/v1/wx/auto-replies） */
@@ -49,6 +55,24 @@ export interface WxPageResult<T> {
 export async function queryWxAccounts(options?: { [key: string]: any }) {
   return request<WxAccount[]>('/api/v1/wx/accounts', {
     method: 'GET',
+    ...(options || {}),
+  });
+}
+
+/** 创建公众号账号（仅 ADMIN，设计稿 §4.1 配置入口/§6.3） */
+export async function createWxAccount(body: WxAccount, options?: { [key: string]: any }) {
+  return request<WxAccount>('/api/v1/wx/accounts', {
+    method: 'POST',
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 更新公众号账号（仅 ADMIN；密钥留空=保持既有） */
+export async function updateWxAccount(id: number, body: WxAccount, options?: { [key: string]: any }) {
+  return request<WxAccount>(`/api/v1/wx/accounts/${id}`, {
+    method: 'PUT',
+    data: body,
     ...(options || {}),
   });
 }

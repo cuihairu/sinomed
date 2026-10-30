@@ -178,7 +178,7 @@ public class WxOfficialAccountController {
     // ---------- 管理端规则 CRUD（设计稿第二期「管理端规则编辑」服务端半边；需登录，不依赖模块开关） ----------
 
     @Operation(summary = "账号列表", description = "管理端选账号用（规则/粉丝页），单店量小不分页 id 升序；"
-            + "绝不下发密钥列（appSecret/token/aesKey），要改密钥走部署配置；需登录")
+            + "密钥列只回显掩码（appSecret/token/aesKey 有存量给 ****），明文绝不下发；需登录")
     @GetMapping("/accounts")
     public List<WxAccountView> accounts() {
         List<WxAccountView> data = new ArrayList<>();
@@ -186,6 +186,28 @@ public class WxOfficialAccountController {
             data.add(WxAccountView.from(account));
         }
         return data;
+    }
+
+    @Operation(summary = "创建公众号账号", description = "设计稿 §4.1 配置入口/§6.3 账号配置 ADMIN："
+            + "基础字段 + appSecret/token/aesKey（加密落库）；凭据写入前需 WX_OA_CREDENTIAL_KEY 已配，"
+            + "缺省未配则响亮拒绝；仅 ADMIN")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/accounts")
+    public WxAccountView createAccount(@RequestBody WxAccountView view) {
+        view.setId(null);
+        return WxAccountView.from(wxOfficialAccountService.saveAccount(view.toEntity()));
+    }
+
+    @Operation(summary = "更新公众号账号", description = "设计稿 §6.3：仅 ADMIN；密钥留空=保持既有（不回显、"
+            + "不清除），提供新值=轮换；配置变更后清路由/服务缓存")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/accounts/{id}")
+    public WxAccountView updateAccount(@PathVariable Long id, @RequestBody WxAccountView view) {
+        if (id == null) {
+            throw new IllegalArgumentException("账号Id不能为空");
+        }
+        view.setId(id);
+        return WxAccountView.from(wxOfficialAccountService.saveAccount(view.toEntity()));
     }
 
     @Operation(summary = "自动回复规则分页", description = "按账号/类型/启用态过滤，默认 priority 升序（小者先试）；需登录")
