@@ -188,6 +188,11 @@ class WxMaterialRemoteUploadHttpTest {
 
     private HttpEntity<MultiValueMap<String, Object>> uploadEntity(byte[] bytes, String filename, String mime,
                                                                    String jwt) {
+        return uploadEntity(bytes, filename, mime, jwt, null, null);
+    }
+
+    private HttpEntity<MultiValueMap<String, Object>> uploadEntity(byte[] bytes, String filename, String mime,
+                                                                   String jwt, String videoTitle, String videoIntroduction) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         headers.setBearerAuth(jwt);
@@ -201,12 +206,23 @@ class WxMaterialRemoteUploadHttpTest {
             }
         }, partHeaders);
         body.add("file", part);
+        if (videoTitle != null) {
+            body.add("videoTitle", videoTitle);
+        }
+        if (videoIntroduction != null) {
+            body.add("videoIntroduction", videoIntroduction);
+        }
         return new HttpEntity<>(body, headers);
     }
 
     private Map<String, Object> uploadRemote(byte[] bytes, String filename, String mime) {
+        return uploadRemote(bytes, filename, mime, null, null);
+    }
+
+    private Map<String, Object> uploadRemote(byte[] bytes, String filename, String mime,
+                                             String videoTitle, String videoIntroduction) {
         return rest.postForEntity(url("/api/v1/wx/materials/remote/" + accountId),
-                uploadEntity(bytes, filename, mime, token), Map.class).getBody();
+                uploadEntity(bytes, filename, mime, token, videoTitle, videoIntroduction), Map.class).getBody();
     }
 
     private void assertBadRequest(Runnable call, String message) {
@@ -237,10 +253,15 @@ class WxMaterialRemoteUploadHttpTest {
     @Test
     void uploadsMp4WithVideoTypeAndDescription() {
         Map<String, Object> row = uploadRemote(new byte[]{0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70},
-                "clip.mp4", "video/mp4");
+                "clip.mp4", "video/mp4", "手术演示", "术前培训");
         assertEquals("video", row.get("materialType"));
         assertEquals("MEDIA_REMOTE_1", row.get("mediaId"));
         assertTrue(lastUploadQuery.contains("type=video"), "mp4 应带 type=video：" + lastUploadQuery);
+        assertNotNull(lastUploadBody, "mp4 上传应捕获微信请求体");
+        assertTrue(lastUploadBody.contains("\"title\":\"手术演示\""),
+                "description 应透传 videoTitle：" + lastUploadBody);
+        assertTrue(lastUploadBody.contains("\"introduction\":\"术前培训\""),
+                "description 应透传 videoIntroduction：" + lastUploadBody);
     }
 
     @Test
