@@ -246,4 +246,32 @@ class WxAccountAdminHttpTest {
                 () -> createAccount(body, userToken));
         assertEquals(HttpStatus.FORBIDDEN, forbidden.getStatusCode(), "非 ADMIN 应 403");
     }
+
+    @Test
+    void updateNonexistentIdReturns400() {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("appId", "wxNOID" + System.nanoTime());
+        body.put("accountType", "service");
+        HttpClientErrorException e = assertThrows(HttpClientErrorException.class,
+                () -> updateAccount(999999L, body, adminToken));
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode(), "更新不存在 id 应 400（不静默覆盖、不 500）");
+    }
+
+    @Test
+    void createDuplicateAppIdReturns400() {
+        Map<String, Object> first = new java.util.HashMap<>();
+        first.put("appId", "wxDUP" + System.nanoTime());
+        first.put("accountType", "service");
+        createAccount(first, adminToken);
+
+        Map<String, Object> dup = new java.util.HashMap<>();
+        dup.put("appId", first.get("appId"));
+        dup.put("accountType", "service");
+        dup.put("accountName", "重复 AppID 号");
+        HttpClientErrorException e = assertThrows(HttpClientErrorException.class,
+                () -> createAccount(dup, adminToken));
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode(), "appId 唯一冲突应 400（不静默覆盖、不 500）");
+        assertEquals(1, accountRepository.findAll().stream()
+                .filter(a -> first.get("appId").equals(a.getAppId())).count(), "冲突不得新增行");
+    }
 }

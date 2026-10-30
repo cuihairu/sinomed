@@ -187,13 +187,13 @@ public class WxOfficialAccountService {
             logReject(accountId, "disabled", "none", null, null);
             return "success";
         }
-        Optional<WxAccountEntity> account = accountRepository.findById(accountId)
-                .filter(a -> a.getEnabled() != null && a.getEnabled() == 1);
-        if (account.isEmpty()) {
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .filter(a -> a.getEnabled() != null && a.getEnabled() == 1).orElse(null);
+        if (account == null) {
             logReject(accountId, "account_missing", "none", null, null);
             return "success";
         }
-        if (!WxSignatureUtil.check(token, timestamp, nonce, signature)) {
+        if (!WxSignatureUtil.check(resolveToken(account), timestamp, nonce, signature)) {
             logReject(accountId, "bad_signature", "none", null, null);
             return "";
         }
@@ -212,8 +212,9 @@ public class WxOfficialAccountService {
             logReject(accountId, "disabled", "none", null, null);
             return "success";
         }
-        Optional<WxAccountEntity> account = accountRepository.findById(accountId);
-        if (account.isEmpty() || account.get().getEnabled() == null || account.get().getEnabled() == 0) {
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .filter(a -> a.getEnabled() != null && a.getEnabled() != 0).orElse(null);
+        if (account == null) {
             logReject(accountId, "account_missing", "none", null, null);
             return "success";
         }
@@ -223,22 +224,22 @@ public class WxOfficialAccountService {
         String innerXml = xmlBody;
         boolean encrypted = encrypt != null && !encrypt.isBlank();
         if (encrypted) {
-            if (!msgCryptor.checkMsgSignature(token, timestamp, nonce, encrypt, msgSignature)) {
+            if (!msgCryptor.checkMsgSignature(resolveToken(account), timestamp, nonce, encrypt, msgSignature)) {
                 logReject(accountId, "bad_msg_signature", "none", null, null);
                 return "";
             }
             try {
-                innerXml = msgCryptor.decrypt(account.get().getAesKey(), account.get().getAppId(), encrypt);
+                innerXml = msgCryptor.decrypt(account.getAesKey(), account.getAppId(), encrypt);
             } catch (IllegalArgumentException e) {
                 logReject(accountId, "bad_encrypt", "none", null, null);
                 return "";
             }
         } else {
-            if ("safe".equals(account.get().getEncryptMode())) {
+            if ("safe".equals(account.getEncryptMode())) {
                 logReject(accountId, "missing_encrypt", "none", null, null);
                 return "";
             }
-            if (!WxSignatureUtil.check(token, timestamp, nonce, signature)) {
+            if (!WxSignatureUtil.check(resolveToken(account), timestamp, nonce, signature)) {
                 logReject(accountId, "bad_signature", "none", null, null);
                 return "";
             }
@@ -272,9 +273,9 @@ public class WxOfficialAccountService {
         // 路由骨架（设计稿 §5.4）：SDK WxMpMessageRouter 按账号实例化 + 同步规则（5s 窗口）；
         // 规则不命中或 handler 无回复时 Route 返回 null → 回 "success"。repo 侧排重仍由 DB 承担，
         // SDK 内置内存排重置为 no-op，避免与 wx_message_logs.dedupe_key 双写冲突。
-        WxMpXmlOutMessage out = router(account.get()).route(msg);
+        WxMpXmlOutMessage out = router(account).route(msg);
         String reply = out == null ? "success" : out.toXml();
-        return sealReply(account.get(), encrypted, nonce, reply);
+        return sealReply(account, encrypted, nonce, reply);
     }
 
     /** 账号级消息路由：懒建缓存（设计稿 §5.1，按 accountId 实例化；配置变更后由 evict 重建） */
@@ -354,7 +355,7 @@ public class WxOfficialAccountService {
         }
         String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
         String cipher = msgCryptor.encrypt(account.getAesKey(), account.getAppId(), reply);
-        String sign = msgCryptor.signMsg(token, timestamp, nonce, cipher);
+        String sign = msgCryptor.signMsg(resolveToken(account), timestamp, nonce, cipher);
         return "<xml><Encrypt><![CDATA[" + cipher + "]]></Encrypt>"
                 + "<MsgSignature><![CDATA[" + sign + "]]></MsgSignature>"
                 + "<TimeStamp>" + timestamp + "</TimeStamp>"
@@ -616,7 +617,7 @@ public class WxOfficialAccountService {
         }
         long exp = System.currentTimeMillis() / 1000 + OAUTH_STATE_TTL_SECONDS;
         String payload = accountId + "|" + UUID.randomUUID().toString().replace("-", "").substring(0, 8) + "|" + exp;
-        String state = payload + ":" + hmacSha1Hex(token, payload);
+        String state = payload + ":" + hmacSha1Hex(resolveToken(account), payload);
         return "https://open.weixin.qq.com/connect/oauth2/authorize"
                 + "?appid=" + urlEncode(account.getAppId())
                 + "&redirect_uri=" + urlEncode(oauthRedirectBase + "/api/v1/wx/oauth/" + accountId + "/callback")
@@ -665,7 +666,10 @@ public class WxOfficialAccountService {
 
     /** state 验签：结构 payload:签名 → 常量时间比对 HMAC → 账号一致 + 未过期 */
     private boolean verifyOauthState(long accountId, String state) {
-        if (isBlank(state) || isBlank(token)) {
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .filter(a -> a.getEnabled() != null && a.getEnabled() == 1).orElse(null);
+        String accountToken = account == null ? null : resolveToken(account);
+        if (isBlank(state) || isBlank(accountToken)) {
             return false;
         }
         int split = state.lastIndexOf(':');
@@ -673,7 +677,7 @@ public class WxOfficialAccountService {
             return false;
         }
         String payload = state.substring(0, split);
-        byte[] expected = hmacSha1Hex(token, payload).getBytes(StandardCharsets.US_ASCII);
+        byte[] expected = hmacSha1Hex(accountToken, payload).getBytes(StandardCharsets.US_ASCII);
         byte[] actual = state.substring(split + 1).getBytes(StandardCharsets.US_ASCII);
         if (!MessageDigest.isEqual(expected, actual)) {
             return false;
@@ -1479,6 +1483,11 @@ public class WxOfficialAccountService {
 
     private static boolean isBlank(String text) {
         return text == null || text.isBlank();
+    }
+
+    /** 消息推送 Token 取用优先级（设计稿 §4.1「env remains the token override」）：env 有值优先，否则取账号行 */
+    private String resolveToken(WxAccountEntity account) {
+        return !isBlank(token) ? token.trim() : (account == null ? "" : (account.getToken() == null ? "" : account.getToken().trim()));
     }
 
     /** XXE 加固的明文 XML 解析（微信回调报文无 DTD；禁外部实体） */

@@ -28,7 +28,7 @@ public class WxAccountView {
 
     /** 创建/更新入参：AppSecret（写入加密落库，绝不回显） */
     public String appSecret;
-    /** 创建/更新入参：消息推送 Token（写入加密落库，绝不回显） */
+    /** 创建/更新入参：消息推送 Token（设计稿 §7 env 折中——token 列无 converter、写入即明文列，env 仍作单店覆盖；绝不回显） */
     public String token;
     /** 创建/更新入参：EncodingAESKey（写入加密落库，绝不回显） */
     public String aesKey;

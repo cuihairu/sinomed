@@ -27,6 +27,10 @@ public class WxMpServiceProvider {
     @Value("${sinomed.official-account.wechat-api-base-url:https://api.weixin.qq.com}")
     private String wechatApiBaseUrl;
 
+    /** 消息推送 Token（env WX_OA_TOKEN，设计稿 §4.1「env remains the token override」） */
+    @Value("${sinomed.official-account.token:}")
+    private String envToken;
+
     /** 取账号 SDK 服务：按账号 id 缓存；账号停用/开关变化后由调用侧显式失效 */
     public WxMpService forAccount(WxAccountEntity account) {
         return services.computeIfAbsent(account.getId(), id -> build(account));
@@ -45,6 +49,10 @@ public class WxMpServiceProvider {
     private WxMpService build(WxAccountEntity account) {
         WxMpService service = new WxMpServiceHttpClientImpl();
         WxMpDefaultConfigImpl config = (WxMpDefaultConfigImpl) configStorage(account);
+        // env 优先（单店覆盖口径）；账号行 token 仅在 env 未配时兜底
+        if (envToken != null && !envToken.isBlank()) {
+            config.setToken(envToken.trim());
+        }
         // SDK 的 WxMpApiUrl 默认硬编码官方域；把 apiHost 指到可配基址，测试可零外网打桩（D-OA4 先例）
         if (wechatApiBaseUrl != null && !wechatApiBaseUrl.isBlank()) {
             config.setHostConfig(WxMpHostConfig.builder().apiHost(wechatApiBaseUrl.trim()).build());
