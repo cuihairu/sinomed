@@ -167,7 +167,7 @@
 | size / mime_type | Long / String | 文件元信息 |
 | create_time / update_time | Date | 审计时间 |
 
-唯一约束 `(account_id, media_id)`。第一期**只做消息内临时素材的拉取落日志**（收到图片消息时下载 PicUrl 到 `local_path`，供管理端查看），不做上传/管理 UI。台账只读查看已于 2026-10-20 交付：`GET /api/v1/wx/materials/page`（账号/类型/时间窗 AND 过滤）+ `GET /api/v1/wx/materials/{id}` 取本地副本（路径越权防护，`../` 一律 400），web/ 公众号页「素材台账」tab 消费（blob 预览带 JWT）。本地上传半边已于 2026-10-28 交付（见 §8：`POST /api/v1/wx/materials/upload/{accountId}` + `DELETE /api/v1/wx/materials/local/{id}`，均限 MANAGER+，§6.3）；仅真实上传到微信的永久素材出网半边仍属第二期推送半边（压凭据）。
+唯一约束 `(account_id, media_id)`。第一期**只做消息内临时素材的拉取落日志**（收到图片消息时下载 PicUrl 到 `local_path`，供管理端查看），不做上传/管理 UI。台账只读查看已于 2026-10-20 交付：`GET /api/v1/wx/materials/page`（账号/类型/时间窗 AND 过滤）+ `GET /api/v1/wx/materials/{id}` 取本地副本（路径越权防护，`../` 一律 400），web/ 公众号页「素材台账」tab 消费（blob 预览带 JWT）。本地上传半边已于 2026-10-28 交付（见 §8：`POST /api/v1/wx/materials/upload/{accountId}` + `DELETE /api/v1/wx/materials/local/{id}`，均限 MANAGER+，§6.3）；真实上传到微信的永久素材出网半边已于 2026-10-31 交付（见 §8：`POST /api/v1/wx/materials/remote/{accountId}`，仍压正式凭据）。
 
 ### 4.6 粉丝标签：不建表，复用 customer_tags
 
@@ -420,7 +420,7 @@ sinomed:
 ### 第二期：运营工具化 ——「菜单 + 素材」
 
 - 自定义菜单管理页：编辑/草稿本地半边已交付（管理端树形 CRUD + 协议校验，见 §4.3）；**推送微信半边已交付**（2026-10-20：服务端 `POST /api/v1/wx/menus/push/{accountId}` 取 token→`menus/create`，只推启用菜单、errcode 透传，本地桩测试零外网见 `WxMenuPushHttpTest` 5 例；web 推送按钮同日接线；真实出网压凭据）；
-- 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用——**本地半边已交付**（2026-10-28：服务端 `POST /api/v1/wx/materials/upload/{accountId}` multipart 落 `material-dir` 写 image/video 台账（§4.5 枚举，MIME 须与扩展名相符）+ `DELETE /api/v1/wx/materials/local/{id}` 限本地行删除且容忍文件已缺失；两个写端点均限 MANAGER+（§6.3）；类型/大小校验、零外网 HTTP 回归见 `WxMaterialLocalUploadHttpTest` 6 例；真实上传微信出网半边压正式凭据）；
+- 素材上传与管理（永久素材台账 + 本地落盘），支撑菜单与自动回复引用——**本地半边已交付**（2026-10-28：服务端 `POST /api/v1/wx/materials/upload/{accountId}` multipart 落 `material-dir` 写 image/video 台账（§4.5 枚举，MIME 须与扩展名相符）+ `DELETE /api/v1/wx/materials/local/{id}` 限本地行删除且容忍文件已缺失；两个写端点均限 MANAGER+（§6.3）；类型/大小校验、零外网 HTTP 回归见 `WxMaterialLocalUploadHttpTest` 6 例）；**真实上传微信出网半边已交付**（2026-10-31：`POST /api/v1/wx/materials/remote/{accountId}` 经 WxJava SDK 调 `material/add_material`（image/video，token 由 SDK 取）并把返回 `media_id`/`url` 回写台账行；SDK API 主机指向 `wechat-api-base-url`（D-OA4 先例），`WxMaterialRemoteUploadHttpTest` 7 例本地桩零外网；真实出网仍压正式凭据）；
 - 管理端规则编辑 UI（自动回复不再手工改库）——**已全链交付**（2026-10-20：服务端 `/api/v1/wx/auto-replies` 增删改查 + 枚举校验 + subscribe/fallback 单条启用约束 + 管理端账号列表 `/api/v1/wx/accounts`（脱敏不下发密钥列），契约见 docs/server/api.md；web/ 管理端「公众号」页规则表：选账号过滤 + 类型/状态过滤 + 新建/编辑/停用启用/删除）；
 - 安全/兼容模式消息加解密（回调 AES 信封，§5.3）——**已交付**（2026-10-20：`WxMsgCryptor` 官方规范手写落地，含 `<Encrypt>` 报文走 `msg_signature` 四段验签 + AES 解密进主流程、安全模式回复密封、拒绝审计 `bad_msg_signature`/`bad_encrypt`/`missing_encrypt`；测试 `WxMsgCryptorTest` 6 例 OpenSSL KAT + `WxEncryptModeCallbackHttpTest` 5 例）；
 - 管理端消息流水与素材台账查看（第一期 #4 的 UI 半边）——**已交付**（2026-10-20：web/ 公众号页改 Tabs，新增「消息流水」tab（ProTable 服务端分页，账号/粉丝/方向/类型/结果/时间窗过滤，顾客姓名列兑现第一期验收口径）与「素材台账」tab（含本地副本图片 blob 预览）；服务端素材分页+取图端点见 §4.5 尾注）；

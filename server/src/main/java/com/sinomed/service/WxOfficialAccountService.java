@@ -23,6 +23,9 @@ import com.sinomed.util.WxSignatureUtil;
 import me.chanjar.weixin.mp.api.WxMpMessageRouter;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
+import me.chanjar.weixin.common.error.WxErrorException;
+import me.chanjar.weixin.mp.bean.material.WxMpMaterial;
+import me.chanjar.weixin.mp.bean.material.WxMpMaterialUploadResult;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.criteria.Predicate;
 import lombok.Data;
@@ -1267,6 +1270,65 @@ public class WxOfficialAccountService {
             }
         }
         materialRepository.deleteById(id);
+    }
+
+    /**
+     * 远端上传永久素材（设计稿 §8 二期「素材上传与治理」出网半边；卡 B 验收口径）：
+     * 走 WxJava SDK `WxMpMaterialService.materialFileUpload`（cgi-bin/material/add_material），
+     * 出网基址经 WxMpServiceProvider 注入 WxMpHostConfig，测试指本地桩（D-OA4 先例）。
+     * 上传成功把 media_id/url 回写台账行；微信错误或 IO 失败删除本地孤儿文件+台账行并透传 400。
+     */
+    public WxMaterialEntity uploadRemoteMaterial(long accountId, MultipartFile file,
+                                                 String videoTitle, String videoIntroduction) {
+        WxAccountEntity account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("公众号账号不存在"));
+        if (isBlank(account.getAppSecret())) {
+            throw new IllegalArgumentException("该账号未配置 AppSecret，无法上传微信永久素材");
+        }
+
+        WxMaterialEntity material;
+        Path localFile;
+        try {
+            material = uploadLocalMaterial(accountId, file);
+            localFile = Paths.get(materialDir, material.getLocalPath());
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("素材本地暂存失败：" + e.getMessage(), e);
+        }
+
+        String mediaType = "video".equals(material.getMaterialType()) ? "video" : "image";
+        WxMpMaterial remote = new WxMpMaterial();
+        remote.setName(file.getOriginalFilename());
+        remote.setFile(localFile.toFile());
+        remote.setVideoTitle(videoTitle);
+        remote.setVideoIntroduction(videoIntroduction);
+        try {
+            WxMpMaterialUploadResult result = wxMpServiceProvider.forAccount(account)
+                    .getMaterialService().materialFileUpload(mediaType, remote);
+            if (result == null || isBlank(result.getMediaId())) {
+                throw new IllegalArgumentException("微信永久素材上传失败（errcode=" +
+                        (result == null ? null : result.getErrCode()) + " errmsg=" +
+                        (result == null ? null : result.getErrMsg()) + "）");
+            }
+            material.setMediaId(result.getMediaId());
+            material.setUrl(result.getUrl());
+            return materialRepository.save(material);
+        } catch (WxErrorException e) {
+            cleanupRemoteUploadOrphan(material, localFile);
+            throw new IllegalArgumentException("微信永久素材上传失败：" + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            WxMaterialEntity managed = materialRepository.findById(material.getId()).orElse(material);
+            cleanupRemoteUploadOrphan(managed, localFile);
+            throw e;
+        }
+    }
+
+    private void cleanupRemoteUploadOrphan(WxMaterialEntity saved, Path localFile) {
+        materialRepository.delete(saved);
+        try {
+            Files.deleteIfExists(localFile);
+        } catch (IOException ignored) {
+            log.warn("remote material upload cleanup file delete failed path={}", localFile, ignored);
+        }
     }
 
     /** 管理端账号列表（规则/粉丝页选账号用，单店量小不分页，id 升序）；密钥列绝不读回（见 WxAccountView） */

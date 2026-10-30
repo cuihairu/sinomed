@@ -351,6 +351,20 @@ public class WxOfficialAccountController {
         return WxMaterialView.from(wxOfficialAccountService.uploadLocalMaterial(accountId, file));
     }
 
+    @Operation(summary = "上传微信永久素材", description = "设计稿 §8 二期素材出网半边（卡 B）："
+            + "multipart 字段 file 经 WxJava SDK 调 cgi-bin/material/add_material（image/video），"
+            + "成功把微信 media_id/url 回写 wx_materials；上传微信失败删除本地孤儿行/文件并 400 透传错误；"
+            + "需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    @PostMapping("/materials/remote/{accountId}")
+    public WxMaterialView uploadRemoteMaterial(@PathVariable("accountId") long accountId,
+                                               @RequestParam("file") MultipartFile file,
+                                               @RequestParam(value = "videoTitle", required = false) String videoTitle,
+                                               @RequestParam(value = "videoIntroduction", required = false) String videoIntroduction) {
+        return WxMaterialView.from(wxOfficialAccountService.uploadRemoteMaterial(
+                accountId, file, videoTitle, videoIntroduction));
+    }
+
     @Operation(summary = "删除本地素材", description = "仅删本地治理行（mediaId 为空）；带微信 media_id 的"
             + "远端台账拒绝本地删除（防误删远端审计）；本地文件一并删除；不存在/非法 400；需 MANAGER+（设计稿 §6.3）")
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")

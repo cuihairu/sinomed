@@ -4,7 +4,9 @@ import com.sinomed.entity.WxAccountEntity;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.api.impl.WxMpServiceHttpClientImpl;
 import me.chanjar.weixin.mp.config.WxMpConfigStorage;
+import me.chanjar.weixin.mp.config.WxMpHostConfig;
 import me.chanjar.weixin.mp.config.impl.WxMpDefaultConfigImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -20,6 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WxMpServiceProvider {
 
     private final Map<Long, WxMpService> services = new ConcurrentHashMap<>();
+
+    /** 微信 API 出网基址（默认官方域；测试指向本地桩，D-OA4 先例） */
+    @Value("${sinomed.official-account.wechat-api-base-url:https://api.weixin.qq.com}")
+    private String wechatApiBaseUrl;
 
     /** 取账号 SDK 服务：按账号 id 缓存；账号停用/开关变化后由调用侧显式失效 */
     public WxMpService forAccount(WxAccountEntity account) {
@@ -38,7 +44,12 @@ public class WxMpServiceProvider {
 
     private WxMpService build(WxAccountEntity account) {
         WxMpService service = new WxMpServiceHttpClientImpl();
-        service.setWxMpConfigStorage(configStorage(account));
+        WxMpDefaultConfigImpl config = (WxMpDefaultConfigImpl) configStorage(account);
+        // SDK 的 WxMpApiUrl 默认硬编码官方域；把 apiHost 指到可配基址，测试可零外网打桩（D-OA4 先例）
+        if (wechatApiBaseUrl != null && !wechatApiBaseUrl.isBlank()) {
+            config.setHostConfig(WxMpHostConfig.builder().apiHost(wechatApiBaseUrl.trim()).build());
+        }
+        service.setWxMpConfigStorage(config);
         return service;
     }
 
