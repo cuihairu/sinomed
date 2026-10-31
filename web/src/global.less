@@ -46,6 +46,21 @@ ol {
   list-style: none;
 }
 
+/* 索引列徽标:antd 默认灰底白字对比度不足 AA,改走 --faint(中性,非品牌色) */
+.ant-pro-field-index-column {
+  background: var(--faint) !important;
+}
+
+/* 面包屑 / 空态描述:antd 默认灰在宣纸底上不足 AA,统一走 --muted(中性) */
+.ant-breadcrumb a,
+.ant-breadcrumb-separator {
+  color: var(--muted) !important;
+}
+
+.ant-empty-description {
+  color: var(--muted) !important;
+}
+
 @media (max-width: 768px) {
   .ant-table {
     width: 100%;

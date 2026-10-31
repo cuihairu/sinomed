@@ -127,6 +127,8 @@ export function antdTokenOverrides(key: ThemeKey) {
     colorPrimary: def.brand,
     colorInfo: def.brand,
     colorLink: def.brand,
+    // 占位符跟随 --faint(#6e7270):antd 默认 #bfbfbf 在白/宣纸底上不足 WCAG AA
+    colorTextPlaceholder: '#6e7270',
   };
 }
 
