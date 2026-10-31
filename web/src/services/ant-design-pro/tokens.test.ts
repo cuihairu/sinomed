@@ -48,7 +48,8 @@ const TOKENS = {
   faint: root.faint,
   paper: root.paper,
   white: root.card,
-  brandTints: themeVars.map((t) => t['brand-tint']),
+  // 默认 :root 主题的 --brand-tint + 三套 [data-theme] 切换主题 = 四主题（唯一真相源）。
+  brandTints: [root['brand-tint'], ...themeVars.map((t) => t['brand-tint'])],
   amberTint: root['amber-tint'],
   warnTint: root['warn-tint'],
 };
