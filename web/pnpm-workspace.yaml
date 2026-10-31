@@ -1,0 +1,40 @@
+packages:
+  - .
+
+overrides:
+  form-data@2.3.3: 2.5.6
+  immer@8: 9.0.21
+  axios@0.27.2: 0.34.0
+  postcss@7: 8.5.28
+  node-fetch@1: 2.7.0
+  tough-cookie@2: 4.1.4
+  underscore@1.7.0: 1.13.8
+  node-fetch@2.6.0: 2.7.0
+  debug@0.7.4: 2.6.9
+  path-to-regexp@1.7.0: 1.9.0
+  path-to-regexp@8.2.0: 8.4.0
+  '@babel/core@7.23.6': 7.29.6
+  log4js@1.1.1: 6.4.0
+  esbuild@0.18.20: 0.25.0
+  qs@6.5.5: 6.16.0
+  uuid@3.4.0: 11.1.1
+  decode-uri-component@0.2.2: 0.5.0
+  postcss-selector-parser@6.1.4: 7.1.6
+  react-router@6.3.0: 6.30.6
+  esbuild@0.21.4: 0.25.0
+  '@babel/runtime@7.23.6': 7.29.10
+  vite@<7.3.7: 7.3.7
+
+onlyBuiltDependencies:
+  - core-js-pure
+  - core-js
+  - es5-ext
+  - esbuild
+  - puppeteer-core
+
+allowBuilds:
+  core-js: true
+  core-js-pure: true
+  es5-ext: true
+  esbuild: true
+  puppeteer-core: true
