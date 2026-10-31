@@ -42,7 +42,7 @@
 
 ### 卡点
 
-- [ ] 公众号模块（服务号/订阅号）第一期余项——设计稿 docs/design/wechat-official-account.md（状态「未排期」，不勾完成）。已代决不重开：选型方案 a（引 WxJava SDK 自研薄封装）、网页授权机制 D-OA1～D-OA5（§5.6）。已交付明细与过程史见下方已完成条目与设计稿各节注记（最近锚点：8b4de26 菜单推送服务端、0f573ea web 推送按钮、af09d3f 管理端解绑按钮）。**余项 BLOCKED**：素材上传与菜单推送/网页授权的真实出网=公众号正式凭据 appid+AppSecret（同 :47）+公众号后台「网页授权域名」白名单登记（均用户侧）；群发/模板/客服=待对应工作台立项；第三期带参二维码/模板消息/群发=未排期。
+- [ ] 公众号模块（服务号/订阅号）第一期余项——设计稿 docs/design/wechat-official-account.md（状态「未排期」，不勾完成）。已代决不重开：选型方案 a（引 WxJava SDK 自研薄封装）、网页授权机制 D-OA1～D-OA5（§5.6）。已交付明细与过程史见下方已完成条目与设计稿各节注记（最近锚点：8b4de26 菜单推送服务端、0f573ea web 推送按钮、af09d3f 管理端解绑按钮）。**余项 BLOCKED**：素材上传与菜单推送/网页授权的真实出网=公众号正式凭据 appid+AppSecret（同 :47）+公众号后台「网页授权域名」白名单登记（均用户侧）；群发/模板/客服=待对应工作台立项；第三期带参二维码/模板消息/群发=未排期。｜复核 2026-10-31：阻塞仍成立——`application.yml:58-60` 公众号 `enabled:${WX_OA_ENABLED:false}` 仍 false、`WX_OA_TOKEN` 空，`wx_accounts` 表仅凭据列（无真实 appid/AppSecret 入库），出网仍依赖用户侧凭据与白名单。
   进展（2026-10-27 79d387d）：WxJava SDK 薄封装接入（weixin-java-mp 4.8.6-20261024.175727）+ 消息/事件路由骨架——WxMpServiceProvider 按 accountId 构建/缓存 WxMpService（设计 §5.1 实例约束）、账号级 WxMpMessageRouter 同步规则（subscribe/unsubscribe 粉丝维护、text 关键词/兜底、image 素材拉取+兜底、事件只落流水）；SDK 只做 XML 解析+路由，加密（WxMsgCryptor）与 OAuth code→openid 交换仍手写（D-OA3/D-OA5 已代决不重开）；router 内置内存排重置 no-op（wx_message_logs.dedupe_key 仍是唯一排重权威）。测试：`./mvnw -B test` 420 全绿（+10 = WxMpServiceProviderTest 4 + WxSdkContractTest 6；回调/安全模式/素材/OAuth 回归全过）。真实出网（素材/菜单推送/网页授权）仍压正式凭据，未解锁。
   进展（2026-10-28 本轮 commit）：设计稿 §8 二期「素材上传与治理（永久台账+本仓存储）」本地半边收口（详见下方「公众号素材上传与治理本地半边」已完成条目），素材上传真实出网仍压正式凭据未解锁。
   进展（2026-10-28 审核巡检 commit）：素材本地半边过审修复——上传/删除限 MANAGER+（§6.3）、上传新增 MIME 与扩展名一致校验、materialType 落 §4.5 标准枚举（image/video）、删除容忍文件已缺失、测试强化逐字节往返与 400 契约锁定（`WxMaterialLocalUploadHttpTest` 6 例）；`./mvnw -B test` 426 全绿。素材上传真实出网仍压正式凭据未解锁。
@@ -53,9 +53,9 @@
   证据（2026-10-20 r1020j 取证）：`sed -n 5p app/project.config.json` 仍 `touristappid`；wx 端点↔web 消费方对账零孤儿（对账脚本实测）；解锁钥匙=用户侧凭据（WX_OA_ENABLED/WX_OA_TOKEN，app_secret/aes_key 已支持加密落库）+白名单登记，凭据到位即激活无需改码；验收=真实凭据下菜单推送/网页授权/素材上传出网实测通过。
   已代决:按 docs/review/2026-10-30-decisions.md 执行(2026-10-30)
 
-- [ ] 微信小程序正式凭据（appid + AppSecret）——**BLOCKED**：缺小程序 appid+AppSecret（用户侧凭据，`app/project.config.json:5` 仍为 `touristappid` 占位，服务端 `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置）。小程序真机运行与 openid 通道（openid-session 登录换取、openid-bind 自助绑定）的激活都压在这条上；实现已可测试、凭据到位即激活（「先建后激活」先例），无需改码。公众号另用独立 appid 体系：appid/AppSecret 存 `wx_accounts`，非本项 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`
+- [ ] 微信小程序正式凭据（appid + AppSecret）——**BLOCKED**：缺小程序 appid+AppSecret（用户侧凭据，`app/project.config.json:5` 仍为 `touristappid` 占位，服务端 `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 未配置）。小程序真机运行与 openid 通道（openid-session 登录换取、openid-bind 自助绑定）的激活都压在这条上；实现已可测试、凭据到位即激活（「先建后激活」先例），无需改码。公众号另用独立 appid 体系：appid/AppSecret 存 `wx_accounts`，非本项 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`｜复核 2026-10-31：阻塞仍成立——`app/project.config.json:5` 仍 `touristappid` 占位，`application.yml:52-53` `WECHAT_APP_ID`/`WECHAT_APP_SECRET` 缺省空串（env 未注入）。
   已代决:按 docs/review/2026-10-30-decisions.md 执行(2026-10-30)
-- [ ] 在线支付真实通道——**BLOCKED**：缺支付通道商户号与密钥等真实凭据 + 用户授权接网关；红线不碰付费通道
+- [ ] 在线支付真实通道——**BLOCKED**：缺支付通道商户号与密钥等真实凭据 + 用户授权接网关；红线不碰付费通道｜复核 2026-10-31：阻塞仍成立——代码仅 `PayQrCodeController` 出商户收款码图（`sinomed.pay.qrcodes-dir` 本地目录，纯出图不接网关、无支付回调），无任何支付网关/商户号/密钥配置，付费红线未授权。
   已代决:按 docs/review/2026-10-30-decisions.md 执行(2026-10-30)
 - [x] 公众号素材远端上传（微信永久素材 media_id）开发缺口——已交付（2026-10-31：服务端 `POST /api/v1/wx/materials/remote/{accountId}`（MANAGER+）经 WxJava SDK 调 `cgi-bin/material/add_material`（image/video，access_token 由 SDK 取），SDK API 主机指向 `wechat-api-base-url`（D-OA4 先例），成功把返回 `media_id`/`url` 回写 `wx_materials` 台账行（本地文件保留为本地副本）；微信错误或 IO 失败删除孤儿本地行/文件并 400 透传错误（不静默）；mp4 可附 `videoTitle`/`videoIntroduction`；`WxMaterialRemoteUploadHttpTest` 7 例本地桩零外网锁定契约（成功回写+mp4 type=video+未配 AppSecret/未知账号 400+类型/MIME 校验+微信 errcode 非 0 清孤儿透传+USER 403+未登录 401）；server 全量 439 测试全绿；真实出网联调压正式凭据未做（用户侧）；commit 本轮
 
