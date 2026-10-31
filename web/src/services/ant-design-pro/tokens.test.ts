@@ -4,6 +4,9 @@
  * 四主题 brand-tint、amber-tint、warn-tint、paper、白底。同时锁 ink > muted > faint 亮度层级，
  * 防止后续调整把「次要/三级文字」层级压平（审核 2026-10-31 发现的回归面）。
  */
+import * as fs from 'fs';
+import * as path from 'path';
+
 function luminance(hex: string): number {
   const h = hex.replace('#', '');
   const rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -16,17 +19,44 @@ function contrast(fg: string, bg: string): number {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
-// 与 web/src/tokens.css 同源；改 token 时此处必须同步（tokens.css 是唯一真相源）
+/** 从 tokens.css 提取 CSS 自定义属性：:root 全局变量 + 每套 [data-theme] 主题变量。 */
+function extractVars(block: string): Record<string, string> {
+  const vars: Record<string, string> = {};
+  const re = /--([\w-]+)\s*:\s*([^;]+);/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(block))) vars[m[1]] = m[2].trim();
+  return vars;
+}
+
+function readTokens(): { root: Record<string, string>; themeVars: Record<string, string>[] } {
+  const css = fs.readFileSync(path.join(__dirname, '../../tokens.css'), 'utf8');
+  const rootMatch = css.match(/:root\s*\{([^}]*)\}/);
+  if (!rootMatch) throw new Error('tokens.css: missing :root block');
+  const root = extractVars(rootMatch[1]);
+  const themeVars: Record<string, string>[] = [];
+  const themeRe = /\[data-theme="([^"]+)"\]\s*\{([^}]*)\}/g;
+  let tm: RegExpExecArray | null;
+  while ((tm = themeRe.exec(css))) themeVars.push(extractVars(tm[2]));
+  return { root, themeVars };
+}
+
+// 运行时从 tokens.css 读取，而非复制字面量；tokens.css 调整后本锁自动跟随（唯一真相源）。
+const { root, themeVars } = readTokens();
 const TOKENS = {
-  ink: '#262927',
-  muted: '#5e635f',
-  faint: '#696c68',
-  paper: '#f7f7f4',
-  white: '#ffffff',
-  brandTints: ['#eceeee', '#e7efe9', '#f6eae7', '#e8edf2'],
-  amberTint: '#f4eee1',
-  warnTint: '#f7ede4',
+  ink: root.ink,
+  muted: root.muted,
+  faint: root.faint,
+  paper: root.paper,
+  white: root.card,
+  brandTints: themeVars.map((t) => t['brand-tint']),
+  amberTint: root['amber-tint'],
+  warnTint: root['warn-tint'],
 };
+
+function rgb(hex: string): number[] {
+  const h = hex.replace('#', '');
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
 
 describe('color token AA regression', () => {
   it('--faint passes 4.5:1 on every tint background that can carry it', () => {
@@ -47,9 +77,8 @@ describe('color token AA regression', () => {
     expect(lum(TOKENS.ink)).toBeLessThan(lum(TOKENS.muted));
     expect(lum(TOKENS.muted)).toBeLessThan(lum(TOKENS.faint));
     // 层级间至少留 ΔRGB 距离，防止三级文字与二级文字几乎重合
-    const [ir, ig, ib] = [0x26, 0x29, 0x27];
-    const [mr, mg, mb] = [0x5e, 0x63, 0x5f];
-    const [fr, fg, fb] = [0x69, 0x6c, 0x68];
+    const [mr, mg, mb] = rgb(TOKENS.muted);
+    const [fr, fg, fb] = rgb(TOKENS.faint);
     const deltaMutedFaint = Math.abs(mr - fr) + Math.abs(mg - fg) + Math.abs(mb - fb);
     expect(deltaMutedFaint).toBeGreaterThan(20);
   });
