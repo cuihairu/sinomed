@@ -125,8 +125,7 @@
   color: var(--faint);
 }
 
-/* 选中项:背景切到 --amber-tint 后,子级 price/时长若仍用 --faint 仅 4.22:1 不达 AA,
-   升到 --muted(对 amber-tint 5.3:1),保持选中态层次又不失对比度 */
+/* 选中项:price/时长升到 --muted,保持选中态层次(对 amber-tint 5.3:1) */
 .bk-item.on .bk-item-p {
   color: var(--muted);
 }

@@ -19,7 +19,7 @@ export type SettingsWithToken = Partial<ProSettings> & { token?: ProLayoutProps[
 export const STORAGE_KEY = 'sinomed-theme';
 
 /** tokens.css --faint 的回退值（仅当浏览器读不到 CSS 变量时兜底，与 tokens.css 同源）。 */
-const FAINT_FALLBACK = '#6e7270';
+const FAINT_FALLBACK = '#696c68';
 
 /**
  * 运行时读取 tokens.css 的 --faint，让 antd colorTextPlaceholder 与 CSS token 同源；
