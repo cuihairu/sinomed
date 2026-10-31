@@ -18,8 +18,21 @@ export type SettingsWithToken = Partial<ProSettings> & { token?: ProLayoutProps[
 
 export const STORAGE_KEY = 'sinomed-theme';
 
-/** 与 web/src/tokens.css --faint 保持一致；tokens.css 是唯一的色彩真相源。 */
-export const FAINT = '#6e7270';
+/** tokens.css --faint 的回退值（仅当浏览器读不到 CSS 变量时兜底，与 tokens.css 同源）。 */
+const FAINT_FALLBACK = '#6e7270';
+
+/**
+ * 运行时读取 tokens.css 的 --faint，让 antd colorTextPlaceholder 与 CSS token 同源；
+ * 若 getComputedStyle 取不到（如 SSR/未挂载），回退到与 tokens.css 一致的常量。
+ * tokens.css 仍是色彩唯一真相源：改 --faint 后占位符自动跟随，无硬编码漂移。
+ */
+export function faintColor(): string {
+  if (typeof document !== 'undefined') {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--faint').trim();
+    if (v) return v;
+  }
+  return FAINT_FALLBACK;
+}
 
 export interface ThemeDef {
   key: ThemeKey;
@@ -131,7 +144,7 @@ export function antdTokenOverrides(key: ThemeKey) {
     colorInfo: def.brand,
     colorLink: def.brand,
     // 占位符跟随 --faint:antd 默认 #bfbfbf 在白/宣纸底上不足 WCAG AA
-    colorTextPlaceholder: FAINT,
+    colorTextPlaceholder: faintColor(),
   };
 }
 
