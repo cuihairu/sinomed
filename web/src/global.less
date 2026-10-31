@@ -46,8 +46,15 @@ ol {
   list-style: none;
 }
 
-/* 带边框索引徽标:组件默认 #314659 偏重,改走 --faint 并保白字 AA */
+/* 带边框索引徽标:组件默认 #314659 偏重,改走中性并保白字 AA。
+   排名 1-3(top 徽标)取 --muted(更深、更突出),排名 4+(top-three)取 --faint(更浅、次要),
+   恢复组件原有的 top-3 与 4+ 视觉分层(基线被统一 --faint 压平);白字 on --muted 6.13:1、
+   白字 on --faint 4.88:1,均过 AA,不触品牌色。 */
 .ant-pro-field-index-column-border {
+  background: var(--muted) !important;
+}
+
+.ant-pro-field-index-column-border.top-three {
   background: var(--faint) !important;
 }
 
