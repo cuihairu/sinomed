@@ -1,4 +1,5 @@
 ﻿import type { RequestConfig } from '@umijs/max';
+import { history } from '@umijs/max';
 import { message, notification } from 'antd';
 
 // 错误处理方案： 错误类型
@@ -85,6 +86,15 @@ export const errorConfig: RequestConfig = {
       } else if (error.response) {
         // Axios 的错误
         // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
+        if (error.response?.status === 401) {
+          // JWT 过期/失效：清凭证回登录页，避免整站 401 假死（登录请求自身失败不重定向）
+          const url: string = error.config?.url ?? '';
+          if (!url.includes('/api/v1/user/login') && !window.location.pathname.startsWith('/user/login')) {
+            localStorage.removeItem('jwt');
+            history.push('/user/login');
+          }
+          return;
+        }
         if (error.response?.data?.errorMessage) {
           message.error(error.response?.data?.errorMessage);
         } else {
