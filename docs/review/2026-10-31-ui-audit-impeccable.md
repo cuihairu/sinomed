@@ -68,11 +68,18 @@
 
 > 结论:§1 修完后,web 剩 6 处、app 剩 5 处,**全部为品牌金棕、终端态淡化、禁用/图标控件或扫描器假阳性,无真实可修的 WCAG AA 失败**。
 
-## 3. Todo(待办,非当场坏损)
+## 3. 后续修复波(2026-11-01 更新:一问题一 commit,`fix(ui)` 前缀;四联格式:问题 / before / after / commit)
+
+> 状态:✅ 已修(含 before/after 截图与 commit hash)/ ⏳ 待用户(需新素材或用户决策,报告标注)。截图存 `docs/review/shots-after/`,文件名对齐问题编号。
+
+### T1 ✅ 已修 — `7c46b2f`
+- **问题**: 登录页是 Ant Design Pro 出厂壳——占位符 `Username: admin or user` / `Password: ant.design` 泄漏 Pro 演示账号,错误提示 `Incorrect username/password(admin/ant.design)`,标语 "Ant Design is the most influential web design specification in Xihu district"(西湖区广告语),页脚 "Produced by Ant Financial Experience Department",文档标题 `Login- Youngs 医馆`。
+- **Before**: `docs/review/shots-after/T1-before.png`(en-US 登录页,占位符泄漏 demo 账号 + 西湖区标语 + Ant Financial 页脚)
+- **After**: `docs/review/shots-after/T1-after.png`(en-US 登录页,占位符 `Enter username`/`Enter password`、标语「Taizhou's most professional wellness team」、页脚「Youngs Traditional Chinese Medicine Clinic」、文档标题 `Youngs 医馆`)
+- **Commit**: `7c46b2f fix(ui): strip demo credentials and boilerplate from login page`;8 个语言包 + 源码默认文案同步去泄漏;zh-CN 默认视图复扫无残留(`请输入用户名`/`请输入密码`,无 admin/ant.design)。
 
 | # | 严重度 | 问题 | 定位 / 建议 |
 | --- | --- | --- | --- |
-| T1 | 高 | **登录页是 Ant Design Pro 出厂壳**:占位符 `Username: admin or user` / `Password: ant.design`(泄漏 Pro 演示账号)、标签 `Account Login`/`Phone Login`、标语 "…most influential web design specification in Xihu district"、页脚 "Produced by Ant Design"、标题 `Login- Youngs 医馆` | `web/src/pages/User/login`(Pro 模板);建议换品牌文案与真实占位符,页脚改"© 2026 Youngs 医馆",标语改中医馆口径 |
 | T2 | 中 | **中英混杂**:侧栏菜单整列英文(Dashboard/Customers/Appointments/Herbal Prescription…),页面内容全中文 | `web/config/routes.ts` + ProLayout 菜单;建议统一中文(或引 i18n 键),至少与内容同语言 |
 | T3 | 低 | 表格操作列四个链接(诊断/更历/删除/新增)两两换行,行高不齐 | 各列表页 action 列;建议合并为"更多"下拉或按钮组 |
 | T4 | 中 | **白标自检诊断面板暴露给终端顾客**(「我的」页:主题色裸值 `#C7A674`、API base、图标注入态、`docs/app-white-label.md` 文档路径) | `app/src/pages/me/index.tsx:220-241` `.brand-tip`;建议移入 staging/调试开关,或改隐藏诊断路由,不面向顾客 |
