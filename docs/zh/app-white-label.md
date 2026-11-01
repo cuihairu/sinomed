@@ -60,7 +60,7 @@ node scripts/build-brand.mjs \
 
 核验：`dist/project.config.json` appid 为 `wx1a2b3c4d5e6f7a8b`；`dist/app.json` 导航栏 `和济堂` / `#8C1F28`；图标以 base64 注入自检页；构建后根 `project.config.json` 恢复为 `touristappid`，git 工作区干净。
 
-包内自检：打开首页即「白标构建参数自检页」，品牌名、主题色、后端域名、页内图标四项直接可见——出包后先看这页，参数对不对一眼确认。
+包内自检：加 `--diag` 构建，「白标构建参数自检页」出现在小程序「我的」tab，品牌名、主题色、后端域名、页内图标四项直接可见——验收出包后先看这页，参数对不对一眼确认。不带 `--diag` 则面板不打包，不会到达顾客手里。
 
 ## 图标口径
 
@@ -71,7 +71,7 @@ node scripts/build-brand.mjs \
 
 ## 常见问题
 
-**主题色/品牌没生效？** 打开自检页看四项参数。还不对，多半是参数格式没过校验（构建会直接报错退出），或手工 `pnpm build:weapp` 绕过了脚本——换包统一走 `build-brand.mjs`。
+**主题色/品牌没生效？** 加 `--diag` 重新构建，打开自检页看四项参数。还不对，多半是参数格式没过校验（构建会直接报错退出），或手工 `pnpm build:weapp` 绕过了脚本——换包统一走 `build-brand.mjs`。
 
 **换域名后请求 404？** 确认服务端部署在该域名且带 `/api/v1` 前缀；本地调试域名可用 `http://localhost:8080`。
 

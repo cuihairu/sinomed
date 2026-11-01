@@ -68,6 +68,7 @@ Judging from the endpoints and pages, the system's current main chains are:
 | Settlement receipt overprint (80mm HTML, overridable templates) | `ReceiptPrintController`, `PrintTemplateController` | Available |
 | Kiosk (unauthenticated ordering / self-service scheduling) | `KioskController` | Available |
 | Advertising screen and queue calling | `AdsController`, `CallController` | Available |
+| WeChat official account (callback routing, auto-reply rules, custom menus + push, material ledger local/remote, fan binding and web auth, account configuration) | `WxOfficialAccountController`, `WxMpServiceProvider` (WxJava SDK thin wrapper) | Available (real outbound gated by official-account credentials; design doc `design/wechat-official-account.md`) |
 | Frontend error reporting | `TraceController` | Simple log recording |
 
 ::: warning Note when reading the API documentation

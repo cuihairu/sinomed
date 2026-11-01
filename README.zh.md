@@ -1,10 +1,10 @@
 [English](README.md) | [中文](README.zh.md)
 
 <h1 align="center">Sinomed</h1>
-<p align="center"><img src="docs/public/logo.svg" width="64" alt="Sinomed logo" /> <a href="https://cuihairu.github.io/sinomed/zh//"><img src="https://img.shields.io/badge/%E6%96%87%E6%A1%A3-blue" alt="docs"></a>
-</p>
+<p align="center"><img src="docs/public/logo.svg" width="64" alt="Sinomed logo" /></p>
 <p align="center"><b>中医医馆管理系统</b>：顾客建档 · 中医诊疗记录 · 卡项 · 复盘回访</p>
 <p align="center">
+  <a href="https://cuihairu.github.io/sinomed/zh/"><img src="https://img.shields.io/badge/%E6%96%87%E6%A1%A3-blue" alt="docs"></a>
   <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21" />
   <img src="https://img.shields.io/badge/Spring-Boot-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" />
   <img src="https://img.shields.io/badge/React-18-20232A?logo=react&logoColor=61DAFB" alt="React 18" />
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/docs-VitePress-646CFF?logo=vitepress&logoColor=white" alt="VitePress" />
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="Apache 2.0" /></a>
 </p>
-<p align="center">文档站：<a href="https://cuihairu.github.io/sinomed/zh//">cuihairu.github.io/sinomed</a></p>
+<p align="center">文档站：<a href="https://cuihairu.github.io/sinomed/zh/">cuihairu.github.io/sinomed/zh</a></p>
 
 ## 演示站点
 

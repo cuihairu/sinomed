@@ -362,7 +362,7 @@ H5 页 /h5/wx/bind?account=1
 复用现有 `Role/Permission` 体系（`security/Role.java:16-38`、`Permission.java:7-15`），**不新增权限枚举**（现网只有 `ADMIN`/`MANAGER` 两档有效）：
 
 - 公众号账号配置（含 AppSecret/Token/AESKey 读写）：`ADMIN`（2026-10-30 交付：`POST /api/v1/wx/accounts` + `PUT /api/v1/wx/accounts/{id}` 均 `@PreAuthorize("hasRole('ADMIN')")`，对齐 `StaffController.java:72`）；
-- 菜单/自动回复/素材/消息工作台：`MANAGER` 及以上；
+- 菜单/自动回复/素材/消息工作台：`MANAGER` 及以上（**2026-11-01 交付**：`WxOfficialAccountController` 整个管理端面 role-gated——菜单 CRUD + push、自动回复 CRUD、素材 page/file/upload/remote/delete、message-logs、capabilities、accounts 列表与粉丝解绑均 `@PreAuthorize("hasAnyRole('MANAGER','ADMIN')")`，账号配置写入仍 `hasRole('ADMIN')`；由 `WxAdminRoleGuardHttpTest` USER 403 / MANAGER 200 / MANAGER 写账号 403 / 未登录 401 锁定）；
 - 回调接口：免登录（§5.1），靠签名验证。
 
 **AppSecret 不回显**：管理端查询接口在配置了密钥时返回掩码（`****`）、未配置时返回 `null`，修改时留空=不更新——对齐 `WechatClient.java:15-16`「凭据不下发前端」口径。

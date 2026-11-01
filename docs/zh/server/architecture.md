@@ -68,6 +68,7 @@
 | 结算小票套打（80mm HTML，模板可覆盖） | `ReceiptPrintController`、`PrintTemplateController` | 可用 |
 | 自助机（免登录下单 / 自助约期） | `KioskController` | 可用 |
 | 广告屏与叫号 | `AdsController`、`CallController` | 可用 |
+| 微信公众号（回调路由、自动回复规则、自定义菜单+推送、素材台账本地/远端、粉丝绑定与网页授权、账号配置） | `WxOfficialAccountController`、`WxMpServiceProvider`（WxJava SDK 薄封装） | 可用（真实出网压公众号凭据；设计稿 `design/wechat-official-account.md`） |
 | 前端错误上报 | `TraceController` | 简单日志记录 |
 
 ::: warning 阅读接口文档时注意

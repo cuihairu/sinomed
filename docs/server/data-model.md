@@ -368,3 +368,17 @@ Indexes: phone, operator. Convention: every attempt (including rejections) write
 | create_time | Date | Code issue time |
 
 There is no real SMS gateway: code issuance is a server-side stub, and the code only lands in the database and the log (`SMS_CODE_DEMO phone=… code=…`); tests fetch the code directly from `SmsCodeRepository`.
+
+## wx_* — WeChat official account (module tables; design `design/wechat-official-account.md`, behavior per the wx group in [api](/server/api))
+
+Seven tables back the official-account module (columns listed verbatim from the entities; all carry `create_time` audit, and all but `wx_binding_logs` also `update_time`):
+
+| Table | Columns | Notes |
+| ---- | ---- | ---- |
+| `wx_accounts` | id, app_id (unique), app_secret, token, aes_key, account_name, account_type (service/subscription), verified, encrypt_mode (plaintext/compatible/safe), enabled, remark | Configuration entry (ADMIN writes); app_secret/aes_key are AES-encrypted at rest (`WX_OA_CREDENTIAL_KEY`); token is a plaintext column; config changes evict the per-account SDK/router cache |
+| `wx_fans` | id, account_id, openid, unionid, nickname, head_img_url, subscribe, subscribe_time, unsubscribe_time, customer_id, remark | Fan ↔ customer binding (`customer_id` blank = unbound); unsubscribe keeps the row and never auto-unbinds |
+| `wx_auto_replies` | id, account_id, rule_type (subscribe/keyword/fallback), keyword, match_type (exact/contains), reply_type (text), content, priority, enabled | At most one enabled subscribe/fallback per account (service-layer constraint, no DB unique); lower priority number wins |
+| `wx_menus` | id, account_id, parent_id (two levels), name, menu_type (9 protocol values), url, media_id, miniprogram_appid, miniprogram_pagepath, event_key, sort, enabled | Local drafts; `POST /wx/menus/push/{accountId}` sends enabled ones to WeChat (credential-gated); ≤3 top × ≤5 sub per account |
+| `wx_materials` | id, account_id, media_id, material_type (temp/image/video), name, url, local_path, size, mime_type | Blank media_id = local governance row (fan-image capture or local upload); remote upload writes back the WeChat media_id/url; unique (account_id, media_id) via the startup index `uk_wx_material_account_media` |
+| `wx_message_logs` | id, account_id, direction (in/out/reject), msg_type, from_user, to_user, content, msg_id, dedupe_key, result | Every inbound/outbound/rejected push; result covers ok/disabled/account_missing/bad_signature/duplicate/…; reject audits from the disabled period stay queryable |
+| `wx_binding_logs` | id, account_id, fan_openid, phone, customer_id, result | Fan-binding audit trail; result covers ok/missing_code/bad_code/used_code/expired_code/no_customer/bound_other/conflict |

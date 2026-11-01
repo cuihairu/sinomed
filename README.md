@@ -1,10 +1,10 @@
 [English](README.md) | [中文](README.zh.md)
 
 <h1 align="center">Sinomed</h1>
-<p align="center"><img src="docs/public/logo.svg" width="64" alt="Sinomed logo" /> <a href="https://cuihairu.github.io/sinomed//"><img src="https://img.shields.io/badge/docs-blue" alt="docs"></a>
-</p>
+<p align="center"><img src="docs/public/logo.svg" width="64" alt="Sinomed logo" /></p>
 <p align="center"><b>TCM Clinic Management System</b>: customer records · treatment records · service packages · review and follow-up</p>
 <p align="center">
+  <a href="https://cuihairu.github.io/sinomed/"><img src="https://img.shields.io/badge/docs-blue" alt="docs"></a>
   <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21" />
   <img src="https://img.shields.io/badge/Spring-Boot-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot" />
   <img src="https://img.shields.io/badge/React-18-20232A?logo=react&logoColor=61DAFB" alt="React 18" />
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/docs-VitePress-646CFF?logo=vitepress&logoColor=white" alt="VitePress" />
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="Apache 2.0" /></a>
 </p>
-<p align="center">Documentation site: <a href="https://cuihairu.github.io/sinomed//">cuihairu.github.io/sinomed</a></p>
+<p align="center">Documentation site: <a href="https://cuihairu.github.io/sinomed/">cuihairu.github.io/sinomed</a></p>
 
 ## Demo Site
 

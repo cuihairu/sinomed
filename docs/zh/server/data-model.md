@@ -368,3 +368,17 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | create_time | Date | 发码时间 |
 
 无真实短信网关：发码为服务端桩，码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），测试从 `SmsCodeRepository` 直接取码。
+
+## wx_* — 微信公众号（模块表；设计稿 `design/wechat-official-account.md`，行为口径见 [api](/zh/server/api) wx 组）
+
+公众号模块共 7 张表（列名逐字取自实体；均带 `create_time` 审计列，除 `wx_binding_logs` 外均有 `update_time`）：
+
+| 表 | 列 | 说明 |
+| ---- | ---- | ---- |
+| `wx_accounts` | id, app_id（唯一）, app_secret, token, aes_key, account_name, account_type（service/subscription）, verified, encrypt_mode（plaintext/compatible/safe）, enabled, remark | 配置入口（ADMIN 写入）；app_secret/aes_key AES 加密落库（`WX_OA_CREDENTIAL_KEY`）；token 为明文列；配置变更 evict 该账号的 SDK/路由缓存 |
+| `wx_fans` | id, account_id, openid, unionid, nickname, head_img_url, subscribe, subscribe_time, unsubscribe_time, customer_id, remark | 粉丝↔顾客绑定（`customer_id` 空=未绑）；取关保留粉丝行、绝不自动解绑 |
+| `wx_auto_replies` | id, account_id, rule_type（subscribe/keyword/fallback）, keyword, match_type（exact/contains）, reply_type（text）, content, priority, enabled | 每账号同时至多一条启用的 subscribe/fallback（服务层约束，无 DB 唯一）；priority 数小者先 |
+| `wx_menus` | id, account_id, parent_id（两级）, name, menu_type（9 个协议值）, url, media_id, miniprogram_appid, miniprogram_pagepath, event_key, sort, enabled | 本地草稿；`POST /wx/menus/push/{accountId}` 推送启用项到微信（凭据门控）；每账号 ≤3 顶级 × ≤5 二级 |
+| `wx_materials` | id, account_id, media_id, material_type（temp/image/video）, name, url, local_path, size, mime_type | media_id 空=本地治理行（粉丝图捕获或本地上传）；远端上传回写微信 media_id/url；(account_id, media_id) 唯一由启动期索引 `uk_wx_material_account_media` 建立 |
+| `wx_message_logs` | id, account_id, direction（in/out/reject）, msg_type, from_user, to_user, content, msg_id, dedupe_key, result | 每条入站/出站/拒绝推送都落；result 覆盖 ok/disabled/account_missing/bad_signature/duplicate/…；disabled 期间的 reject 审计仍可查 |
+| `wx_binding_logs` | id, account_id, fan_openid, phone, customer_id, result | 粉丝绑定审计；result 覆盖 ok/missing_code/bad_code/used_code/expired_code/no_customer/bound_other/conflict |
