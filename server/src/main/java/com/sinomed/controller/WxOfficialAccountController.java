@@ -86,7 +86,8 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "账号能力探测", description = "按 account_type + verified 返回能力矩阵（菜单/客服/群发/模板消息/素材/回调/网页授权），"
-            + "管理端据此渲染降级入口（未认证订阅号隐藏菜单与群发）；需登录")
+            + "管理端据此渲染降级入口（未认证订阅号隐藏菜单与群发）；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/capabilities/{accountId}")
     public Map<String, Object> capabilities(@PathVariable("accountId") long accountId) {
         return wxOfficialAccountService.capabilities(accountId);
@@ -137,7 +138,8 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "管理端解绑粉丝", description = "清 wx_fans.customer_id 并落审计（设计稿 §4.7）；"
-            + "顾客取关不自动解绑，换人关注属线下场景走管理端；需登录")
+            + "顾客取关不自动解绑，换人关注属线下场景走管理端；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PostMapping("/fans/{accountId}/unbind")
     public MessageView unbind(@PathVariable("accountId") long accountId,
                               @RequestBody WxBindRequest request) {
@@ -145,7 +147,8 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "消息流水只读列表", description = "管理端按粉丝/方向/类型/结果/时间窗过滤收发全量流水（含 reject 审计），"
-            + "默认最新在前；只读不做对话式 UI，不依赖模块开关；需登录")
+            + "默认最新在前；只读不做对话式 UI，不依赖模块开关；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/message-logs")
     public PageResp<WxMessageLogView> messageLogs(@RequestParam int current,
                                                   @RequestParam int pageSize,
@@ -178,7 +181,8 @@ public class WxOfficialAccountController {
     // ---------- 管理端规则 CRUD（设计稿第二期「管理端规则编辑」服务端半边；需登录，不依赖模块开关） ----------
 
     @Operation(summary = "账号列表", description = "管理端选账号用（规则/粉丝页），单店量小不分页 id 升序；"
-            + "密钥列只回显掩码（appSecret/token/aesKey 有存量给 ****），明文绝不下发；需登录")
+            + "密钥列只回显掩码（appSecret/token/aesKey 有存量给 ****），明文绝不下发；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/accounts")
     public List<WxAccountView> accounts() {
         List<WxAccountView> data = new ArrayList<>();
@@ -210,7 +214,8 @@ public class WxOfficialAccountController {
         return WxAccountView.from(wxOfficialAccountService.saveAccount(view.toEntity()));
     }
 
-    @Operation(summary = "自动回复规则分页", description = "按账号/类型/启用态过滤，默认 priority 升序（小者先试）；需登录")
+    @Operation(summary = "自动回复规则分页", description = "按账号/类型/启用态过滤，默认 priority 升序（小者先试）；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/auto-replies/page")
     public PageResp<WxAutoReplyView> pageAutoReplies(@RequestParam int current,
                                                      @RequestParam int pageSize,
@@ -232,14 +237,16 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "创建自动回复规则", description = "ruleType=subscribe/keyword/fallback；keyword 型必填关键词，"
-            + "其它型关键词会被清空；subscribe/fallback 同账号同时最多一条启用；需登录")
+            + "其它型关键词会被清空；subscribe/fallback 同账号同时最多一条启用；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PostMapping("/auto-replies")
     public WxAutoReplyView createAutoReply(@RequestBody WxAutoReplyView view) {
         view.setId(null);
         return WxAutoReplyView.from(wxOfficialAccountService.saveAutoReply(view.toEntity()));
     }
 
-    @Operation(summary = "更新自动回复规则", description = "按 id 全量更新；需登录")
+    @Operation(summary = "更新自动回复规则", description = "按 id 全量更新；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PutMapping("/auto-replies")
     public WxAutoReplyView updateAutoReply(@RequestBody WxAutoReplyView view) {
         if (view.getId() == null) {
@@ -248,7 +255,8 @@ public class WxOfficialAccountController {
         return WxAutoReplyView.from(wxOfficialAccountService.saveAutoReply(view.toEntity()));
     }
 
-    @Operation(summary = "删除自动回复规则", description = "按 id 删除；需登录")
+    @Operation(summary = "删除自动回复规则", description = "按 id 删除；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @DeleteMapping("/auto-replies/{id}")
     public MessageView deleteAutoReply(@PathVariable Long id) {
         wxOfficialAccountService.deleteAutoReply(id);
@@ -258,7 +266,8 @@ public class WxOfficialAccountController {
     // ---------- 菜单编辑/草稿（设计稿 §4.3；本地编辑半边，推送微信半边压凭据；需登录） ----------
 
     @Operation(summary = "菜单列表", description = "两级菜单平铺返回（parentId 表达层级），sort 升序；"
-            + "accountId 可选过滤；不依赖模块开关，需登录")
+            + "accountId 可选过滤；不依赖模块开关，需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/menus")
     public List<WxMenuView> listMenus(@RequestParam(required = false) Long accountId) {
         List<WxMenuView> data = new ArrayList<>();
@@ -269,14 +278,16 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "创建菜单", description = "两级结构 + 微信协议校验（一级仅 view/click、名字数加权上限、"
-            + "view/click/view_miniprogram 必填字段、每号 ≤3 一级且每级 ≤5 二级）；非 view 类型的 url 会被清空；需登录")
+            + "view/click/view_miniprogram 必填字段、每号 ≤3 一级且每级 ≤5 二级）；非 view 类型的 url 会被清空；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PostMapping("/menus")
     public WxMenuView createMenu(@RequestBody WxMenuView view) {
         view.setId(null);
         return WxMenuView.from(wxOfficialAccountService.saveMenu(view.toEntity()));
     }
 
-    @Operation(summary = "更新菜单", description = "按 id 全量更新（enabled=0 即草稿，草稿不推送微信）；需登录")
+    @Operation(summary = "更新菜单", description = "按 id 全量更新（enabled=0 即草稿，草稿不推送微信）；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PutMapping("/menus")
     public WxMenuView updateMenu(@RequestBody WxMenuView view) {
         if (view.getId() == null) {
@@ -285,7 +296,8 @@ public class WxOfficialAccountController {
         return WxMenuView.from(wxOfficialAccountService.saveMenu(view.toEntity()));
     }
 
-    @Operation(summary = "删除菜单", description = "按 id 删除；有子菜单时拒绝（先删子）；需登录")
+    @Operation(summary = "删除菜单", description = "按 id 删除；有子菜单时拒绝（先删子）；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @DeleteMapping("/menus/{id}")
     public MessageView deleteMenu(@PathVariable Long id) {
         wxOfficialAccountService.deleteMenu(id);
@@ -293,7 +305,8 @@ public class WxOfficialAccountController {
     }
 
     @Operation(summary = "推送菜单到微信", description = "取 access_token 后调 cgi-bin/menu/create；只推启用菜单"
-            + "（草稿不推送）；缺 AppSecret/无启用菜单/微信 errcode 非 0 一律 400 并透传 errcode；需登录")
+            + "（草稿不推送）；缺 AppSecret/无启用菜单/微信 errcode 非 0 一律 400 并透传 errcode；需 MANAGER+（设计稿 §6.3）")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @PostMapping("/menus/push/{accountId}")
     public MessageView pushMenus(@PathVariable("accountId") long accountId) {
         long pushed = wxOfficialAccountService.pushMenus(accountId);

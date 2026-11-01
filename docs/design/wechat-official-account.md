@@ -367,7 +367,7 @@ Degradation styling matches the existing admin (disabled + tooltip), no confirm 
 Reuse the existing `Role/Permission` system (`security/Role.java:16-38`, `Permission.java:7-15`), **no new permission enums** (only `ADMIN`/`MANAGER` are effectively in use):
 
 - Account configuration (incl. AppSecret/Token/AESKey read/write): `ADMIN` (delivered 2026-10-30: `POST /api/v1/wx/accounts` + `PUT /api/v1/wx/accounts/{id}` are `@PreAuthorize("hasRole('ADMIN')")`, aligning with `StaffController.java:72`);
-- Menus / auto-replies / materials / message console: `MANAGER` and above;
+- Menus / auto-replies / materials / message console: `MANAGER` and above (**delivered 2026-11-01**: the whole `WxOfficialAccountController` admin surface is role-gated — menu CRUD + push, auto-reply CRUD, material page/file/upload/remote/delete, message-logs, capabilities, accounts list and fan unbind carry `@PreAuthorize("hasAnyRole('MANAGER','ADMIN')")`, account config write stays `hasRole('ADMIN')`; locked by `WxAdminRoleGuardHttpTest` USER 403 / MANAGER 200 / MANAGER-write 403 / unauthenticated 401);
 - Callback endpoints: no login (§5.1), trusted by signature.
 
 **AppSecret never echoes back**: the admin query returns a mask (`****`) when a secret is configured (`null` when absent); empty on update = keep — aligning with `WechatClient.java:15-16` "credentials never reach the frontend".
