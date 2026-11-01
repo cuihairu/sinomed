@@ -82,7 +82,15 @@
 | --- | --- | --- | --- |
 | T2 | 中 | **中英混杂**:侧栏菜单整列英文(Dashboard/Customers/Appointments/Herbal Prescription…),页面内容全中文 | `web/config/routes.ts` + ProLayout 菜单;建议统一中文(或引 i18n 键),至少与内容同语言 |
 | T3 | 低 | 表格操作列四个链接(诊断/更历/删除/新增)两两换行,行高不齐 | 各列表页 action 列;建议合并为"更多"下拉或按钮组 |
-| T4 | 中 | **白标自检诊断面板暴露给终端顾客**(「我的」页:主题色裸值 `#C7A674`、API base、图标注入态、`docs/app-white-label.md` 文档路径) | `app/src/pages/me/index.tsx:220-241` `.brand-tip`;建议移入 staging/调试开关,或改隐藏诊断路由,不面向顾客 |
+### T4 ✅ 已修 — `8772e08`
+- **问题**: 「我的」页白标自检诊断面板直接暴露给终端顾客——主题色裸值 `#C7A674`、后端 API base、页内图标注入态、仓库文档路径 `docs/app-white-label.md`,把构建内部参数与开发路径当成商品信息端给了顾客。
+- **Before**: `docs/review/shots-after/T4-before.png`(390×844「我的」页底部,白标自检面板可见:主题色 #C7A674、后端域名、页内图标、文档路径提示)
+- **After**: `docs/review/shots-after/T4-after.png`(同视图,面板已隐藏,页面收尾于「主题」区;顾客包不带该参数,面板不参与打包)
+- **Commit**: `8772e08 fix(ui): gate white-label diagnostics behind build flag`;面板仅在 `TARO_APP_SHOW_DIAG=1` 时渲染,由 `build-brand.mjs --diag` 提供(工程验收出包);`docs/app-white-label.md` 同步注明 `--diag` 口径;`build:h5` 成功,复扫无残留。
+
+| # | 严重度 | 问题 | 定位 / 建议 |
+| --- | --- | --- | --- |
+
 | T5 | 中 | **app `dev:h5` 跑不起来**(webpack-dev-server ValidationError 配置不匹配);生产 `build:h5` 正常 | `app/config/`;建议修 dev server 配置或注明"开发需用 `build:h5` + 静态服务" |
 | T6 | 信息 | **缺顶层 `DESIGN.md` / `PRODUCT.md`**;视觉方向在 `docs/design/mockups/*.html` 与 `docs/design/`,未提炼成审核对照基线 | 建议 `impeccable document` 生成 DESIGN.md,把四主题 token、宋体标题、金棕点缀口径固化 |
 | T7 | 低 | app 四标签纯文字无图标(设计选择,可接受) | `app/src/app.config.ts`;如后续要图标,注意选中/未选中对比(见 R4) |
