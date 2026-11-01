@@ -41,6 +41,10 @@ public class SmsCodeEntity {
     @Column(name = "used", nullable = false, columnDefinition = "integer default 0")
     private Integer used;
 
+    /** 错误尝试计数（防爆破）：连续错试达上限即烧码（置 used=1），需重新取码 */
+    @Column(name = "attempts", columnDefinition = "integer default 0")
+    private Integer attempts;
+
     @CreatedDate
     @Column(name = "create_time")
     private Date createTime;

@@ -172,6 +172,20 @@ class WxBindHttpTest {
     }
 
     @Test
+    void codeBurnedAfterRepeatedWrongAttempts() {
+        String code = requestCode(PHONE);
+        for (int i = 0; i < 5; i++) {
+            String wrong = "000000".equals(code) ? "999999" : "000000";
+            ResponseEntity<String> resp = bind(OPENID, PHONE, wrong);
+            assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        }
+        // 第 5 次错试后验证码已烧：正确码也须重新获取（防爆破契约锁定）
+        ResponseEntity<String> resp = bind(OPENID, PHONE, code);
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("used_code", lastAudit().getResult(), "烧码后正确码应落 used_code 审计");
+    }
+
+    @Test
     void usedAndExpiredCodesRejectedAndAudited() {
         String code = requestCode(PHONE);
         assertEquals(HttpStatus.OK, bind(OPENID, PHONE, code).getStatusCode());

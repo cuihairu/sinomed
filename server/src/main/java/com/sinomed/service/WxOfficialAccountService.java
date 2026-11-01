@@ -129,6 +129,9 @@ public class WxOfficialAccountService {
     @Value("${sinomed.official-account.enabled:false}")
     private boolean enabled;
 
+    /** 验证码连续错试上限：达上限烧码作废（防 6 位数字暴力枚举），须重新取码 */
+    private static final int SMS_CODE_MAX_ATTEMPTS = 5;
+
     /** 消息推送 Token（env WX_OA_TOKEN）；第一期单账号，验签用 */
     @Value("${sinomed.official-account.token:}")
     private String token;
@@ -755,6 +758,13 @@ public class WxOfficialAccountService {
             throw new IllegalArgumentException("验证码已过期，请重新获取");
         }
         if (!issued.getCode().equals(submitted.trim())) {
+            // 防爆破：错试计数，连续错满 5 次烧码（一次性凭证作废须重新取码）；每步落审计
+            int attempts = issued.getAttempts() == null ? 1 : issued.getAttempts() + 1;
+            issued.setAttempts(attempts);
+            if (attempts >= SMS_CODE_MAX_ATTEMPTS) {
+                issued.setUsed(1);
+            }
+            smsCodeRepository.save(issued);
             auditBinding(accountId, openid, phone, null, "bad_code");
             throw new IllegalArgumentException("验证码不对，请核对后重试");
         }

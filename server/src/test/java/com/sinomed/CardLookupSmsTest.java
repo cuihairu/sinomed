@@ -162,6 +162,21 @@ class CardLookupSmsTest {
     }
 
     @Test
+    void codeBurnedAfterRepeatedWrongAttempts() {
+        String code = requestCode();
+        // 连续 5 次错试：每次均 400，且不因错试而提前放行
+        for (int i = 0; i < 5; i++) {
+            var resp = post("/api/v1/kiosk/card-lookup", "{\"phone\":\"" + PHONE + "\",\"smsCode\":\"000000\"}");
+            assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+            assertEquals("验证码不对，请核对后重试", JsonPath.read(resp.getBody(), "$.errorMessage"));
+        }
+        // 第 5 次错试后验证码已烧：正确码也必须重新获取（防爆破契约锁定）
+        var resp = post("/api/v1/kiosk/card-lookup", "{\"phone\":\"" + PHONE + "\",\"smsCode\":\"" + code + "\"}");
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("验证码已使用，请重新获取", JsonPath.read(resp.getBody(), "$.errorMessage"));
+    }
+
+    @Test
     void codeIsSingleUse() {
         String code = requestCode();
         assertEquals(HttpStatus.OK,

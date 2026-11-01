@@ -70,6 +70,8 @@ public class KioskController {
 
     /** 短信验证码有效期（分钟） */
     private static final int SMS_CODE_TTL_MINUTES = 5;
+    /** 验证码连续错试上限：达上限烧码作废（防 6 位数字暴力枚举），须重新取码 */
+    private static final int SMS_CODE_MAX_ATTEMPTS = 5;
 
     private final ItemRepository itemRepository;
     private final CustomerRepository customerRepository;
@@ -624,6 +626,13 @@ public class KioskController {
             throw new IllegalArgumentException("验证码已过期，请重新获取");
         }
         if (!issued.getCode().equals(submitted.trim())) {
+            // 防爆破：错试计数，连续错满 5 次烧码（一次性凭证作废须重新取码）；每步落审计
+            int attempts = issued.getAttempts() == null ? 1 : issued.getAttempts() + 1;
+            issued.setAttempts(attempts);
+            if (attempts >= SMS_CODE_MAX_ATTEMPTS) {
+                issued.setUsed(1);
+            }
+            smsCodeRepository.save(issued);
             audit(phone, phone, mode, null, "bad_code");
             throw new IllegalArgumentException("验证码不对，请核对后重试");
         }
