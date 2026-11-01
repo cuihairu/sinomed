@@ -212,34 +212,39 @@ export default function Me() {
         </>
       ) : null}
 
-      {/* 白标自检（工程验收用） */}
-      <View className="sec">
-        <Text className="sec-h3">白标自检</Text>
-      </View>
-      <View className="brand-card">
-        <View className="brand-row">
-          <View className="brand-label">主题色</View>
-          <View className="brand-value">
-            <View className="brand-swatch" style={{ background: BRAND.themeColor }} />
-            <View className="brand-mono">{BRAND.themeColor}</View>
+      {/* 白标自检（工程验收用）：仅诊断构建（TARO_APP_SHOW_DIAG=1）显示。
+          顾客出包不带该参数，面板不参与打包——内部参数与仓库路径不暴露给终端顾客。 */}
+      {process.env.TARO_APP_SHOW_DIAG === '1' ? (
+        <>
+          <View className="sec">
+            <Text className="sec-h3">白标自检</Text>
           </View>
-        </View>
-        <View className="brand-row">
-          <View className="brand-label">后端域名</View>
-          <View className="brand-value">
-            <View className="brand-mono">{BRAND.apiBase}</View>
+          <View className="brand-card">
+            <View className="brand-row">
+              <View className="brand-label">主题色</View>
+              <View className="brand-value">
+                <View className="brand-swatch" style={{ background: BRAND.themeColor }} />
+                <View className="brand-mono">{BRAND.themeColor}</View>
+              </View>
+            </View>
+            <View className="brand-row">
+              <View className="brand-label">后端域名</View>
+              <View className="brand-value">
+                <View className="brand-mono">{BRAND.apiBase}</View>
+              </View>
+            </View>
+            <View className="brand-row">
+              <View className="brand-label">页内图标</View>
+              <View className="brand-value">
+                <View className="brand-mono">{BRAND.iconData ? '已注入（商家 icon）' : '未注入位图'}</View>
+              </View>
+            </View>
           </View>
-        </View>
-        <View className="brand-row">
-          <View className="brand-label">页内图标</View>
-          <View className="brand-value">
-            <View className="brand-mono">{BRAND.iconData ? '已注入（商家 icon）' : '未注入位图'}</View>
+          <View className="brand-tip">
+            以上参数由构建脚本注入，改参数不改代码；换商家出包见仓库 docs/app-white-label.md。
           </View>
-        </View>
-      </View>
-      <View className="brand-tip">
-        以上参数由构建脚本注入，改参数不改代码；换商家出包见仓库 docs/app-white-label.md。
-      </View>
+        </>
+      ) : null}
     </View>
   )
 }

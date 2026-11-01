@@ -22,6 +22,7 @@ function usage() {
   --appid   小程序 appid，wx 开头 16 位十六进制；留空用 touristappid
   --icon    商家图标文件（png/jpg 位图会同时注入页内展示；svg 仅 H5 favicon 用）
   --desc    H5 页面描述文案（仅 H5）
+  --diag    白标自检面板开关（工程验收）：加此参数，「我的」页显示白标参数面板；不带则不面向顾客
   --target  构建目标，weapp（默认）或 h5`)
 }
 
@@ -116,6 +117,11 @@ if (domain) env.BRAND_API_BASE = domain
 if (args.desc) env.BRAND_DESCRIPTION = args.desc
 if (iconFile) env.BRAND_ICON_FILE = iconFile
 if (iconData) env.BRAND_ICON_DATA = iconData
+// 白标自检面板默认不打包（不面向顾客）；--diag 仅用于工程验收出包。
+if (args.diag !== undefined) {
+  env.TARO_APP_SHOW_DIAG = '1'
+  console.log('ℹ 白标自检面板已开启（TARO_APP_SHOW_DIAG=1），「我的」页可见')
+}
 
 console.log(`→ 开始构建 ${target} 包：${name || '默认品牌'}`)
 const runner = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'

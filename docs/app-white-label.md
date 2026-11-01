@@ -60,7 +60,7 @@ node scripts/build-brand.mjs \
 
 Verified: `dist/project.config.json` appid is `wx1a2b3c4d5e6f7a8b`; `dist/app.json` navigation bar is `和济堂` / `#8C1F28`; the icon is injected into the in-page self-check area as base64; after the build the repo-root `project.config.json` is restored to `touristappid` and the git worktree is clean.
 
-In-package self check: the first page you open after the build is the "white-label build parameter self-check page", where all four values — brand name, theme color, backend domain and in-page icon — are visible directly. Check that page first after every build; the parameters are right or wrong at a glance.
+In-package self check: build with `--diag` and the "white-label build parameter self-check page" appears on the app's 我的 tab, where all four values — brand name, theme color, backend domain and in-page icon — are visible directly. Check that page first after every acceptance build; the parameters are right or wrong at a glance. Without `--diag` the panel is not bundled, so it never reaches end customers.
 
 ## Icon policy
 
@@ -71,7 +71,7 @@ In-package self check: the first page you open after the build is the "white-lab
 
 ## Troubleshooting
 
-**Theme color / brand did not take effect?** Open the self-check page and look at the four values. If they are still wrong, the parameter most likely failed validation (the build fails loudly in that case), or you ran a bare `pnpm build:weapp` and bypassed the script — always build merchant packages through `build-brand.mjs`.
+**Theme color / brand did not take effect?** Rebuild with `--diag` and open the self-check page to look at the four values. If they are still wrong, the parameter most likely failed validation (the build fails loudly in that case), or you ran a bare `pnpm build:weapp` and bypassed the script — always build merchant packages through `build-brand.mjs`.
 
 **404s after changing the domain?** Confirm the server is actually deployed at that domain and exposes the `/api/v1` prefix; for local debugging the domain can be `http://localhost:8080`.
 

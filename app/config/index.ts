@@ -12,6 +12,9 @@ process.env.TARO_APP_BRAND_NAME = brand.name
 process.env.TARO_APP_BRAND_THEME = brand.themeColor
 process.env.TARO_APP_API_BASE = brand.apiBase
 process.env.TARO_APP_BRAND_ICON = brand.iconData || ''
+// 白标自检开关（工程验收用）：构建时 TARO_APP_SHOW_DIAG=1 才在「我的」页显示白标参数面板；
+// 顾客出包不带此参数，面板不参与打包（改参数不改代码口径见 docs/app-white-label.md）
+process.env.TARO_APP_SHOW_DIAG = process.env.TARO_APP_SHOW_DIAG === '1' ? '1' : ''
 const defaultIcon = path.resolve(__dirname, '../brand-assets/logo.png')
 
 const config = {
@@ -31,7 +34,8 @@ const config = {
     TARO_APP_BRAND_NAME: JSON.stringify(brand.name),
     TARO_APP_BRAND_THEME: JSON.stringify(brand.themeColor),
     TARO_APP_API_BASE: JSON.stringify(brand.apiBase),
-    TARO_APP_BRAND_ICON: JSON.stringify(brand.iconData || '')
+    TARO_APP_BRAND_ICON: JSON.stringify(brand.iconData || ''),
+    TARO_APP_SHOW_DIAG: JSON.stringify(process.env.TARO_APP_SHOW_DIAG === '1' ? '1' : '')
   },
   defineConstants: {
   },
