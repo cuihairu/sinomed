@@ -2,8 +2,12 @@ package com.sinomed;
 
 import com.sinomed.entity.StaffEntity;
 import com.sinomed.entity.WxAccountEntity;
+import com.sinomed.entity.WxAutoReplyEntity;
+import com.sinomed.entity.WxMenuEntity;
 import com.sinomed.repository.StaffRepository;
 import com.sinomed.repository.WxAccountRepository;
+import com.sinomed.repository.WxAutoReplyRepository;
+import com.sinomed.repository.WxMenuRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +62,10 @@ class WxAdminRoleGuardHttpTest {
     @Autowired
     private WxAccountRepository accountRepository;
     @Autowired
+    private WxAutoReplyRepository autoReplyRepository;
+    @Autowired
+    private WxMenuRepository menuRepository;
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
@@ -97,6 +105,8 @@ class WxAdminRoleGuardHttpTest {
     @BeforeEach
     void seed() {
         accountRepository.deleteAll();
+        menuRepository.deleteAll();
+        autoReplyRepository.deleteAll();
         staffRepository.findAll().forEach(s -> {
             if ("wx-role-admin".equals(s.getAccount()) || "wx-role-manager".equals(s.getAccount())
                     || "wx-role-user".equals(s.getAccount())) {
@@ -202,6 +212,74 @@ class WxAdminRoleGuardHttpTest {
         var accounts = rest.exchange(url("/api/v1/wx/accounts"),
                 HttpMethod.GET, bearer(managerToken), java.util.List.class);
         assertEquals(HttpStatus.OK, accounts.getStatusCode(), "MANAGER 应可读账号列表");
+
+        Map<String, Object> capabilities = rest.exchange(url("/api/v1/wx/capabilities/" + accountId),
+                HttpMethod.GET, bearer(managerToken), Map.class).getBody();
+        assertEquals(accountId.intValue(), capabilities.get("accountId"), "MANAGER 应可读能力矩阵");
+
+        WxAutoReplyEntity createdReply = rest.exchange(url("/api/v1/wx/auto-replies"),
+                HttpMethod.POST,
+                json(managerToken, Map.of(
+                        "accountId", accountId,
+                        "ruleType", "keyword",
+                        "keyword", "菜单" + System.nanoTime(),
+                        "content", "请点击菜单查看预约入口")),
+                WxAutoReplyEntity.class).getBody();
+        assertEquals("keyword", createdReply.getRuleType(), "MANAGER 应可创建自动回复规则");
+
+        createdReply.setContent("请点击菜单查看预约入口（已更新）");
+        WxAutoReplyEntity updatedReply = rest.exchange(url("/api/v1/wx/auto-replies"),
+                HttpMethod.PUT, json(managerToken, Map.of(
+                        "id", createdReply.getId(),
+                        "accountId", createdReply.getAccountId(),
+                        "ruleType", createdReply.getRuleType(),
+                        "keyword", createdReply.getKeyword(),
+                        "content", createdReply.getContent())),
+                WxAutoReplyEntity.class).getBody();
+        assertEquals("请点击菜单查看预约入口（已更新）", updatedReply.getContent(), "MANAGER 应可更新自动回复规则");
+
+        rest.exchange(url("/api/v1/wx/auto-replies/" + createdReply.getId()),
+                HttpMethod.DELETE, bearer(managerToken), Map.class);
+        assertTrue(autoReplyRepository.findById(createdReply.getId()).isEmpty(), "MANAGER 应可删除自动回复规则");
+
+        WxMenuEntity createdMenu = rest.exchange(url("/api/v1/wx/menus"),
+                HttpMethod.POST,
+                json(managerToken, Map.of(
+                        "accountId", accountId,
+                        "name", "预约",
+                        "menuType", "view",
+                        "url", "https://example.com/appointment",
+                        "enabled", 0)),
+                WxMenuEntity.class).getBody();
+        assertEquals("预约", createdMenu.getName(), "MANAGER 应可创建菜单");
+
+        createdMenu.setName("挂号");
+        WxMenuEntity updatedMenu = rest.exchange(url("/api/v1/wx/menus"),
+                HttpMethod.PUT, json(managerToken, Map.of(
+                        "id", createdMenu.getId(),
+                        "accountId", createdMenu.getAccountId(),
+                        "name", createdMenu.getName(),
+                        "menuType", createdMenu.getMenuType(),
+                        "url", createdMenu.getUrl(),
+                        "enabled", 0)),
+                WxMenuEntity.class).getBody();
+        assertEquals("挂号", updatedMenu.getName(), "MANAGER 应可更新菜单");
+
+        HttpClientErrorException pushError = assertThrows(HttpClientErrorException.class,
+                () -> rest.exchange(url("/api/v1/wx/menus/push/" + accountId),
+                        HttpMethod.POST, bearer(managerToken), Map.class));
+        assertEquals(HttpStatus.BAD_REQUEST, pushError.getStatusCode(), "无凭据时推送应达授权层并返回业务 400");
+
+        rest.exchange(url("/api/v1/wx/menus/" + createdMenu.getId()),
+                HttpMethod.DELETE, bearer(managerToken), Map.class);
+        assertTrue(menuRepository.findById(createdMenu.getId()).isEmpty(), "MANAGER 应可删除菜单");
+
+        HttpClientErrorException unbindError = assertThrows(HttpClientErrorException.class,
+                () -> rest.exchange(url("/api/v1/wx/fans/" + accountId + "/unbind"),
+                        HttpMethod.POST,
+                        json(managerToken, Map.of("openid", "oMANAGER-UNBIND")),
+                        Map.class));
+        assertEquals(HttpStatus.BAD_REQUEST, unbindError.getStatusCode(), "解绑应达授权层并按无粉丝返回业务 400");
     }
 
     @Test

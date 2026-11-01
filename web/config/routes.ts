@@ -303,6 +303,7 @@ export default [
   },
   {
     path: '/wx',
+    access: 'canAdmin',
     icon: 'WechatOutlined',
     name: 'wx',
     component: './Wx/Index',

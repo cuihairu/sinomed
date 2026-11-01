@@ -178,7 +178,7 @@ public class WxOfficialAccountController {
         return resp;
     }
 
-    // ---------- 管理端规则 CRUD（设计稿第二期「管理端规则编辑」服务端半边；需登录，不依赖模块开关） ----------
+    // ---------- 管理端规则 CRUD（设计稿第二期「管理端规则编辑」服务端半边；需 MANAGER+，不依赖模块开关） ----------
 
     @Operation(summary = "账号列表", description = "管理端选账号用（规则/粉丝页），单店量小不分页 id 升序；"
             + "密钥列只回显掩码（appSecret/token/aesKey 有存量给 ****），明文绝不下发；需 MANAGER+（设计稿 §6.3）")
@@ -263,7 +263,7 @@ public class WxOfficialAccountController {
         return new MessageView("删除成功");
     }
 
-    // ---------- 菜单编辑/草稿（设计稿 §4.3；本地编辑半边，推送微信半边压凭据；需登录） ----------
+    // ---------- 菜单编辑/草稿（设计稿 §4.3；本地编辑半边，推送微信半边压凭据；需 MANAGER+） ----------
 
     @Operation(summary = "菜单列表", description = "两级菜单平铺返回（parentId 表达层级），sort 升序；"
             + "accountId 可选过滤；不依赖模块开关，需 MANAGER+（设计稿 §6.3）")
@@ -313,7 +313,7 @@ public class WxOfficialAccountController {
         return new MessageView("已推送 " + pushed + " 个一级菜单到微信");
     }
 
-    // ---------- 素材台账只读（设计稿 §4.5「供管理端查看」；粉丝发图落盘后此前无处可见；需登录） ----------
+    // ---------- 素材台账只读（设计稿 §4.5「供管理端查看」；粉丝发图落盘后此前无处可见；需 MANAGER+） ----------
 
     @Operation(summary = "素材台账分页", description = "粉丝消息图片等素材的只读台账（含本地副本标记 localPath），"
             + "按账号/类型/时间窗 AND 过滤，最新在前；不依赖模块开关；需 MANAGER+（设计稿 §6.3）")
