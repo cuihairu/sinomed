@@ -175,3 +175,9 @@
 - [x] 审核发现：tokens.test.ts 改读 tokens.css 后 brandTints 仅取 3 个 [data-theme] 块（pine/cinnabar/indigo），默认 :root 主题的 --brand-tint #eceeee（原 4 色硬编码之一，且为四主题中对比度最紧 4.570:1）不再被 AA 回归锁定，头部注释仍称「四主题 brand-tint」与实现不符，属测试覆盖回归（web/src/services/ant-design-pro/tokens.test.ts:51）——属实（2026-11-01）：已修——brandTints 改经 `[root['brand-tint'], ...themeVars.map(t=>t['brand-tint'])]` 纳入默认 :root 主题，四主题全部锁进 AA 回归（含最紧 4.570:1 的 #eceeee，实算 4.570），头部注释与实现一致（web/src/services/ant-design-pro/tokens.test.ts:51-53）｜证据：web `npx jest` 21/21（tokens.test 2 例仍绿）、`npx tsc --noEmit` 0 错；commit 本轮。
 - [x] 审核发现：todo.md 公众号复核注记引用 application.yml:58-60 指 enabled/token，但 official-account.enabled 实际在 application.yml:57、token 在 58，行号偏移 1，文档引用与实现不符（todo.md:45）——属实（2026-11-01）：已修——注记改述 `application.yml:56-58` 公众号 `enabled:${WX_OA_ENABLED:false}` 仍 false（:57）、`WX_OA_TOKEN` 空（:58），与实现行号一致（todo.md:45；server/src/main/resources/application.yml:56-58）｜证据：sed -n 45p todo.md、grep -n 实证；commit 本轮。
 - [x] 审核发现：本轮 diff 未见问题（dbaa279a..HEAD）——属实（2026-11-01）：逐 commit 复核 `ac782cb`（对比度注释同步 + tokens.css 运行读取测试）、`7fab581`（三条 BLOCKED 复核）、`3d402ff`（默认 :root brand-tint 补入 AA 锁）、`95335b2`（Dockerfile 补拷 `pnpm-workspace.yaml`），复核引用行号、token 解析、四主题覆盖、Docker 构建输入与仓库实况一致，未发现新的实现/文档问题｜证据：web `npx jest` 21/21、`npx tsc --noEmit` 0 错、`pnpm build` 过；app `npx tsc --noEmit --skipLibCheck` 0 错、`pnpm build:h5` 过（webpack 5.104.1）；server `./mvnw -B test` 443/443 全绿 `BUILD SUCCESS`。
+
+- [ ] **DOC-GIF · P2 · 文档 · 配置开关效果动态图(每个开关 off→on 对比+GIF)**
+  - 交付:枚举本仓全部「开启后有效果」的开关/配置项;自动流水线生成证据——GUI 类用 @vscode/test-electron 或应用截图(off 一张/on 一张+切换过程录屏),CLI 类用终端录屏(asciinema→GIF 或 ffmpeg);ffmpeg 缝合动态 GIF。
+  - 文档:docs「配置效果」页(双语)逐开关嵌入:说明+off 图+on 图+GIF。
+  - 验收:清单内每个开关都有 off/on+GIF;流水线可重跑(配置变更随时再生成);兼作配置效果回归测试。
+  - 参考:kode todo C-24 同款流水线模式(2026-11-01 用户令全舰队推广)。
