@@ -117,13 +117,7 @@ const Login: React.FC = () => {
   return (
     <div className={containerClassName}>
       <Helmet>
-        <title>
-          {intl.formatMessage({
-            id: 'menu.login',
-            defaultMessage: '登录页',
-          })}
-          - {Settings.title}
-        </title>
+        <title>{Settings.title}</title>
       </Helmet>
       <Lang />
       <div
@@ -173,7 +167,7 @@ const Login: React.FC = () => {
             <LoginMessage
               content={intl.formatMessage({
                 id: 'pages.login.accountLogin.errorMessage',
-                defaultMessage: '账户或密码错误(admin)',
+                defaultMessage: '用户名或密码错误',
               })}
             />
           )}
@@ -187,7 +181,7 @@ const Login: React.FC = () => {
                 }}
                 placeholder={intl.formatMessage({
                   id: 'pages.login.username.placeholder',
-                  defaultMessage: '用户名: admin',
+                  defaultMessage: '请输入用户名',
                 })}
                 rules={[
                   {
@@ -209,7 +203,7 @@ const Login: React.FC = () => {
                 }}
                 placeholder={intl.formatMessage({
                   id: 'pages.login.password.placeholder',
-                  defaultMessage: '密码: 123',
+                  defaultMessage: '请输入密码',
                 })}
                 rules={[
                   {
