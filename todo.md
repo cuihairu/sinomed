@@ -148,3 +148,8 @@
 - [x] README docs 徽章 href 由演示站改指 github.io 文档站（en/zh 各指对语言）——证据：commit 本轮，curl 200。
 - [x] docs/zh/app-white-label.md --diag 口径与英文镜像同步——证据：commit 本轮，build-brand.mjs:25/120。
 - [x] docs/zh/design/wechat-official-account.md §6.3 补 2026-11-01 角色门禁交付注记——证据：commit 本轮，839342d。
+
+## 审核发现
+
+- [x] 审核发现：docs/server/data-model.md 与 docs/zh/server/data-model.md 的 sms_codes 表缺 attempts 列行——证据：已清（commit b723156 已在 used 行后补 attempts 列行；HEAD docs/server/data-model.md:368 / docs/zh/server/data-model.md:368 存在），原记录基于 b723156 前的旧视图。
+- [ ] 审核发现：发码路径未显式初始化 attempts——kiosk sms-code 与 wx bind code 发码时均未 setAttempts(0)，实体无 @DynamicInsert/@ColumnDefault，新码 attempts 列插入 NULL 而非列定义的 integer default 0，与"计数器从 0 起"语义略有出入（读取端 ==null?1 已容错，无实际功能 bug，属数据规范性小瑕疵）（server/src/main/java/com/sinomed/controller/KioskController.java:281、server/src/main/java/com/sinomed/service/WxOfficialAccountService.java:500）
