@@ -24,8 +24,13 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.util.Date;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -213,6 +218,41 @@ class CardLookupSmsTest {
         var second = post("/api/v1/kiosk/card-lookup", "{\"phone\":\"" + PHONE + "\",\"smsCode\":\"" + code + "\"}");
         assertEquals(HttpStatus.BAD_REQUEST, second.getStatusCode());
         assertEquals("验证码已使用，请重新获取", JsonPath.read(second.getBody(), "$.errorMessage"));
+    }
+
+    @Test
+    void concurrentCorrectCodeConsumedOnlyOnce() throws Exception {
+        // 正确码并发双投递：原子烧码（markUsed 单条 UPDATE）只放行一个，另一个读到已用 → 400。
+        // 这是「一次性」语义的竞态加固——read-modify-write（快检 setUsed+save）会双双放行。
+        String code = requestCode();
+        int threads = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<ResponseEntity<String>>> futures = new ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return post("/api/v1/kiosk/card-lookup", "{\"phone\":\"" + PHONE + "\",\"smsCode\":\"" + code + "\"}");
+                }));
+            }
+            start.countDown();
+            int ok = 0;
+            int used = 0;
+            for (Future<ResponseEntity<String>> f : futures) {
+                ResponseEntity<String> r = f.get();
+                if (r.getStatusCode() == HttpStatus.OK) {
+                    ok++;
+                } else if (r.getStatusCode() == HttpStatus.BAD_REQUEST
+                        && "验证码已使用，请重新获取".equals(JsonPath.read(r.getBody(), "$.errorMessage"))) {
+                    used++;
+                }
+            }
+            assertEquals(1, ok, "并发正确码应恰一次成功");
+            assertEquals(1, used, "并发正确码应恰一次已用拒绝");
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

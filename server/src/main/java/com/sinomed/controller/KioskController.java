@@ -650,8 +650,11 @@ public class KioskController {
             audit(phone, phone, mode, null, "bad_code");
             throw new IllegalArgumentException("验证码不对，请核对后重试");
         }
-        issued.setUsed(1);
-        smsCodeRepository.save(issued);
+        // 原子烧码：正确码并发双投递下，仅首个 UPDATE 命中行（返回 1），其余请求读到 used 已置 1 → 400
+        if (smsCodeRepository.markUsed(issued.getId()) == 0) {
+            audit(phone, phone, mode, null, "used_code");
+            throw new IllegalArgumentException("验证码已使用，请重新获取");
+        }
     }
 
     /** 校验手机号格式并确认模式允许短信通道：sms_verified 查卡取码、openid_only 绑定取码共用（off 全拒） */

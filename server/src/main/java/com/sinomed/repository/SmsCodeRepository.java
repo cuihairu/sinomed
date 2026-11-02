@@ -24,4 +24,14 @@ public interface SmsCodeRepository extends JpaRepository<SmsCodeEntity, Long> {
             + "used = case when coalesce(attempts, 0) + 1 >= :max then 1 else used end "
             + "where id = :id", nativeQuery = true)
     int incrementAttempts(@Param("id") Long id, @Param("max") int max);
+
+    /**
+     * 原子烧码：仅当仍为未用（used=0）时置已用，返回受影响行数（1=本请求首次消费，0=已被并发消费）。
+     * 正确码并发双投递下由数据库行级原子性保证一次性语义，读-改-写竞态不再双放行。
+     */
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query(value = "update sms_codes set used = 1 where id = :id and coalesce(used, 0) = 0",
+            nativeQuery = true)
+    int markUsed(@Param("id") Long id);
 }
