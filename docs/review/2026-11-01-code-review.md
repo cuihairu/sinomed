@@ -55,3 +55,41 @@ P2/P3 见下方「记入 todo 的发现」，与 todo.md 待办一致。
 - **C2**（P1 功能）→ 已修，commit `99db876`「fix: redirect to login on 401」：errorHandler 增 401 分支——清 jwt + `history.push('/user/login')`，登录请求自身（/api/v1/user/login）不重定向避免回环；新增 `requestErrorConfig.test.ts` 3 例锁契约（401 跳转 / 登录请求不跳 / 非 401 维持 toast）。web jest 24/24、tsc 0 错、lint 0 错。
 
 P2/P3（C3-C11）已记入 todo.md 待办（未修复）。
+
+## 六、复审（2026-11-02，HEAD = b096e94）
+
+范围：自首审（e672e38）以来的增量——C1 修复（b8a0e7d）、C2 修复（99db876）、工作区 Wx 角色门禁收尾改动（本轮落地 b096e94）；方法不变（安全静态扫描 + 隐藏 bug 猎捕 + 质量门），首轮扫描面全量复跑。
+
+### 复审发现
+
+| ID | 严重度 | 位置 | 发现 | 处置 |
+|----|-------|------|------|------|
+| C12 | P1 构建 | docs/package.json:18-22 + docs/pnpm-workspace.yaml:1-3 | docs 构建配置分脑：package.json 残留弃用 `pnpm.overrides`（vite 6.4.4）与 pnpm-workspace.yaml（6.4.3）、lockfile（6.4.4）三处不一致——pnpm ≥ 11 拒跑 docs 脚本（`ERR_PNPM_VERIFY_DEPS_BEFORE_RUN`），CI `--frozen-lockfile`（docs.yml）越过 pnpm 10 即断 | 已修：删死 `pnpm` 字段、workspace yaml 对齐 6.4.4、补 `onlyBuiltDependencies`（esbuild）、重生成 lockfile；`pnpm build` 绿（8.8s） |
+
+### 修复复核（C1 / C2）
+
+- **C1 复核（修于 b8a0e7d）**：consume 逻辑逐行复审——off-by-one 无（attempts 1→5，第 5 次置 `used=1`，计数与烧码同事务）；并发双读同 attempts 最坏提前烧码（安全方向）；烧码后正确码必拒（`used==1` 先判）；4 个免登录端点（kiosk 查卡 / my-appointments / appointment-cancel / wx bind）同口径（kiosk 与 wx 两侧同形）。锁定测试 `codeBurnedAfterRepeatedWrongAttempts` ×2 绿。
+- **C2 复核（修于 99db876）**：token 存/读/删同键 `jwt`（Login/index.tsx:91 / requestErrorConfig.ts:23,27,93）；登录请求 `/api/v1/user/login` 与 `/user/login` 路径双豁免不回环；锁定测试 requestErrorConfig.test.ts 3 例绿。
+
+### Wx 角色门禁收尾（工作区既有改动，复审通过后落地 b096e94）
+
+- `access: 'canAdmin'`（routes.ts:306）语义核实：canAdmin = `currentUser.access === 'admin'`（access.ts:7），`access` 来自 `/api/v1/user/current` = `StaffEntity.getAccess()`（`role < 10` → "admin"，StaffEntity.java:27/:95-96/:111-116）——即 **MANAGER+**，与后端 `hasAnyRole('MANAGER','ADMIN')` 同口径，非 ADMIN-only 过锁。
+- 分区注释（WxOfficialAccountController.java:181/:266/:316）与分区内 `@PreAuthorize` 口径对齐；WxAdminRoleGuardHttpTest 补 MANAGER 写路径放行（capabilities / 自动回复 CRUD / 菜单 CRUD / push / unbind；push 与 unbind 以业务 400 证明已穿越授权层）。
+
+### 复审扫描结论（与首轮一致，无新增攻击面）
+
+- 硬编码密钥：唯一命中 `StaffServiceImpl.java:41` 默认管理员 bcrypt("123") 哈希（审计 A28 已记录的惰性建号，非泄露）；shell 注入 / eval / ProcessBuilder / ScriptEngine / ObjectInputStream / enableDefaultTyping 全仓零命中；SQL 拼接仅 `DemoSeedRunner.java:1115` 内部常量（非用户输入）；路径穿越 / XSS / off-by-one / 并发 / 资源泄漏维持首轮结论——本轮改动面（SMS consume、401 分支、routes.ts、测试）无新增问题。
+
+### 质量门（复审）
+
+| 门 | 结果 | 基线 |
+|----|------|------|
+| server `./mvnw -B test` | 450/450 绿，BUILD SUCCESS | 450（b8a0e7d 后）持平 |
+| web lint:js + tsc + jest | 0 错 + 0 错 + 24/24 绿（7 suites） | 24（99db876 后）持平 |
+| docs `pnpm check` + `pnpm build` | 双绿（C12 修复后 8.8s） | 首轮全绿（C12 后） |
+| kiosk / tablet `pnpm build`（tsc -b） | 双绿（3.1s / 3.1s） | 本轮无源码改动，复跑确认 |
+| app / desktop | 本轮无改动，未重跑 | 首轮绿 |
+
+### 剩余
+
+- P2/P3（C3-C11）仍未修，已记 todo.md 待办；本轮新增 C12 已当场修（P1 构建），无新增未修项。
