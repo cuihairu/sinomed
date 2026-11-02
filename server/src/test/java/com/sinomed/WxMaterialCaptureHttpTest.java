@@ -6,6 +6,8 @@ import com.sinomed.repository.WxAccountRepository;
 import com.sinomed.repository.WxMaterialRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import com.sun.net.httpserver.HttpServer;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Stream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -36,6 +39,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,6 +82,9 @@ class WxMaterialCaptureHttpTest {
     private WxMaterialRepository materialRepository;
     @Autowired
     private WxMessageLogRepository messageLogRepository;
+
+    @MockitoSpyBean
+    private WxMaterialRepository spyMaterialRepository;
 
     private long accountId;
 
@@ -245,5 +253,26 @@ class WxMaterialCaptureHttpTest {
         WxMaterialEntity row2 = materialRepository.findAll().stream()
                 .filter(m -> "MEDIA_IMG_6".equals(m.getMediaId())).findFirst().orElseThrow();
         assertEquals(null, row2.getMimeType(), "白名单外 mime 应回 null（回放兜底 octet-stream）：" + row2.getMimeType());
+    }
+
+    @Test
+    void saveFailureAfterRemoteCaptureDeletesOrphanFile() throws Exception {
+        // 远端拉取落盘成功后 materialRepository.save 失败：不应留下孤儿文件。
+        // 上一轮只修了 uploadLocalMaterial 路径，这里补 captureMaterial（下载）路径的同型缺口。
+        doThrow(new DataIntegrityViolationException("forced")).when(spyMaterialRepository)
+                .saveAndFlush(org.mockito.ArgumentMatchers.any(WxMaterialEntity.class));
+
+        String mediaId = "MEDIA_IMG_ORPHAN";
+        String reply = postImage("oFANIMG", 71008L, mediaId, mediaUrl("/orphan.jpg"));
+        assertEquals("success", reply, "素材拉取 save 失败不得放大回调（微信 5s 约束）：" + reply);
+
+        verify(spyMaterialRepository).saveAndFlush(org.mockito.ArgumentMatchers.any(WxMaterialEntity.class));
+        assertEquals(0, materialRepository.findAll().stream()
+                        .filter(m -> mediaId.equals(m.getMediaId())).count(),
+                "save 失败不应落台账行");
+        Path dir = Paths.get(materialDir);
+        long orphanFiles = Files.exists(dir) ? Files.walk(dir)
+                .filter(Files::isRegularFile).count() : 0;
+        assertEquals(0, orphanFiles, "save 失败后应清掉刚写的孤儿文件，素材根下不应残留文件");
     }
 }

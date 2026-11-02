@@ -1493,7 +1493,18 @@ public class WxOfficialAccountService {
             material.setSize((long) body.length);
             // 与上传路径同口径规范化（剥参数+小写），远端 Content-Type 不再原样入台账
             material.setMimeType(canonicalizeMimeType(mime));
-            materialRepository.save(material);
+            try {
+                materialRepository.saveAndFlush(material);
+            } catch (RuntimeException e) {
+                // 落盘后 save 失败：清掉刚写的孤儿文件（防脏盘），再上抛——与本地/远端上传路径同口径
+                try {
+                    Files.deleteIfExists(target);
+                } catch (IOException cleanup) {
+                    log.warn("wx 素材拉取 save 失败后清理孤儿文件失败 account={} path={}: {}",
+                            accountId, relative, cleanup.getMessage());
+                }
+                throw e;
+            }
         } catch (Exception e) {
             log.warn("wx material download failed account={} media={}: {}", accountId, mediaId, e.getMessage());
         }
