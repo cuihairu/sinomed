@@ -372,7 +372,7 @@ There is no real SMS gateway: code issuance is a server-side stub, and the code 
 
 ## wx_* — WeChat official account (module tables; design `design/wechat-official-account.md`, behavior per the wx group in [api](/server/api))
 
-Seven tables back the official-account module (columns listed verbatim from the entities; all carry `create_time` audit, and all but `wx_binding_logs` also `update_time`):
+Seven tables back the official-account module (columns listed verbatim from the entities; all carry `create_time` audit, `wx_message_logs` and `wx_binding_logs` are append-only and carry no `update_time`, the remaining five also carry `update_time`):
 
 | Table | Columns | Notes |
 | ---- | ---- | ---- |

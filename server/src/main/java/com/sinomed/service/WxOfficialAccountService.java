@@ -501,6 +501,7 @@ public class WxOfficialAccountService {
         code.setPhone(phone);
         code.setCode(String.valueOf(100000 + ThreadLocalRandom.current().nextInt(900000)));
         code.setUsed(0);
+        code.setAttempts(0);
         code.setExpiresAt(new Date(System.currentTimeMillis() + BIND_SMS_TTL_MINUTES * 60_000L));
         smsCodeRepository.save(code);
         // 无短信网关：演示环境的送达方式（测试用 SmsCodeRepository 直接取码）
@@ -759,12 +760,8 @@ public class WxOfficialAccountService {
         }
         if (!issued.getCode().equals(submitted.trim())) {
             // 防爆破：错试计数，连续错满 5 次烧码（一次性凭证作废须重新取码）；每步落审计
-            int attempts = issued.getAttempts() == null ? 1 : issued.getAttempts() + 1;
-            issued.setAttempts(attempts);
-            if (attempts >= SMS_CODE_MAX_ATTEMPTS) {
-                issued.setUsed(1);
-            }
-            smsCodeRepository.save(issued);
+            // 原子递增+达上限烧码（单条 UPDATE），并发错试不丢增量、不绕过 5 次上限
+            smsCodeRepository.incrementAttempts(issued.getId(), SMS_CODE_MAX_ATTEMPTS);
             auditBinding(accountId, openid, phone, null, "bad_code");
             throw new IllegalArgumentException("验证码不对，请核对后重试");
         }

@@ -372,7 +372,7 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 
 ## wx_* — 微信公众号（模块表；设计稿 `design/wechat-official-account.md`，行为口径见 [api](/zh/server/api) wx 组）
 
-公众号模块共 7 张表（列名逐字取自实体；均带 `create_time` 审计列，除 `wx_binding_logs` 外均有 `update_time`）：
+公众号模块共 7 张表（列名逐字取自实体；均带 `create_time` 审计列，`wx_message_logs` 与 `wx_binding_logs` 为追加型、无 `update_time`，其余 5 表另有 `update_time`）：
 
 | 表 | 列 | 说明 |
 | ---- | ---- | ---- |

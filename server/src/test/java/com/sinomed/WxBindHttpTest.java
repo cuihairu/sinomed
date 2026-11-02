@@ -149,6 +149,13 @@ class WxBindHttpTest {
     }
 
     @Test
+    void bindCodeAttemptsInitializedToZeroOnIssue() {
+        requestCode(PHONE);
+        SmsCodeEntity issued = smsCodeRepository.findFirstByPhoneOrderByIdDesc(PHONE).orElseThrow();
+        assertEquals(0, issued.getAttempts(), "绑定发码应显式初始化 attempts=0");
+    }
+
+    @Test
     void missingParamsRejectedAndAudited() {
         ResponseEntity<String> resp = bind(OPENID, PHONE, "");
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());

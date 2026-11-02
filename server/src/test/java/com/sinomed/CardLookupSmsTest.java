@@ -128,6 +128,35 @@ class CardLookupSmsTest {
     }
 
     @Test
+    void attemptsInitializedToZeroOnIssue() {
+        requestCode();
+        SmsCodeEntity issued = smsCodeRepository.findFirstByPhoneOrderByIdDesc(PHONE).orElseThrow();
+        assertEquals(0, issued.getAttempts(), "发码应显式初始化 attempts=0（不再靠列默认/读取端容错）");
+    }
+
+    @Test
+    void atomicIncrementBurnsExactlyAtMax() {
+        SmsCodeEntity issued = new SmsCodeEntity();
+        issued.setPhone(PHONE);
+        issued.setCode("121212");
+        issued.setUsed(0);
+        issued.setAttempts(0);
+        issued.setExpiresAt(new Date(System.currentTimeMillis() + 300_000L));
+        SmsCodeEntity saved = smsCodeRepository.save(issued);
+        // 前 4 次错试只累计不烧码；第 5 次原子烧码（单条 UPDATE，并发不丢增量/不绕上限）
+        for (int i = 1; i <= 4; i++) {
+            assertEquals(1, smsCodeRepository.incrementAttempts(saved.getId(), 5), "应更新 1 行");
+            SmsCodeEntity cur = smsCodeRepository.findFirstByPhoneOrderByIdDesc(PHONE).orElseThrow();
+            assertEquals(i, cur.getAttempts());
+            assertEquals(0, cur.getUsed(), "未达上限不应烧码");
+        }
+        assertEquals(1, smsCodeRepository.incrementAttempts(saved.getId(), 5), "应更新 1 行");
+        SmsCodeEntity cur = smsCodeRepository.findFirstByPhoneOrderByIdDesc(PHONE).orElseThrow();
+        assertEquals(5, cur.getAttempts());
+        assertEquals(1, cur.getUsed(), "第 5 次错试应烧码");
+    }
+
+    @Test
     void wrongCodeRejected() {
         requestCode();
         var resp = post("/api/v1/kiosk/card-lookup", "{\"phone\":\"" + PHONE + "\",\"smsCode\":\"000000\"}");
