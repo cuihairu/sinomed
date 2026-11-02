@@ -18,7 +18,9 @@ import java.util.Date;
         @Index(name = "idx_appointment_customer_id",columnList = "customer_id"),
         @Index(name = "idx_appointment_item_id",columnList = "item_id"),
         @Index(name = "idx_appointment_room_id",columnList = "room_id"),
-        @Index(name = "idx_appointment_start_time",columnList = "start_time")
+        @Index(name = "idx_appointment_start_time",columnList = "start_time"),
+        @Index(name = "uk_appointment_slot_key",columnList = "slot_key",unique = true),
+        @Index(name = "uk_appointment_room_slot_key",columnList = "room_slot_key",unique = true)
 })
 @EntityListeners(AuditingEntityListener.class)
 public class AppointmentEntity {
@@ -52,6 +54,15 @@ public class AppointmentEntity {
     /** 0 待到店、1 已接待、8 过号、9 已取消 */
     @Column(name = "status")
     private Integer status;
+
+    /** 时段互斥键（医师维）：status 0/1 时 = "<staffId 或 null>|<hourStartMillis>"，
+     *  终态（8/9）置 NULL 释放时段；唯一索引把并发 check-then-insert 兜底成一条成功——SQLite/MySQL 均允许多个 NULL */
+    @Column(name = "slot_key")
+    private String slotKey;
+
+    /** 时段互斥键（工位维）：roomId 非空时 = "<roomId>|<hourStartMillis>"，终态置 NULL；唯一索引兜底工位并发 */
+    @Column(name = "room_slot_key")
+    private String roomSlotKey;
 
     @Column(name = "remark")
     private String remark;

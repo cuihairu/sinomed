@@ -25,7 +25,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -227,5 +234,37 @@ class AppointmentSlotTest {
         QueueCallEntity noStaff = queueCallRepository
                 .findByIdGreaterThanOrderByIdAsc(call.getId()).get(0);
         assertEquals("待分配诊室", noStaff.getRoom());
+    }
+
+    @Test
+    void concurrentSameSlotOnlyOneSucceeds() throws Exception {
+        // 并发同医师同整点双建约：唯一索引（uk_appointment_slot_key）兜底，只一条成功、另一条 400
+        int threads = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<Object>> futures = new ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return create(at(18, 0), staffId);
+                }));
+            }
+            start.countDown();
+            int ok = 0;
+            int busy = 0;
+            for (Future<Object> f : futures) {
+                Object r = f.get();
+                if (r instanceof Long) {
+                    ok++;
+                } else if (r instanceof String && ((String) r).contains("该时段已约满")) {
+                    busy++;
+                }
+            }
+            assertEquals(1, ok, "并发同段应恰一条成功");
+            assertEquals(1, busy, "并发同段应恰一条 400 约满");
+        } finally {
+            pool.shutdownNow();
+        }
     }
 }

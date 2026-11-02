@@ -252,7 +252,17 @@ public class KioskController {
         appointment.setDuration(60);
         appointment.setStatus(0);
         appointment.setRemark("小程序自助");
-        AppointmentEntity saved = appointmentRepository.save(appointment);
+        // 预置时段互斥键：唯一索引兜底并发双落（staffId 空归空组，不占工位维）
+        appointmentService.applySlotKeys(appointment);
+        AppointmentEntity saved;
+        try {
+            saved = appointmentRepository.saveAndFlush(appointment);
+        } catch (org.springframework.dao.DataAccessException e) {
+            if (isSlotKeyConflict(e)) {
+                throw new IllegalArgumentException("该时段已约满（每时段限约 1 位），请换医师或时段");
+            }
+            throw e;
+        }
         return KioskAppointmentResult.builder()
                 .customerId(customer.getId())
                 .customerName(customer.getName())
@@ -261,6 +271,16 @@ public class KioskController {
                 .itemName(item == null ? null : item.getName())
                 .status(0)
                 .build();
+    }
+
+    private boolean isSlotKeyConflict(org.springframework.dao.DataAccessException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String msg = t.getMessage();
+            if (msg != null && (msg.toLowerCase().contains("constraint") || msg.toLowerCase().contains("unique"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Operation(summary = "获取短信验证码", description = "sms_verified 模式查卡、openid_only 模式绑定微信共用：6 位验证码（5 分钟有效、一次性）；off 模式拒绝。"

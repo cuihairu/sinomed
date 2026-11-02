@@ -23,6 +23,11 @@ public interface AppointmentService {
      * */
     void ensureSlotFree(Date startTime, Long staffId, Long roomId);
     /**
+     * 生成时段互斥键（staff/room 维）：status 0/1 落 "<staffId或NULL>|<hourStartMillis>"，
+     * 终态/空置 NULL 释放时段；唯一索引兜底并发双落
+     * */
+    void applySlotKeys(AppointmentEntity appointment);
+    /**
      * 根据预约的id删除预约
      * */
     void deleteById(Long id);

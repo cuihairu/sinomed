@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
@@ -46,7 +47,6 @@ public class AppointmentServiceImpl implements AppointmentService {
      */
     @Override
     public AppointmentEntity save(AppointmentView view) {
-        ensureSlotFree(view.getStartTime(), view.getStaffId(), view.getRoomId());
         AppointmentEntity appointment = new AppointmentEntity();
         appointment.setCustomerId(view.getCustomerId());
         appointment.setItemId(view.getItemId());
@@ -56,7 +56,47 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setDuration(view.getDuration());
         appointment.setRemark(view.getRemark());
         appointment.setStatus(0);
-        return appointmentRepository.save(appointment);
+        // 预置时段互斥键（唯一索引兜底并发）：先 ensureSlotFree 快检给出友好 400，
+        // 落库由 uk_appointment_slot_key/uk_appointment_room_slot_key 唯一索引在真正并发下兜底
+        ensureSlotFree(view.getStartTime(), view.getStaffId(), view.getRoomId());
+        applySlotKeys(appointment);
+        try {
+            return appointmentRepository.saveAndFlush(appointment);
+        } catch (DataAccessException e) {
+            if (isSlotKeyConflict(e)) {
+                throw new IllegalArgumentException("该时段已约满（每时段限约 1 位），请换医师或时段");
+            }
+            throw e;
+        }
+    }
+
+    /** 时段互斥键唯一索引冲突判定（SQLite/MySQL 均把唯一违例包进 DataAccessException 子类） */
+    private boolean isSlotKeyConflict(DataAccessException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String msg = t.getMessage();
+            if (msg != null && (msg.toLowerCase().contains("constraint") || msg.toLowerCase().contains("unique"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 按当前时段（floor 整点）与 staff/room 生成互斥键；终态/空时置 NULL 释放时段 */
+    @Override
+    public void applySlotKeys(AppointmentEntity appointment) {
+        Date startTime = appointment.getStartTime();
+        Integer status = appointment.getStatus();
+        boolean active = status == null || status == 0 || status == 1;
+        if (startTime == null || !active) {
+            appointment.setSlotKey(null);
+            appointment.setRoomSlotKey(null);
+            return;
+        }
+        Date hourStart = Date.from(startTime.toInstant().atZone(ZoneId.systemDefault())
+                .withMinute(0).withSecond(0).withNano(0).toInstant());
+        appointment.setSlotKey((appointment.getStaffId() == null ? "NULL" : appointment.getStaffId()) + "|" + hourStart.getTime());
+        appointment.setRoomSlotKey(appointment.getRoomId() == null ? null
+                : appointment.getRoomId() + "|" + hourStart.getTime());
     }
 
     /**
@@ -124,6 +164,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new IllegalArgumentException("预约状态不允许从 " + current + " 流转到 " + status);
         }
         appointment.setStatus(status);
+        // 终态（过号/取消）置互斥键 NULL 释放时段；接待（0→1）保持占用
+        applySlotKeys(appointment);
         AppointmentEntity saved = appointmentRepository.save(appointment);
         if (status == 1) {
             fireQueueCall(saved);
