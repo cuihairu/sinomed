@@ -82,7 +82,7 @@
 | ---- | ---- |
 | `off` | 默认。`card-lookup`、`sms-code`、`openid-session`、`openid-bind`、`my-appointments` 与 `appointment-cancel` 一律 400 拒绝，小程序页面透出「在线查卡已关闭 / 在线自助查询已关闭，请到店前台或致电门店查询」 |
 | `openid_only` | 登录态换 openid：小程序 `wx.login` → 服务端 `POST /api/v1/kiosk/openid-session` 经微信 jscode2session 换 openid（需 `WECHAT_APP_ID`/`WECHAT_APP_SECRET`，未配置 400 明确拒绝），按 `customers.openid` 查绑定顾客；缺 openid / 未绑定均拒绝，**不回退手机号**；`sms-code` 在此模式仅服务自助绑定（发码放行，查卡仍只走 openid）；`my-appointments` / `appointment-cancel` 在此模式 400 拒绝 |
-| `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡（`card-lookup`）、查自己的待到店预约（`my-appointments`，跨设备）或取消自己的待到店预约（`appointment-cancel`，2026-10-16 代决）；验证码 5 分钟有效、一次性，错/过期/已用均拒绝；`openid-session` / `openid-bind` 在此模式 400 拒绝 |
+| `sms_verified` | 手机号 + 短信验证码双因子：先 `sms-code` 发码，再带 `smsCode` 查卡（`card-lookup`）、查自己的待到店预约（`my-appointments`，跨设备）或取消自己的待到店预约（`appointment-cancel`，2026-10-16 代决）；验证码 5 分钟有效、一次性，错/过期/已用均拒绝；错试计数，**连续错满 5 次烧码**（`used=1`，须重新取码）；`openid-session` / `openid-bind` 在此模式 400 拒绝 |
 
 | 方法 | 路径 | 说明 |
 | ---- | ---- | ---- |

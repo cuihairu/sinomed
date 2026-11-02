@@ -365,6 +365,7 @@ Indexes: phone, operator. Convention: every attempt (including rejections) write
 | code | String | 6-digit numeric code |
 | expires_at | Date | Expiry time (5 minutes after the code is issued) |
 | used | Integer | 0 unused / 1 used (one-time, `integer default 0`) |
+| attempts | Integer | Wrong-attempt counter (`integer default 0`); 5 consecutive wrong attempts burn the code (`used=1`, must re-issue) — see [api](/server/api) |
 | create_time | Date | Code issue time |
 
 There is no real SMS gateway: code issuance is a server-side stub, and the code only lands in the database and the log (`SMS_CODE_DEMO phone=… code=…`); tests fetch the code directly from `SmsCodeRepository`.

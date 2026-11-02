@@ -365,6 +365,7 @@ append-only：赠次加 `total/remaining` 各 N（同一事务），转卡仅换
 | code | String | 6 位数字码 |
 | expires_at | Date | 过期时间（发码后 5 分钟） |
 | used | Integer | 0 未用 / 1 已用（一次性，`integer default 0`） |
+| attempts | Integer | 错试计数器（`integer default 0`）；连续错满 5 次烧码（`used=1`，须重新取码）——口径见 [api](/zh/server/api) |
 | create_time | Date | 发码时间 |
 
 无真实短信网关：发码为服务端桩，码只落库与日志（`SMS_CODE_DEMO phone=… code=…`），测试从 `SmsCodeRepository` 直接取码。

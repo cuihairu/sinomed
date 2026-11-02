@@ -30,7 +30,7 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 | `src/services/ant-design-pro/` | 接口定义（与服务端 `/api/v1/**` 一一对应） |
 | `src/access.ts` | 运行时权限：`canAdmin`（管理层）、`canUser`（已登录） |
 | `src/app.tsx` | 启动时拉取当前用户、未登录重定向 |
-| `src/requestErrorConfig.ts` | 从 `localStorage.jwt` 注入 `Authorization: Bearer`，统一错误提示 |
+| `src/requestErrorConfig.ts` | 从 `localStorage.jwt` 注入 `Authorization: Bearer`，统一错误提示；401 清凭证并跳转 `/user/login`（登录请求自身豁免，不回环） |
 | `src/locales/` | 菜单等文案多语言 |
 
 ## 页面与任务对照
@@ -181,13 +181,13 @@ pnpm dev     # dev 模式：MOCK=none，代理到本机服务端
 
 | 路径 | 页面 | 做什么 |
 | ---- | ---- | ---- |
-| `/wx` | 公众号工作台 | 五个 tab（行为口径见[公众号设计稿](/zh/design/wechat-official-account)与 [wx 接口组](/zh/server/api)）：**公众号账号** 账号列表 + 仅 ADMIN 的新建/编辑（密钥回显有存量掩码 `****`、无存量 `null`；编辑留空=保持既有值；写入需 `WX_OA_CREDENTIAL_KEY`）；**自动回复规则** subscribe/keyword/fallback 规则与匹配方式、优先级（每账号同时至多一条启用的 subscribe/fallback）；**自定义菜单** 两级草稿菜单，名称/结构校验 + 推送到微信按钮（真实出网凭据门控）；**消息流水** 方向/结果过滤 + 已绑定顾客姓名；**素材台账** 只读台账 + 图片预览（上传/删除仅在 API 层，页面未建）。规则/菜单/粉丝相关页的账号下拉来自账号列表，能力受限的操作按能力矩阵（`GET /wx/capabilities/{accountId}`）显隐 |
+| `/wx` | 公众号工作台 | 五个 tab（行为口径见[公众号设计稿](/zh/design/wechat-official-account)与 [wx 接口组](/zh/server/api)）：**公众号账号** 账号列表 + 仅 ADMIN 的新建/编辑（密钥回显有存量掩码 `****`、无存量 `null`；编辑留空=保持既有值；写入需 `WX_OA_CREDENTIAL_KEY`）；**自动回复规则** subscribe/keyword/fallback 规则与匹配方式、优先级（每账号同时至多一条启用的 subscribe/fallback）；**自定义菜单** 两级草稿菜单，名称/结构校验 + 推送到微信按钮（真实出网凭据门控）；**消息流水** 方向/结果过滤 + 已绑定顾客姓名；**素材台账** 只读台账 + 图片预览（上传/删除仅在 API 层，页面未建）。规则/菜单/粉丝相关页的账号下拉来自账号列表，能力受限的操作按能力矩阵（`GET /wx/capabilities/{accountId}`）显隐；路由本身以 `canAdmin`（MANAGER+）门禁 |
 
 未登录入口：`/user/login` 登录页（账号密码登录，登录后按角色落对应首页；无注册入口——账号由管理员创建，见 [api](/zh/server/api) 鉴权约定）。
 
 ## 权限与角色
 
-- `canAdmin`：管理端创建 / 查询员工入口（对应服务端 `role == 0` 的管理员，登录响应 `currentAuthority=admin`）；
+- `canAdmin`：管理层——`/api/v1/user/current` 返回的 `currentUser.access` 在服务端 `role < 10` 时即为 `admin`（`StaffEntity.getAccess()`：ADMIN + MANAGER），员工管理页与 `/wx` 都用它门禁；员工管理写接口仍仅 ADMIN（`role == 0`，`@PreAuthorize`），MANAGER 能进员工管理页但写入得 403；
 - `canUser`：签到与今日考勤入口（任何已登录员工）；
 - 服务端方法级权限已强制：员工管理写接口（`POST`/`PUT`/`DELETE` /api/v1/staff）加 `@PreAuthorize("hasRole('ADMIN')")`，与页面级 `canAdmin` 同口径；服务端角色映射 `role 0 → ADMIN`、`1-9 管理层 → MANAGER`、`≥10 普通员工 → USER`（StaffEntity.getAuthorities），越权写返回 403（ResponseExceptionAdvice 对 AccessDeniedException 出 403，不落 500；回归 StaffPermissionHttpTest）。其余业务接口仍为登录即可用（未按方法分权）。
 

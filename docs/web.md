@@ -30,7 +30,7 @@ pnpm dev     # dev mode: MOCK=none, proxied to the local server
 | `src/services/ant-design-pro/` | API definitions (one-to-one with the server's `/api/v1/**`) |
 | `src/access.ts` | Runtime permissions: `canAdmin` (management), `canUser` (logged in) |
 | `src/app.tsx` | Fetches the current user at startup; redirects when unauthenticated |
-| `src/requestErrorConfig.ts` | Injects `Authorization: Bearer` from `localStorage.jwt`; unified error toasts |
+| `src/requestErrorConfig.ts` | Injects `Authorization: Bearer` from `localStorage.jwt`; unified error toasts; on 401 clears the token and redirects to `/user/login` (the login request itself is exempt — no redirect loop) |
 | `src/locales/` | Multi-language strings for menus and other UI text |
 
 ## Pages by task
@@ -181,13 +181,13 @@ Site theme and brand presentation (design in the docs-site "theme switching" pre
 
 | Path | Page | What it does |
 | ---- | ---- | ---- |
-| `/wx` | Official-account workbench | Five tabs (Chinese UI; behavior per the [official-account design](/design/wechat-official-account) and the [wx API group](/server/api)): **公众号账号** account list with ADMIN-only create/edit (secrets echoed masked `****` when set, `null` when absent; a blank secret on update keeps the stored value; writes need `WX_OA_CREDENTIAL_KEY`); **自动回复规则** subscribe/keyword/fallback rules with match type and priority (at most one enabled subscribe/fallback per account); **自定义菜单** two-level draft menus with name/structure validation and the push-to-WeChat button (real outbound credential-gated); **消息流水** message log with direction/result filters plus the bound-customer name; **素材台账** read-only material ledger with blob preview (upload/delete exist on the API only — no UI yet). Rule/menu/fan pages pick an account via the account list, and gated actions consult the capability matrix (`GET /wx/capabilities/{accountId}`) |
+| `/wx` | Official-account workbench | Five tabs (Chinese UI; behavior per the [official-account design](/design/wechat-official-account) and the [wx API group](/server/api)): **公众号账号** account list with ADMIN-only create/edit (secrets echoed masked `****` when set, `null` when absent; a blank secret on update keeps the stored value; writes need `WX_OA_CREDENTIAL_KEY`); **自动回复规则** subscribe/keyword/fallback rules with match type and priority (at most one enabled subscribe/fallback per account); **自定义菜单** two-level draft menus with name/structure validation and the push-to-WeChat button (real outbound credential-gated); **消息流水** message log with direction/result filters plus the bound-customer name; **素材台账** read-only material ledger with blob preview (upload/delete exist on the API only — no UI yet). Rule/menu/fan pages pick an account via the account list, and gated actions consult the capability matrix (`GET /wx/capabilities/{accountId}`); the route itself is gated `canAdmin` (MANAGER+) |
 
 Unauthenticated entry: `/user/login` (account + password login; after login each role lands on its home page; no sign-up — accounts are created by the administrator, see the auth conventions in [api](/server/api)).
 
 ## Permissions and roles
 
-- `canAdmin`: the admin console's create / search staff entries (the administrator with server-side `role == 0`; login response `currentAuthority=admin`);
+- `canAdmin`: the management tier — `currentUser.access` from `/api/v1/user/current` is `admin` whenever server-side `role < 10` (`StaffEntity.getAccess()`: ADMIN + MANAGER), and it gates the staff pages and `/wx`; staff-management write endpoints stay ADMIN-only (`role == 0`, `@PreAuthorize`), so a MANAGER can open the staff pages but their writes get 403;
 - `canUser`: sign-in and today's timesheet entries (any logged-in staff);
 - Server-side method-level authorization is enforced: staff-management write endpoints (`POST`/`PUT`/`DELETE` /api/v1/staff) carry `@PreAuthorize("hasRole('ADMIN')")`, matching the page-level `canAdmin`; the server's role mapping is `role 0 → ADMIN`, `1-9 management → MANAGER`, `≥10 regular staff → USER` (StaffEntity.getAuthorities); unauthorized writes return 403 (ResponseExceptionAdvice maps AccessDeniedException to 403, never 500; regression: StaffPermissionHttpTest). All other business endpoints still require only login (no per-method authorization).
 
