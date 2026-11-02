@@ -19,7 +19,7 @@
 - [x] WxOauthTicketStore 未兑换票据清理：签发未兑换票据永久滞留（C7，docs/review/2026-11-01-code-review.md；证据 WxOauthTicketStore.java:29）——证据：已修复（issue 顺带 purgeExpired 清过期未兑换票据，内存有界于 TTL 窗口），WxOauthTicketStoreTest.redeemIsSingleUseAndWrongAccountRejected 定向绿。
 - [x] 素材拉取 mimeType 规范化对齐上传路径白名单（C8，docs/review/2026-11-01-code-review.md；证据 WxOfficialAccountService.java:1448）——证据：已修复（captureMaterial 经 canonicalizeMimeType 剥参+小写+白名单规范化入库，白名单外回 null 兜底 octet-stream），WxMaterialCaptureHttpTest.fetchMimeNormalizedToWhitelist（含参数/大小写与 text/html 两断言）定向绿。
 - [x] uploadLocalMaterial 落盘后 save 失败清孤儿文件（C9，docs/review/2026-11-01-code-review.md；证据 WxOfficialAccountService.java:1243-1256）——证据：已修复（uploadLocalMaterial 改 saveAndFlush，catch RuntimeException 时 Files.deleteIfExists(target) 清刚写孤儿文件再上抛，与远端上传路径同口径），全量 458 测试绿。
-- [ ] web JWT 存储纵深防御评估（localStorage 可被 XSS 窃取，当前无注入点，评估 httpOnly cookie 迁移）（C10，docs/review/2026-11-01-code-review.md；证据 web/src/pages/User/Login/index.tsx:91）。
+- [x] web JWT 存储纵深防御评估（localStorage 可被 XSS 窃取，当前无注入点，评估 httpOnly cookie 迁移）（C10，docs/review/2026-11-01-code-review.md；证据 web/src/pages/User/Login/index.tsx:91）——证据：评估完成，维持 Bearer+localStorage（非目标、可推翻）：全 web 仅小票窗口 document.write，服务端 ReceiptPrintServiceImpl 对 clinic/customer/staff/item/pay 全部 esc；无 dangerouslySetInnerHTML/eval/new Function；httpOnly 迁移需改登录/请求/登出全链路并补 CSRF/SameSite，当前无注入点下收益不足以引入该破坏面；重评触发=新增富文本/第三方脚本/未转义 HTML 注入面。
 - [ ] swagger/knife4j/actuator permitAll 按 prod profile 收紧（C11，docs/review/2026-11-01-code-review.md；证据 SecurityConfig.java:51-58）。
 
 ## 已代决（非目标/拍板，用户可推翻）
