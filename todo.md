@@ -11,9 +11,6 @@
   - 证据（2026-11-01 复核）：app/project.config.json:5 仍 touristappid；application.yml:52-53 空缺省；已代决按 docs/review/2026-10-30-decisions.md 执行。
 - [ ] 在线支付真实通道：缺商户号与密钥等真实凭据 + 用户授权接网关，付费红线不碰（用户侧）。
   - 证据（2026-11-01 复核）：PayQrCodeController 仍仅按本地目录出收款码图，无网关/商户号/密钥配置；已代决按 docs/review/2026-10-30-decisions.md 执行。
-- [ ] web 前端 /wx 路由加 access 门禁：后端管理端已 MANAGER+，路由未拦则普通 USER 仍可进页拿整页 403（web/config/routes.ts:305）。
-- [ ] WxOfficialAccountController 三个分区注释「需登录」改「需 MANAGER+」，与分区内端点 @Operation 口径一致（:181/:266/:316）。
-- [ ] WxAdminRoleGuardHttpTest 补 MANAGER 写端点放行断言（菜单/规则 CRUD、push、unbind、capabilities；现只锁读半侧）。
 - [ ] 配置开关效果动态文档页（双语）：逐开关 off/on 图 + 切换 GIF，流水线可重跑、兼作配置效果回归（kode todo C-24 同款，2026-11-01 用户令）。
 - [ ] 公众号回调排重 check-then-insert 竞态：并发重复消息可触发 dedupe_key 唯一索引冲突未捕获 → 500 → 微信重试放大（C3，docs/review/2026-11-01-code-review.md；证据 WxOfficialAccountService.onMessage:270-275）。
 - [ ] 预约时段互斥 check-then-act 竞态：两个自助约期并发过 count==0 后双双落库，时段双占（C4，docs/review/2026-11-01-code-review.md；证据 AppointmentServiceImpl.ensureSlotFree:69-91 + KioskController:249）。
@@ -37,7 +34,7 @@
 
 ## 已完成
 
-### 公众号模块（2026-10-19 → 11-01）
+### 公众号模块（2026-10-19 → 11-02）
 
 - [x] 第一期骨架 + 能力矩阵（四表/验签/路由/惰性开关）——证据：17 新测试，全量 342 绿。
 - [x] 消息流水只读端点 `GET /api/v1/wx/message-logs`——证据：WxMessageLogsHttpTest 5 例，全量 347 绿。
@@ -57,6 +54,9 @@
 - [x] 素材远端上传（`POST /materials/remote/{accountId}`，错误清孤儿透传）——证据：WxMaterialRemoteUploadHttpTest 7 例，全量 439 绿。
 - [x] token 取用优先级 resolveToken（env 优先/账号行兜底）+ 账号 400 契约锁定——证据：commit b6a1dbf，WxAccountTokenPrecedenceHttpTest/WxAccountDbTokenHttpTest，全量 443 绿。
 - [x] 管理端整面角色门禁（18× MANAGER+ / 2× ADMIN，回调与粉丝侧免登录不动）——证据：commit 839342d，WxAdminRoleGuardHttpTest 5 例，全量 448 绿。
+- [x] web /wx 路由加 canAdmin 门禁（MANAGER+ 与后端同口径）——证据：commit b096e94，web lint/tsc/jest 24 绿。
+- [x] WxOfficialAccountController 三个分区注释「需登录」改「需 MANAGER+」——证据：commit b096e94，WxOfficialAccountController.java:181/:266/:316。
+- [x] WxAdminRoleGuardHttpTest 补 MANAGER 写端点放行断言（capabilities/规则/菜单 CRUD、push、unbind）——证据：commit b096e94，全量 450 绿。
 - [x] wx_accounts.app_secret/aes_key AES-GCM 加密落库——证据：WxCredentialCryptoTest 3 + NoKeyTest 2。
 
 ### 查询契约与过滤修复
