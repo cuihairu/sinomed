@@ -19,7 +19,10 @@ public final class WxSignatureUtil {
         if (isBlank(token) || isBlank(timestamp) || isBlank(nonce) || isBlank(signature)) {
             return false;
         }
-        return sha1Hex(sortJoin(token, timestamp, nonce)).equalsIgnoreCase(signature);
+        // 常量时间比较：防计时侧信道（SHA-1 hex 等长比较，长度不符直接 false 不触发逐字节扫描）
+        byte[] expected = sha1Hex(sortJoin(token, timestamp, nonce)).getBytes(StandardCharsets.US_ASCII);
+        byte[] provided = signature.getBytes(StandardCharsets.US_ASCII);
+        return MessageDigest.isEqual(expected, provided);
     }
 
     /** 字典序排序后拼接（协议规定）；安全模式 msg_signature 四段同款拼接（WxMsgCryptor 复用） */

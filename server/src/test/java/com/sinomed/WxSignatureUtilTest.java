@@ -27,6 +27,9 @@ class WxSignatureUtilTest {
                 "签名不符应拒绝");
         assertFalse(WxSignatureUtil.check("otherToken", "1234567890", "n1", KNOWN_SIGNATURE),
                 "token 不同签名必不同，应拒绝");
+        // 常量时间：大写十六进制（等长异形大小写）也应拒绝（isEqual 逐字节比较，无大小写归一）
+        assertFalse(WxSignatureUtil.check("token", "1234567890", "n1", KNOWN_SIGNATURE.toUpperCase()),
+                "等长大写签名应拒绝（常量时间比较不作大小写折叠）");
     }
 
     @Test
