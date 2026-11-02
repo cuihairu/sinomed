@@ -22,6 +22,10 @@ import org.springframework.web.client.RestTemplate;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -190,6 +194,31 @@ class WxOfficialAccountHttpTest {
 
         postXml(accountId, "1700000041", "nonceF", textXml("oFAN4", 7777L, "你好"));
         assertEquals(1, countLogs("in"), "同 MsgId 重发（微信 5s 重试）应排重只落一条流水");
+    }
+
+    @Test
+    void concurrentDuplicateMsgIdBothSucceedWithoutRace() throws Exception {
+        // 并发同 MsgId 双投递：两侧都应回 success（不 500/不触发微信重试放大），流水仍只落一条
+        int threads = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            java.util.List<Future<String>> futures = new java.util.ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return postXml(accountId, "1700000045", "nonceR" + Thread.currentThread().threadId(),
+                            textXml("oFANR", 88888L, "并发你好"));
+                }));
+            }
+            start.countDown();
+            for (Future<String> future : futures) {
+                assertEquals("success", future.get(), "并发重复消息也应回 success 不抛 500");
+            }
+            assertEquals(1, countLogs("in"), "并发排重仍只落一条流水");
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

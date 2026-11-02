@@ -41,6 +41,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 
@@ -470,7 +472,28 @@ public class WxOfficialAccountService {
         log.setMsgId(msgId != null ? parseLongOrNull(msgId) : null);
         log.setDedupeKey(dedupeKey);
         log.setResult("ok");
-        messageLogRepository.save(log);
+        try {
+            messageLogRepository.saveAndFlush(log);
+        } catch (DataAccessException e) {
+            // 并发同 dedupe_key 双投递：唯一索引兜底排重——另一请求已落库，本请求作重放处理，
+            // 不向上抛（否则 500 触发微信重试放大）。调用方在 existsByDedupeKey 后的窗口由这里补住。
+            if (dedupeKey != null && isUniqueConstraint(e)) {
+                logReject(accountId, "duplicate", msgType, fromUser, toUser);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    /** 唯一约束冲突判定：Hibernate 随方言/驱动把 SQLITE_CONSTRAINT_UNIQUE 包成 DataAccessException 子类，逐层找约束痕迹 */
+    private boolean isUniqueConstraint(DataAccessException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String msg = t.getMessage();
+            if (msg != null && (msg.toLowerCase().contains("constraint") || msg.toLowerCase().contains("unique"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Long parseLongOrNull(String value) {
