@@ -1278,7 +1278,18 @@ public class WxOfficialAccountService {
             material.setLocalPath(relative);
             material.setSize(file.getSize());
             material.setMimeType(canonicalMime);
-            return materialRepository.save(material);
+            try {
+                return materialRepository.saveAndFlush(material);
+            } catch (RuntimeException e) {
+                // 落盘后 save 失败：清掉刚写的孤儿文件（防脏盘），再上抛——与远端上传路径同口径
+                try {
+                    Files.deleteIfExists(target);
+                } catch (IOException cleanup) {
+                    log.warn("素材 save 失败后清理孤儿文件失败 account={} path={}: {}",
+                            account.getId(), relative, cleanup.getMessage());
+                }
+                throw e;
+            }
         } catch (IOException e) {
             throw new IllegalStateException("素材落盘失败：" + e.getMessage(), e);
         }
