@@ -16,6 +16,7 @@ import com.sinomed.repository.SmsCodeRepository;
 import com.sinomed.service.AppointmentService;
 import com.sinomed.service.OrderService;
 import com.sinomed.service.WechatClient;
+import com.sinomed.util.DbUniqueUtil;
 import com.sinomed.vo.ExceptionView;
 import com.sinomed.vo.KioskAppointmentCancelRequest;
 import com.sinomed.vo.KioskAppointmentRequest;
@@ -274,13 +275,7 @@ public class KioskController {
     }
 
     private boolean isSlotKeyConflict(org.springframework.dao.DataAccessException e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            String msg = t.getMessage();
-            if (msg != null && (msg.toLowerCase().contains("constraint") || msg.toLowerCase().contains("unique"))) {
-                return true;
-            }
-        }
-        return false;
+        return DbUniqueUtil.isUniqueViolation(e);
     }
 
     @Operation(summary = "获取短信验证码", description = "sms_verified 模式查卡、openid_only 模式绑定微信共用：6 位验证码（5 分钟有效、一次性）；off 模式拒绝。"

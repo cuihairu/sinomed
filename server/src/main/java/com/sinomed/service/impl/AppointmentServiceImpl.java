@@ -9,6 +9,7 @@ import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.QueueCallRepository;
 import com.sinomed.repository.StaffRepository;
 import com.sinomed.service.AppointmentService;
+import com.sinomed.util.DbUniqueUtil;
 import com.sinomed.vo.AppointmentView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,15 +71,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    /** 时段互斥键唯一索引冲突判定（SQLite/MySQL 均把唯一违例包进 DataAccessException 子类） */
     private boolean isSlotKeyConflict(DataAccessException e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            String msg = t.getMessage();
-            if (msg != null && (msg.toLowerCase().contains("constraint") || msg.toLowerCase().contains("unique"))) {
-                return true;
-            }
-        }
-        return false;
+        return DbUniqueUtil.isUniqueViolation(e);
     }
 
     /** 按当前时段（floor 整点）与 staff/room 生成互斥键；终态/空时置 NULL 释放时段 */

@@ -19,6 +19,7 @@ import com.sinomed.repository.WxMaterialRepository;
 import com.sinomed.repository.WxMenuRepository;
 import com.sinomed.repository.WxMessageLogRepository;
 import com.sinomed.util.DateUtil;
+import com.sinomed.util.DbUniqueUtil;
 import com.sinomed.util.WxSignatureUtil;
 import me.chanjar.weixin.mp.api.WxMpMessageRouter;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
@@ -487,13 +488,7 @@ public class WxOfficialAccountService {
 
     /** 唯一约束冲突判定：Hibernate 随方言/驱动把 SQLITE_CONSTRAINT_UNIQUE 包成 DataAccessException 子类，逐层找约束痕迹 */
     private boolean isUniqueConstraint(DataAccessException e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            String msg = t.getMessage();
-            if (msg != null && (msg.toLowerCase().contains("constraint") || msg.toLowerCase().contains("unique"))) {
-                return true;
-            }
-        }
-        return false;
+        return DbUniqueUtil.isUniqueViolation(e);
     }
 
     private static Long parseLongOrNull(String value) {
