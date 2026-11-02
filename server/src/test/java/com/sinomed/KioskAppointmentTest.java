@@ -18,6 +18,12 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -118,6 +124,42 @@ class KioskAppointmentTest {
         var resp = book("{\"phone\":\"13900002002\",\"startTime\":\"" + at(2, 16, 0) + "\"}");
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         assertEquals("该时段已约满（每时段限约 1 位），请换医师或时段", JsonPath.read(resp.getBody(), "$.errorMessage"));
+    }
+
+    @Test
+    void concurrentSameSlotOnlyOneSucceedsOnKiosk() throws Exception {
+        // 并发唯一索引兜底在 Kiosk 自助约期路径（saveAndFlush + isSlotKeyConflict）同样生效：
+        // 两个不同手机号约同一整点，只一条成功、另一条 400「该时段已约满」。管理端已有同名用例，
+        // 此处补齐自助路径的并发验证（审核发现：测试缺口）。
+        int threads = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<ResponseEntity<String>>> futures = new ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                String phone = "1390000310" + i;
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return book("{\"phone\":\"" + phone + "\",\"startTime\":\"" + at(3, 17, 0) + "\"}");
+                }));
+            }
+            start.countDown();
+            int ok = 0;
+            int busy = 0;
+            for (Future<ResponseEntity<String>> f : futures) {
+                ResponseEntity<String> r = f.get();
+                if (r.getStatusCode() == HttpStatus.OK) {
+                    ok++;
+                } else if (r.getStatusCode() == HttpStatus.BAD_REQUEST
+                        && "该时段已约满（每时段限约 1 位），请换医师或时段".equals(JsonPath.read(r.getBody(), "$.errorMessage"))) {
+                    busy++;
+                }
+            }
+            assertEquals(1, ok, "并发同段应恰一条成功");
+            assertEquals(1, busy, "并发同段应恰一条 400 约满");
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test
