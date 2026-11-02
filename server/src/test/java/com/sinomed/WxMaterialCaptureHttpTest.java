@@ -205,4 +205,45 @@ class WxMaterialCaptureHttpTest {
         assertEquals(0, materialRepository.count(), "超限素材不落台账（上限 64B，源 100B）");
         assertFalse(Files.exists(Paths.get(materialDir)), "超限素材不得落盘");
     }
+
+    @Test
+    void fetchMimeNormalizedToWhitelist() throws Exception {
+        // 远端回带参数/大小写的 Content-Type：拉取路径应规范化入库（对齐上传路径白名单），非白名单回 null
+        HttpServer dirty = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        dirty.createContext("/", exchange -> {
+            byte[] body = TINY_JPEG;
+            exchange.getResponseHeaders().set("Content-Type", "Image/JPEG; charset=UTF-8");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        dirty.start();
+        try {
+            postImage("oFANIMG", 71006L, "MEDIA_IMG_5", "http://localhost:" + dirty.getAddress().getPort() + "/pic");
+        } finally {
+            dirty.stop(0);
+        }
+        WxMaterialEntity row = materialRepository.findAll().stream()
+                .filter(m -> "MEDIA_IMG_5".equals(m.getMediaId())).findFirst().orElseThrow();
+        assertEquals("image/jpeg", row.getMimeType(), "拉取 mime 应规范化剥参/小写为规范 image/jpeg：" + row.getMimeType());
+
+        // 白名单外（如 text/html）不入规范值
+        HttpServer weird = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        weird.createContext("/", exchange -> {
+            byte[] body = TINY_JPEG;
+            exchange.getResponseHeaders().set("Content-Type", "text/html");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        weird.start();
+        try {
+            postImage("oFANIMG", 71007L, "MEDIA_IMG_6", "http://localhost:" + weird.getAddress().getPort() + "/pic");
+        } finally {
+            weird.stop(0);
+        }
+        WxMaterialEntity row2 = materialRepository.findAll().stream()
+                .filter(m -> "MEDIA_IMG_6".equals(m.getMediaId())).findFirst().orElseThrow();
+        assertEquals(null, row2.getMimeType(), "白名单外 mime 应回 null（回放兜底 octet-stream）：" + row2.getMimeType());
+    }
 }

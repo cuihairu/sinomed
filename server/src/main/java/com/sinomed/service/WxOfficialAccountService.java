@@ -1482,7 +1482,8 @@ public class WxOfficialAccountService {
             material.setUrl(picUrl);
             material.setLocalPath(relative);
             material.setSize((long) body.length);
-            material.setMimeType(mime.isBlank() ? null : mime);
+            // 与上传路径同口径规范化（剥参数+小写），远端 Content-Type 不再原样入台账
+            material.setMimeType(canonicalizeMimeType(mime));
             materialRepository.save(material);
         } catch (Exception e) {
             log.warn("wx material download failed account={} media={}: {}", accountId, mediaId, e.getMessage());
@@ -1517,6 +1518,19 @@ public class WxOfficialAccountService {
 
     private static boolean isBlank(String text) {
         return text == null || text.isBlank();
+    }
+
+    /** 规范化媒体类型：剥 `;` 参数+小写，白名单（png/jpeg/gif/webp/mp4）内回规范值，白名单外回 null */
+    private static String canonicalizeMimeType(String rawMime) {
+        String base = (rawMime == null ? "" : rawMime).split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+        return switch (base) {
+            case "image/png" -> "image/png";
+            case "image/jpeg", "image/jpg" -> "image/jpeg";
+            case "image/gif" -> "image/gif";
+            case "image/webp" -> "image/webp";
+            case "video/mp4" -> "video/mp4";
+            default -> null;
+        };
     }
 
     /** 消息推送 Token 取用优先级（设计稿 §4.1「env remains the token override」）：env 有值优先，否则取账号行 */

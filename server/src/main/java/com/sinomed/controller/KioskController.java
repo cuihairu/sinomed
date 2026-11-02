@@ -590,6 +590,8 @@ public class KioskController {
             throw new IllegalArgumentException("预约时间已过，不能自助取消");
         }
         appointment.setStatus(9);
+        // 终态（取消）置互斥键 NULL 释放时段：与 updateStatus 同口径，防「取消后同格仍被锁死」
+        appointmentService.applySlotKeys(appointment);
         appointmentRepository.save(appointment);
         audit(phone, phone, mode, customer.getId(), "cancel_ok");
         String when = LocalDateTime.ofInstant(appointment.getStartTime().toInstant(), ZoneId.systemDefault())
