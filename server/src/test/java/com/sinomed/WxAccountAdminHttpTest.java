@@ -230,6 +230,14 @@ class WxAccountAdminHttpTest {
         HttpClientErrorException e3 = assertThrows(HttpClientErrorException.class,
                 () -> createAccount(badEncrypt, adminToken));
         assertEquals(HttpStatus.BAD_REQUEST, e3.getStatusCode(), "非法 encryptMode 应 400");
+
+        Map<String, Object> badEnabled = new java.util.HashMap<>();
+        badEnabled.put("appId", "wxBAD" + System.nanoTime());
+        badEnabled.put("accountType", "service");
+        badEnabled.put("enabled", 2);
+        HttpClientErrorException e4 = assertThrows(HttpClientErrorException.class,
+                () -> createAccount(badEnabled, adminToken));
+        assertEquals(HttpStatus.BAD_REQUEST, e4.getStatusCode(), "脏值 enabled=2 应 400（防收消息/验 URL 判定分叉）");
     }
 
     @Test

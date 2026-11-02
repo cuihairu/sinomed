@@ -218,7 +218,7 @@ public class WxOfficialAccountService {
             return "success";
         }
         WxAccountEntity account = accountRepository.findById(accountId)
-                .filter(a -> a.getEnabled() != null && a.getEnabled() != 0).orElse(null);
+                .filter(a -> a.getEnabled() != null && a.getEnabled() == 1).orElse(null);
         if (account == null) {
             logReject(accountId, "account_missing", "none", null, null);
             return "success";
@@ -1414,7 +1414,11 @@ public class WxOfficialAccountService {
         entity.setAccountName(isBlank(incoming.getAccountName()) ? appId : incoming.getAccountName().trim());
         entity.setAccountType(accountType);
         entity.setVerified(incoming.getVerified() == null ? 0 : incoming.getVerified());
-        entity.setEnabled(incoming.getEnabled() == null ? 1 : incoming.getEnabled());
+        Integer enabled = incoming.getEnabled() == null ? 1 : incoming.getEnabled();
+        if (enabled != 0 && enabled != 1) {
+            throw new IllegalArgumentException("enabled 必须是 0/1（停用/启用）");
+        }
+        entity.setEnabled(enabled);
         entity.setEncryptMode(encryptMode);
         entity.setRemark(isBlank(incoming.getRemark()) ? null : incoming.getRemark().trim());
         // 凭据：更新留空=保持既有（不回显掩码，绝不清除）；创建显式给（可空=不配）。

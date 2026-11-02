@@ -197,6 +197,22 @@ class WxOfficialAccountHttpTest {
     }
 
     @Test
+    void dirtyEnabledRejectedConsistentlyOnCallbackAndVerify() throws Exception {
+        // 脏值 enabled=2 直插（绕过 saveAccount 校验），onMessage 与 verifyUrl 都应按停用判定（==1 一致）
+        WxAccountEntity account = accountRepository.findById(accountId).orElseThrow();
+        account.setEnabled(2);
+        accountRepository.save(account);
+        assertEquals("success", postXml(accountId, "1700000042", "nonceG2", textXml("oFAN7", 7777L, "你好")),
+                "脏值 enabled=2 应按停用拒处理回 success（不放大重试）");
+        assertEquals(1, countLogs("reject"), "脏值 enabled=2 应落拒绝审计");
+        // verifyUrl：GET 验签路径同样按停用
+        String body = rest.getForObject(callbackUrl(accountId,
+                "?signature=" + sign("1700000043", "nonceH2")
+                        + "&timestamp=1700000043&nonce=nonceH2&echostr=ECHO-DIRTY"), String.class);
+        assertFalse("ECHO-DIRTY".equals(body), "脏值 enabled=2 验 URL 不应回显 echostr（与 onMessage 同口径停用）");
+    }
+
+    @Test
     void concurrentDuplicateMsgIdBothSucceedWithoutRace() throws Exception {
         // 并发同 MsgId 双投递：两侧都应回 success（不 500/不触发微信重试放大），流水仍只落一条
         int threads = 2;
