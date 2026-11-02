@@ -23,9 +23,16 @@ public class WxOauthTicketStore {
     private final Map<String, Entry> tickets = new ConcurrentHashMap<>();
 
     public String issue(long accountId, String openid) {
+        purgeExpired();
         String ticket = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
         tickets.put(ticket, new Entry(accountId, openid, System.currentTimeMillis() / 1000 + TICKET_TTL_SECONDS));
         return ticket;
+    }
+
+    /** 清理未兑换且已过期的票据：签发路径顺带扫，避免永久滞留（单实例低流量，O(n) 可忽略） */
+    private void purgeExpired() {
+        long now = System.currentTimeMillis() / 1000;
+        tickets.entrySet().removeIf(e -> now > e.getValue().expiresAtEpochSeconds());
     }
 
     public Optional<String> redeem(long accountId, String ticket) {
