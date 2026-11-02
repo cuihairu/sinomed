@@ -163,3 +163,5 @@
 - [x] 审核发现：远端素材拉取 captureMaterial 先 Files.write(target, body) 再 materialRepository.save(material)，save 抛错被 catch(Exception) 吞掉仅记 warn，刚写盘文件成孤儿；本轮「清理孤儿素材文件」（commit 66fa20e）只补了 uploadLocalMaterial 上传路径，下载路径同型缺口未处理（server/src/main/java/com/sinomed/service/WxOfficialAccountService.java:1498）——证据：已修复（captureMaterial 改 saveAndFlush，catch RuntimeException 时 Files.deleteIfExists(target) 清刚写孤儿文件再上抛，与上传路径同口径），WxMaterialCaptureHttpTest.saveFailureAfterRemoteCaptureDeletesOrphanFile 定向绿。
 
 - [x] 审核发现：测试缺口——并发唯一索引兜底（AppointmentSlotTest.concurrentSameSlotOnlyOneSucceeds）只覆盖管理端 /api/v1/appointment/ 建约路径，Kiosk 自助约期自带 saveAndFlush + isSlotKeyConflict 的并发路径未做并发验证（server/src/main/java/com/sinomed/controller/KioskController.java:256）——证据：已补齐（KioskAppointmentTest.concurrentSameSlotOnlyOneSucceeds 并发双线程自助约同一整点，断言恰一成功一 400「该时段已约满」），定向绿。
+
+- [x] 审核发现：本轮 diff 未见问题（3cdffe71..HEAD，仅 1 个提交 1cc2ca5，改动 README.md/README.zh.md 徽章排版文档，已全量逐行审查，无安全/正确性/测试缺口）——证据：复核 1cc2ca5 实为修 README 徽章行嵌套 <p> 标签与去重复 Apache-2.0 徽章（仅文档展示，无代码/安全/测试影响），git show --stat 确认仅 README.md/README.zh.md 两文件，无安全/正确性/测试缺口。
