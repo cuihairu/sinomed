@@ -14,7 +14,7 @@ const nav = [
 
 const guideSidebar = [
   { text: 'Getting started', items: [{ text: 'Quick start', link: '/guide/getting-started' }] },
-  { text: 'Development', items: [{ text: 'Development guide', link: '/guide/development' }] }
+  { text: 'Development', items: [{ text: 'Development guide', link: '/guide/development' }, { text: 'Config switch effects', link: '/guide/config-switches' }] }
 ]
 const serverSidebar = [
   {
@@ -163,7 +163,7 @@ export default defineConfig({
             },
             {
               text: '开发',
-              items: [{ text: '开发指南', link: '/zh/guide/development' }]
+              items: [{ text: '开发指南', link: '/zh/guide/development' }, { text: '配置开关效果', link: '/zh/guide/config-switches' }]
             }
           ],
           '/zh/server/': [
