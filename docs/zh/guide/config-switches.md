@@ -14,7 +14,7 @@
 ### openid_only
 
 - **效果**：`/api/v1/kiosk/card-lookup` 按 openid 查绑定顾客；缺 openid / 未绑定都 400；不发短信码。`my-appointments` / `appointment-cancel` 走 openid 登录态。取码接口仅用于绑定（`/api/v1/kiosk/sms-code` 支持绑定场景）。openid 换取走 `/api/v1/kiosk/openid-session`（`wx.login` code → openid）；小程序凭据未配置时该换取 400「微信凭据未配置」（不静默）。
-- **回归**：`CardLookupOpenidTest`（8 项：openid 查卡命中、缺 openid 拒、未绑定拒、取码供绑定、my-appointments 拒、appointment-cancel 拒、成功与拒绝落审计）、`KioskOpenidSessionNoCredentialTest`（凭据未配置拒绝）、`KioskOpenidSessionTest`（换 openid、微信错误 400、缺 code 拒）。
+- **回归**：`CardLookupOpenidTest`（7 项：openid 查卡命中、缺 openid 拒、未绑定拒、取码供绑定、my-appointments 拒、appointment-cancel 拒、成功与拒绝落审计）、`KioskOpenidSessionNoCredentialTest`（凭据未配置拒绝）、`KioskOpenidSessionTest`（换 openid、微信错误 400、缺 code 拒）。
 
 ### sms_verified
 

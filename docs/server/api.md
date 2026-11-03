@@ -5,14 +5,14 @@ All business endpoints share the unified prefix `/api/v1`; the paths in the tabl
 ## Authentication Conventions
 
 - **Permitted paths**:
-  - Login and docs: `/api/v1/user/login`, `/doc.html`, `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**`, `/swagger-resources/**`, `/webjars/**`
+  - Login: `/api/v1/user/login`
+  - API docs (permitted except in `prod`; under `prod` they require authentication — see `SecurityConfig` C11): `/doc.html`, `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**`, `/swagger-resources/**`, `/webjars/**`
   - **Unauthenticated business endpoints (intranet device conventions, see the corresponding design docs)**:
     - `/api/v1/kiosk/**` — Kiosk browsing and ordering for patients + mini program self-service scheduling + openid self-service binding (read-only plus three write entry points: ordering, self-service scheduling, and binding; see [kiosk.md](/design/kiosk) and [app-booking.md](/design/app-booking))
     - `/api/v1/ads/playlist` — tablet pulls the schedule (read-only + screen code validation; see [tablet.md](/design/tablet))
     - `/api/v1/calls/latest` — tablet polls for queue calling (read-only + screen code validation; see [tablet.md](/design/tablet))
     - `/api/v1/print/templates` — print template delivery (blank layouts with no business data; see [desktop.md](/design/desktop) D7)
     - `/media/**` — advertising media static resources (hosted by Nginx)
-  - `/actuator/**` — ops monitoring
 - All other endpoints require `Authorization: Bearer <JWT>`; unauthenticated requests return 401 (including `POST /error` frontend error reporting — reports made while not logged in get swallowed by the 401; this works normally after login).
 - Note that `POST /api/v1/user/register` (registration) is not on the permitted list — an account must already exist before first use.
 - Staff management write endpoints (`POST`/`PUT`/`DELETE` `/api/v1/staff`) have method-level authorization enabled via `@PreAuthorize("hasRole('ADMIN')")`; non-admins attempting them get 403.

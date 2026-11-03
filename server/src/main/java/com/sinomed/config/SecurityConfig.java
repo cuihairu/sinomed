@@ -21,8 +21,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.util.Arrays;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -35,15 +33,14 @@ public class SecurityConfig {
     private final Environment environment;
     private final String LoginAPI = "/api/v1/user/login";
 
-    /** API 文档面（Swagger/Knife4j）与 Actuator：仅在非 prod profile 放行，prod 下按 anyRequest 需认证。 */
+    /** API 文档面（Swagger/Knife4j）：仅在非 prod profile 放行，prod 下按 anyRequest 需认证。 */
     private static final String[] DOCS_PUBLIC = {
             "/v3/api-docs/**",  // Swagger v3 API docs
             "/swagger-resources/**",  // Swagger resources
             "/swagger-ui.html",  // Swagger UI HTML page
             "/webjars/**",  // Webjars (for Swagger UI)
             "/swagger-ui/**",  // Swagger UI path
-            "/doc.html",  // Knife4j HTML page
-            "/actuator/**"
+            "/doc.html"  // Knife4j HTML page
     };
 
     @Bean
@@ -60,7 +57,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        boolean prod = Arrays.asList(environment.getActiveProfiles()).contains("prod");
+        // prod 可能经 spring.profiles.default 激活（默认 profile，getActiveProfiles() 为空），
+        // 用 acceptsProfiles 同时覆盖 active 与 default，避免 C11 收紧在默认 profile 下静默失效。
+        boolean prod = environment.acceptsProfiles("prod");
 
         http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> {

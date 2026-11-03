@@ -5,14 +5,14 @@
 ## 鉴权约定
 
 - **放行路径**：
-  - 登录与文档：`/api/v1/user/login`、`/doc.html`、`/swagger-ui.html`、`/swagger-ui/**`、`/v3/api-docs/**`、`/swagger-resources/**`、`/webjars/**`
+  - 登录：`/api/v1/user/login`
+  - 文档（`prod` 下除外；`prod` 下需登录——见 `SecurityConfig` C11）：`/doc.html`、`/swagger-ui.html`、`/swagger-ui/**`、`/v3/api-docs/**`、`/swagger-resources/**`、`/webjars/**`
   - **业务免登录端点（内网设备约定，见对应设计文档）**：
     - `/api/v1/kiosk/**` — 顾客自助机浏览与下单 + 小程序自助约期 + openid 自助绑定（只读 + 下单、自助约期、绑定三个写入口，见 [kiosk.md](/zh/design/kiosk) 与 [app-booking.md](/zh/design/app-booking)）
     - `/api/v1/ads/playlist` — 平板拉取排期（只读 + 屏 code 校验，见 [tablet.md](/zh/design/tablet)）
     - `/api/v1/calls/latest` — 平板轮询叫号（只读 + 屏 code 校验，见 [tablet.md](/zh/design/tablet)）
     - `/api/v1/print/templates` — 打印模板下发（空白版式无业务数据，见 [desktop.md](/zh/design/desktop) D7）
     - `/media/**` — 广告媒体静态资源（Nginx 托管）
-  - `/actuator/**` — 运维监控
 - 其余接口一律需要 `Authorization: Bearer <JWT>`，未认证返回 401（含 `POST /error` 前端错误上报——未登录时上报会被 401 吞掉，登录后正常）。
 - 注意 `POST /api/v1/user/register`（注册）不在放行列表内——首次使用需先有账号。
 - 员工管理写接口（`POST`/`PUT`/`DELETE` `/api/v1/staff`）已启用方法级鉴权 `@PreAuthorize("hasRole('ADMIN')")`，非管理员越权返回 403。

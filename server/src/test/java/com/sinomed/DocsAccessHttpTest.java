@@ -42,9 +42,6 @@ class DocsAccessHttpTest {
             return r.getStatusCode();
         } catch (HttpStatusCodeException e) {
             return e.getStatusCode();
-        } catch (Exception e) {
-            // 5xx（如 springdoc 既有 NoSuchMethodError 500）视作已过安全层，不算 401 拦截
-            return HttpStatus.INTERNAL_SERVER_ERROR;
         }
     }
 }
