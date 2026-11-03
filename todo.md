@@ -165,3 +165,5 @@
 - [x] 审核发现：测试缺口——并发唯一索引兜底（AppointmentSlotTest.concurrentSameSlotOnlyOneSucceeds）只覆盖管理端 /api/v1/appointment/ 建约路径，Kiosk 自助约期自带 saveAndFlush + isSlotKeyConflict 的并发路径未做并发验证（server/src/main/java/com/sinomed/controller/KioskController.java:256）——证据：已补齐（KioskAppointmentTest.concurrentSameSlotOnlyOneSucceeds 并发双线程自助约同一整点，断言恰一成功一 400「该时段已约满」），定向绿。
 
 - [x] 审核发现：本轮 diff 未见问题（3cdffe71..HEAD，仅 1 个提交 1cc2ca5，改动 README.md/README.zh.md 徽章排版文档，已全量逐行审查，无安全/正确性/测试缺口）——证据：复核 1cc2ca5 实为修 README 徽章行嵌套 <p> 标签与去重复 Apache-2.0 徽章（仅文档展示，无代码/安全/测试影响），git show --stat 确认仅 README.md/README.zh.md 两文件，无安全/正确性/测试缺口。
+
+- [x] 审核发现：swagger/knife4j/actuator permitAll 无 prod profile 区分（C11，docs/review/2026-11-01-code-review.md；证据 SecurityConfig.java:51-58）——证据：已修复（SecurityConfig 把 API 文档面与 /actuator/** 抽出 DOCS_PUBLIC，仅非 prod profile permitAll，prod 下 anyRequest 需认证），DocsAccessHttpTest.docsEndpointsPublicWithoutProdProfile + DocsAccessProdHttpTest.docsEndpointsRequireAuthUnderProd 定向绿。
