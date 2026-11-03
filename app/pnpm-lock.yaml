@@ -33,6 +33,7 @@ overrides:
   postcss-selector-parser@6.1.4: 7.1.6
   esbuild@0.14.54: 0.25.0
   uuid@3.4.0: 11.1.1
+  swiper: 12.1.2
 
 importers:
 
@@ -98,6 +99,9 @@ importers:
       react-refresh:
         specifier: ^0.19.0
         version: 0.19.0
+      swiper:
+        specifier: 12.1.2
+        version: 12.1.2
     devDependencies:
       '@babel/core':
         specifier: ^7.29.7
@@ -3393,9 +3397,6 @@ packages:
   dom-serializer@1.4.1:
     resolution: {integrity: sha512-VHwB3KfrcOOkelEG2ZOfxqLZdfkil8PtJi4P8N2MMXucZq2yLp75ClViUlOVwyoHEDjYU433Aq+5zWP61+RGag==}
 
-  dom7@3.0.0:
-    resolution: {integrity: sha512-oNlcUdHsC4zb7Msx7JN3K0Nro1dzJ48knvBOnDPKJ2GV9wl1i5vydJZUSyOfrkKFDZEud/jBsTk92S/VGSAe/g==}
-
   domelementtype@2.3.0:
     resolution: {integrity: sha512-OLETBj6w0OsagBwdXnPdN0cnMfF9opN69co+7ZrbfPGrdpPVNBUj02spi6B1N7wChLQiPn4CSH/zJvXw56gmHw==}
 
@@ -6313,9 +6314,6 @@ packages:
     engines: {node: '>=0.10.0'}
     hasBin: true
 
-  ssr-window@3.0.0:
-    resolution: {integrity: sha512-q+8UfWDg9Itrg0yWK7oe5p/XRCJpJF9OBtXfOPgSJl+u3Xd5KI328RUEvUqSMVM9CiQUEf1QdBzJMkYGErj9QA==}
-
   stable@0.1.8:
     resolution: {integrity: sha512-ji9qxRnOVfcuLDySj9qzhGSEFVobyt1kIOSkj1qZzYLzq7Tos/oUUWvotUPQLlrsidqsK6tBH89Bc9kL5zHA6w==}
     deprecated: 'Modern JS already guarantees Array#sort() is a stable sort, so this library is deprecated. See the compatibility table on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#browser_compatibility'
@@ -6478,8 +6476,8 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
-  swiper@6.8.0:
-    resolution: {integrity: sha512-6H3e7VOihasMp8sPXNhRDkc61UD0XeFlefbWfUHecBLBTtmA+9WxJiKDBMdzgetK1cny+5+mKfVcsmxYgnEDSw==}
+  swiper@12.1.2:
+    resolution: {integrity: sha512-4gILrI3vXZqoZh71I1PALqukCFgk+gpOwe1tOvz5uE9kHtl2gTDzmYflYCwWvR4LOvCrJi6UEEU+gnuW5BtkgQ==}
     engines: {node: '>= 4.7.0'}
 
   symbol-tree@3.2.4:
@@ -8740,7 +8738,7 @@ snapshots:
       '@tarojs/components': 3.6.40(@tarojs/helper@3.6.40)(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@tarojs/shared@3.6.40)(@types/react@18.3.3)(postcss@8.5.32)(react@18.3.1)
       '@tarojs/taro': 3.6.40(@tarojs/helper@3.6.40)(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.3)(postcss@8.5.32)
       classnames: 2.5.1
-      swiper: 6.8.0
+      swiper: 12.1.2
       tslib: 2.6.2
     transitivePeerDependencies:
       - '@tarojs/helper'
@@ -8763,7 +8761,7 @@ snapshots:
       hammerjs: 2.0.8
       hls.js: 1.5.8
       resolve-pathname: 3.0.0
-      swiper: 6.8.0
+      swiper: 12.1.2
       tslib: 2.6.2
     optionalDependencies:
       '@types/react': 18.3.3
@@ -8785,7 +8783,7 @@ snapshots:
       hammerjs: 2.0.8
       hls.js: 1.5.8
       resolve-pathname: 3.0.0
-      swiper: 6.8.0
+      swiper: 12.1.2
       tslib: 2.6.2
     optionalDependencies:
       '@types/react': 18.3.3
@@ -10951,10 +10949,6 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 4.3.1
       entities: 2.2.0
-
-  dom7@3.0.0:
-    dependencies:
-      ssr-window: 3.0.0
 
   domelementtype@2.3.0: {}
 
@@ -14322,8 +14316,6 @@ snapshots:
       safer-buffer: 2.1.2
       tweetnacl: 0.14.5
 
-  ssr-window@3.0.0: {}
-
   stable@0.1.8: {}
 
   stackframe@1.3.4: {}
@@ -14549,10 +14541,7 @@ snapshots:
       sax: 1.5.0
       stable: 0.1.8
 
-  swiper@6.8.0:
-    dependencies:
-      dom7: 3.0.0
-      ssr-window: 3.0.0
+  swiper@12.1.2: {}
 
   symbol-tree@3.2.4: {}
 

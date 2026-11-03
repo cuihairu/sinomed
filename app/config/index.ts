@@ -76,6 +76,12 @@ const config = {
   h5: {
     publicPath: '/',
     staticDirectory: 'static',
+    webpackChain(chain) {
+      chain.resolve.alias.set(
+        'swiper/swiper-bundle.esm.js',
+        path.resolve(__dirname, '../scripts/swiper-shim/index.mjs')
+      )
+    },
     htmlPluginOption: {
       title: brand.name,
       favicon: brand.iconFile || defaultIcon,
