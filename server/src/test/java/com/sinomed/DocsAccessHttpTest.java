@@ -12,7 +12,8 @@ import org.springframework.web.client.RestTemplate;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
- * C11 回归：API 文档面（Swagger/Knife4j）与 Actuator 的 permitAll 按 prod profile 收紧。
+ * C11 回归：API 文档面（Swagger/Knife4j）的 permitAll 按 prod profile 收紧；
+ * /actuator/** 无依赖端点、未列 DOCS_PUBLIC，任何 profile 下均需认证。
  * 默认（无 prod）profile 下 Swagger UI / doc.html / v3 api-docs 不被安全层拦截（非 401）；
  * 注：/v3/api-docs 本身因 springdoc 2.3.0 与 Spring 的既有 NoSuchMethodError 会 500，
  * 本测试只断言安全层放行（不因 401 拦截），不把既存 springdoc 兼容 bug 混入 C11。

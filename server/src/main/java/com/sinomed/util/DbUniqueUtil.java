@@ -26,11 +26,8 @@ public final class DbUniqueUtil {
                 String lower = msg.toLowerCase(Locale.ROOT);
                 if (lower.contains("duplicate entry")
                         || (lower.contains("unique") && (lower.contains("constraint") || lower.contains("failed")))
-                        || lower.contains("unique constraint")
                         || lower.contains("duplicate key")
-                        || lower.contains("duplicate key value")
-                        || lower.contains("unique index")
-                        || lower.contains("unique constraint")) {
+                        || lower.contains("unique index")) {
                     return true;
                 }
                 if (isUniqueSqlCode(t)) {
@@ -48,8 +45,13 @@ public final class DbUniqueUtil {
             return false;
         }
         int errorCode = sqlException.getErrorCode();
+        if (errorCode == 19) {
+            // SQLite 对 NOT NULL/FK/CHECK/UNIQUE 约束违例一律返回基码 19，
+            // 不能单凭错误码判唯一，须消息含 "unique" 才认定唯一约束冲突。
+            String msg = sqlException.getMessage();
+            return msg != null && msg.toLowerCase(Locale.ROOT).contains("unique");
+        }
         return errorCode == 1062
-                || errorCode == 19
                 || errorCode == 23505
                 || errorCode == -803
                 || errorCode == 2601

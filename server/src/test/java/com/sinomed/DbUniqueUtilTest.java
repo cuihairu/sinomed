@@ -68,4 +68,28 @@ class DbUniqueUtilTest {
         DataIntegrityViolationException e = new DataIntegrityViolationException("could not execute statement", cause);
         assertFalse(DbUniqueUtil.isUniqueViolation(e), "超长违例不应误判为唯一冲突");
     }
+
+    @Test
+    void sqliteNotNullCode19NotMisclassifiedAsUnique() {
+        // SQLite 3.53.4.0 实测：NOT NULL/CHECK/FK 与 UNIQUE 违例的 getErrorCode() 均返回基码 19，
+        // 仅消息区分（[SQLITE_CONSTRAINT_NOTNULL]/[SQLITE_CONSTRAINT_CHECK]/[SQLITE_CONSTRAINT_UNIQUE]）。
+        // 非唯一约束的消息不含 "unique"，不应仅凭 code==19 判为唯一冲突。
+        SQLException cause = new SQLException("[SQLITE_CONSTRAINT_NOTNULL] A NOT NULL constraint failed (NOT NULL constraint failed: t.a)", null, 19);
+        DataIntegrityViolationException e = new DataIntegrityViolationException("could not execute statement", cause);
+        assertFalse(DbUniqueUtil.isUniqueViolation(e), "SQLite NOT NULL (code 19) 不应误判为唯一冲突");
+    }
+
+    @Test
+    void sqliteCheckCode19NotMisclassifiedAsUnique() {
+        SQLException cause = new SQLException("[SQLITE_CONSTRAINT_CHECK] A CHECK constraint failed (CHECK constraint failed: c <> 'x')", null, 19);
+        DataIntegrityViolationException e = new DataIntegrityViolationException("could not execute statement", cause);
+        assertFalse(DbUniqueUtil.isUniqueViolation(e), "SQLite CHECK (code 19) 不应误判为唯一冲突");
+    }
+
+    @Test
+    void sqliteUniqueCode19StillDetected() {
+        SQLException cause = new SQLException("[SQLITE_CONSTRAINT_UNIQUE] A UNIQUE constraint failed (UNIQUE constraint failed: t.b)", null, 19);
+        DataIntegrityViolationException e = new DataIntegrityViolationException("could not execute statement", cause);
+        assertTrue(DbUniqueUtil.isUniqueViolation(e), "SQLite UNIQUE (code 19) 应判为唯一冲突");
+    }
 }

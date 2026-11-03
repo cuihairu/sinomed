@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -59,7 +60,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // prod 可能经 spring.profiles.default 激活（默认 profile，getActiveProfiles() 为空），
         // 用 acceptsProfiles 同时覆盖 active 与 default，避免 C11 收紧在默认 profile 下静默失效。
-        boolean prod = environment.acceptsProfiles("prod");
+        boolean prod = environment.acceptsProfiles(Profiles.of("prod"));
 
         http.cors(Customizer.withDefaults()).csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> {
@@ -75,7 +76,8 @@ public class SecurityConfig {
                             "/media/**",  // 广告媒体静态资源（Nginx 托管时不受此约束）
                             "/h5/**",  // 公众号粉丝 H5 绑定静态页（粉丝侧无 JWT；页面只携带一次性 ticket，身份靠手机号+短信码双因子自证，见 docs/design/wechat-official-account.md §5.6）
                             LoginAPI).permitAll();
-                    // API 文档面 / Actuator：prod 收紧为需认证（C11），其余 profile 维持放行
+                    // API 文档面：prod 收紧为需认证（C11），其余 profile 维持放行。
+                    // /actuator/** 无依赖端点，未列入 DOCS_PUBLIC，已由下方 anyRequest 统一需认证。
                     if (!prod) {
                         authorize.requestMatchers(DOCS_PUBLIC).permitAll();
                     }
