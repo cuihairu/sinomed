@@ -179,3 +179,10 @@
 - [x] 审核发现：`environment.acceptsProfiles("prod")` 走的是 String... 重载，该重载在 Spring Framework（本仓解析 spring-core 7.0.10）已 `@Deprecated`（javap 实测标注），建议改 `acceptsProfiles(Profiles.of("prod"))`（server/src/main/java/com/sinomed/config/SecurityConfig.java:62）——证据：已修复（SecurityConfig.java:62 改 environment.acceptsProfiles(Profiles.of("prod"))，import Profiles），DocsAccessDefaultProfileHttpTest 定向绿 + 全量 473 绿；commit e9eba1e（SecurityConfig.java:8、:62）。
 - [x] 审核发现：SecurityConfig.java:78 行内注释仍写「API 文档面 / Actuator：prod 收紧为需认证（C11）」，但本提交已把 `/actuator/**` 从 DOCS_PUBLIC 移除，注释与现况不符；DocsAccessHttpTest.java:15 类注释「与 Actuator 的 permitAll」同属过时（server/src/main/java/com/sinomed/config/SecurityConfig.java:78、server/src/test/java/com/sinomed/DocsAccessHttpTest.java:15）——证据：已修复（SecurityConfig.java:78 注释改「API 文档面：prod 收紧为需认证（C11）」并注明 /actuator/** 无依赖端点已由 anyRequest 需认证；DocsAccessHttpTest.java:15 类注释同步），DocsAccessHttpTest 定向绿 + 全量 473 绿；commit e9eba1e（SecurityConfig.java:78、DocsAccessHttpTest.java:15）。
 
+## 漏洞扫描遗留（2026-11-03 全舰队扫描，源 scratch/vuln-scan-*.md）
+
+- [ ] VULN-SINOMED-001 [BLOCKED·上游无补丁·高危·命令注入] git-clone ≤0.2.0（@tarojs/cli>download-git-repo 链，app 终扫残留）：上游无 patched，需替换 download-git-repo 链路；不勾，验收：链路替换后 pnpm audit --audit-level=high 中 git-clone 不再命中；该仓无 test 脚本，audit-only
+- [ ] VULN-SINOMED-002 [BLOCKED·上游停维护·高危 REDoS] html-minifier ≤4.0.0（app 终扫残留）：换 html-minifier-terser；不勾，验收：替换后 pnpm audit 中 html-minifier 不再命中；audit-only
+- [ ] VULN-SINOMED-003 [BLOCKED·上游无补丁·严重·路径穿越] decompress ≤4.2.1 ×2 实例（app 终扫残留）：换 @xhmikosr/decompress 新线或替换依赖；不勾，验收：替换后 pnpm audit 中 decompress 不再命中；audit-only
+- [ ] VULN-SINOMED-004 [高危·原型污染] swiper 6.8.0→12.1.2【跨大版本需改代码（跨 6 个 major）】：@tarojs/components 依赖（app 终扫残留）；验收：pnpm audit --audit-level=high 中 swiper 不再命中；该仓无 test 脚本，audit-only
+- [ ] VULN-SINOMED-005 [BLOCKED·上游无补丁·高危 symlink 路径穿越] extract-zip ≤2.0.1 ×2 实例（sinomed/web 终扫残留 2，@ant-design/pro-cli>puppeteer-core 链）：上游无 patched；不勾，验收：链路替换后 pnpm audit 中 extract-zip 不再命中 + pnpm test 绿（24/24）
