@@ -41,7 +41,7 @@ DB_USERNAME=root DB_PASSWORD=test123 SERVER_PORT=2347 \
 ```
 
 - **Admin console**: `pnpm lint` (eslint + prettier + tsc), `pnpm jest`;
-- **Mini program**: no test script yet; multi-platform builds passing is the gate; for type checking also run `pnpm exec tsc --noEmit --skipLibCheck` (`--skipLibCheck` suppresses the ~97 type errors from the Taro / `@types` libraries themselves; the bar is zero errors in this repo's own source).
+- **Mini program**: `pnpm test` runs `node --test test/*.test.mjs` (swiper shim runtime DOM assertions); multi-platform builds passing is the gate; for type checking also run `pnpm exec tsc --noEmit --skipLibCheck` (`--skipLibCheck` suppresses the ~97 type errors from the Taro / `@types` libraries themselves; the bar is zero errors in this repo's own source).
 - **Kiosk / tablet**: no standalone test script; the `tsc -b` inside `pnpm build` is the type gate.
 - **Desktop workstation**: `cd desktop && pnpm test` (i.e. `cargo test --manifest-path src-tauri/Cargo.toml`) runs the 23 `#[test]`s inside src-tauri (ESC/POS byte streams, print templates, config parsing, scan-line splitting, crash budget, and other core logic); on Linux first install the wry / serialport prerequisites `libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libudev-dev`. frontendDist points at the committed `desktop/ui` static assets, so it compiles without a frontend build.
 

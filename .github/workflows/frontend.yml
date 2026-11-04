@@ -1,7 +1,7 @@
 # 前端构建门禁：顾客小程序同构端（app）、自助机（kiosk）、候诊区平板（tablet）、管理端（web）。
 # 触发：main 分支 push 且 app/、kiosk/、tablet/、web/ 或本文件变更；也可手动触发。
 # 口径与本地一致（docs/guide/development.md「构建」与「测试」）：
-#   - app 无测试脚本，以多端构建（微信端 + H5）通过为准，另加一道类型检查（skipLibCheck 屏蔽库自身类型噪音）；
+#   - app 跑 node --test 运行时测试（swiper shim 兼容），再以多端构建（微信端 + H5）通过为准，另加一道类型检查（skipLibCheck 屏蔽库自身类型噪音）；
 #   - kiosk / tablet 的 build 已是 `tsc -b && vite build`，类型检查含在构建里；
 #   - web 跑 eslint + 类型检查 + jest（构建本身由 docker.yml 出镜像时覆盖，此处不重复构建）。
 name: Frontend Build
