@@ -5,7 +5,7 @@
 
 ## 待办
 
-- [ ] 公众号模块第一期余项：素材上传/菜单推送/网页授权真实出网，待公众号正式凭据（appid+AppSecret）与公众号后台「网页授权域名」白名单登记（均用户侧，凭据到位即激活无需改码）；群发/模板/客服待对应工作台立项；第三期带参二维码未排期。 **[BLOCKED 用户侧凭据与域名白名单，见 docs/review/2026-10-30-decisions.md 第 2 项]**
+- [ ] 公众号模块第一期余项：素材上传/菜单推送/网页授权真实出网，待公众号正式凭据（appid+AppSecret）与公众号后台「网页授权域名」白名单登记（均用户侧，凭据到位即激活无需改码）；群发/模板/客服待对应工作台立项；第三期带参二维码未排期。 **[BLOCKED 用户侧凭据与域名白名单，见 docs/review/2026-10-30-decisions.md 第 2 项]** 复核 2026-11-05 仍缺 用户侧凭据与域名白名单。
   - 证据（2026-11-01 复核）：application.yml:57 enabled 仍 false、:58 WX_OA_TOKEN 空；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：application.yml:57-58 仍为 false/空，正式凭据与域名白名单仍未到位。
 - [ ] 微信小程序正式凭据（appid+AppSecret）：真机运行与 openid 通道（openid-session/openid-bind）激活压在此（用户侧；公众号另用独立 appid 存 wx_accounts，非本项 WECHAT_APP_ID/WECHAT_APP_SECRET）。 **[BLOCKED 用户侧账号凭据与真机联调，见 docs/review/2026-10-30-decisions.md 第 1 项]**
@@ -201,3 +201,5 @@
 - [x] 审核发现：todo.md 本轮新增的两条「已修复」记录引用 commit f9d59e9，但当前 HEAD 实为 1d43487（两者同父 12be529a、同名提交，f9d59e9 已被 amend 成孤儿、`git branch --contains f9d59e9` 为空），提交引用指向已废弃哈希、与实际历史不符，后续追踪会被误导（todo.md:199-200）。——证据：已修正（todo.md:199-200 引用 f9d59e9→1d43487，git show 确认 1d43487 为当前 HEAD、同父 12be529a 的同名重写提交，f9d59e9 仅剩孤儿对象；`git branch -a --contains f9d59e9` 空），`git log --oneline -1` = 1d43487。
 - [x] 审核发现：本 diff 为 app 新增 test 脚本（`node --test test/*.test.mjs`）并在 CI 增 Runtime test 步骤，但 .github/workflows/frontend.yml:4 头部注释仍写「app 无测试脚本，以多端构建通过为准」、docs/guide/development.md:44 仍写「no test script yet」，口径未随本次改动同步（改动未更新既有注释/文档）。——证据：已同步（frontend.yml:4 改「app 跑 node --test 运行时测试（swiper shim 兼容），再以多端构建通过为准，另加类型检查」；docs/guide/development.md Mini program 行改 `pnpm test` runs `node --test test/*.test.mjs`），口径与新增 Runtime test 步骤一致。
 - [x] 审核发现：app/package.json:6-8 engines 声明 node >=24.0.0，而本轮新增的 jsdom@30.1.3 引擎要求为 `^22.22.2 || ^24.15.0 || >=26.0.0`（app/pnpm-lock.yaml:4723），node 24.0–24.14 区间存在引擎不匹配空隙，engines 下限未随新依赖收紧；当前 CI/本地用 24.21 恰好满足，实际未触发，属潜在边界（app/package.json:6-8）。——证据：已收紧（app/package.json engines.node 改 >=24.15.0，与 jsdom@30.1.3 的 ^24.15.0 下界对齐，消除 24.0–24.14 空隙），app/pnpm test 2 例仍绿（swiper shim 运行时断言）。
+- [x] 审核发现：Node 引擎范围 `>=24.15.0` 仍包含 Node 25，但 jsdom 30.1.3 的引擎范围排除了整个 Node 25，声明支持的环境与测试依赖要求不一致（app/package.json:7）。——证据：已修复（app/package.json:7 engines.node 改 `>=24.15.0 <25.0.0 || >=26.0.0`，与 jsdom@30.1.3 的 `^22.22.2 || ^24.15.0 || >=26.0.0` 在 app 承诺区间对齐，排除整个 Node 25），app/pnpm test 2 例仍绿（swiper shim 运行时断言）。
+- [x] 审核发现：英文开发指南已补充小程序 `pnpm test`，中文对应页仍称暂无测试脚本，中文读者会遗漏运行时测试（docs/guide/development.md:44）。——证据：已同步（docs/zh/guide/development.md:44 改「`pnpm test` 跑 `node --test test/*.test.mjs`（swiper shim 运行时 DOM 断言）；多端构建通过为准；类型检查另跑 `pnpm exec tsc --noEmit --skipLibCheck`」），与英文页 Mini program 行口径一致。
