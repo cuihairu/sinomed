@@ -8,6 +8,7 @@
 - [ ] 公众号模块第一期余项：素材上传/菜单推送/网页授权真实出网，待公众号正式凭据（appid+AppSecret）与公众号后台「网页授权域名」白名单登记（均用户侧，凭据到位即激活无需改码）；群发/模板/客服待对应工作台立项；第三期带参二维码未排期。 **[BLOCKED 用户侧凭据与域名白名单，见 docs/review/2026-10-30-decisions.md 第 2 项]** 复核 2026-11-05 仍缺 用户侧凭据与域名白名单。
   - 证据（2026-11-01 复核）：application.yml:57 enabled 仍 false、:58 WX_OA_TOKEN 空；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：application.yml:57-58 仍为 false/空，正式凭据与域名白名单仍未到位。
+  - 复核（2026-11-06）：application.yml:57-58 仍为 false/空，compose.yml/server/docker-compose.yml 均无 WX_OA_* 注入，全仓无真实 appid/AppSecret 或「网页授权域名」白名单登记；卡 B 远端上传（uploadRemoteMaterial→cgi-bin/material/add_material）已实现但真实出网压凭据；公众号定向测试绿（WxOfficialAccountHttpTest+WxMaterialCaptureHttpTest+WxMaterialLocalUploadHttpTest+WxMaterialRemoteUploadHttpTest+WxMaterialAdminHttpTest+WxAccountAdminHttpTest+WxMenusAndMaterialsSchemaTest = 47 tests, 0 failures, 0 errors, 0 skipped），仍缺 用户侧凭据与域名白名单。
 - [ ] 微信小程序正式凭据（appid+AppSecret）：真机运行与 openid 通道（openid-session/openid-bind）激活压在此（用户侧；公众号另用独立 appid 存 wx_accounts，非本项 WECHAT_APP_ID/WECHAT_APP_SECRET）。 **[BLOCKED 用户侧账号凭据与真机联调，见 docs/review/2026-10-30-decisions.md 第 1 项]**
   - 证据（2026-11-01 复核）：app/project.config.json:5 仍 touristappid；application.yml:52-53 空缺省；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：app/project.config.json:5 仍 touristappid，application.yml:52-53 仍空缺省。
