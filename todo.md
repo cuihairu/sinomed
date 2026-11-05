@@ -206,3 +206,5 @@
 
 - [x] 审核发现：本轮 diff 未见问题（31e2aff3..HEAD）（属实：独立审阅 31e2aff3..b58a90f 完整 diff 仅含 app/package.json engines 收紧、docs/.vitepress/theme/custom.css 排版新增、docs/zh/guide/development.md 测试口径同步与 todo.md 勾选；与 5c360af 的已验结论一致，无引入问题；证据：docs pnpm check + build 绿）。
 - [x] 审核发现：代码块的 `code` 保留 VitePress 默认 `width: fit-content`，长 URL 仍横向溢出（docs/.vitepress/theme/custom.css:230）。 属实：`word-break: break-word`（= overflow-wrap: break-word）不影响 min-content，fit-content 钳制取 min-content 时单 token 仍超容器；已修：custom.css 对 `pre code` 追加 `overflow-wrap: anywhere`（影响 min-content，token 换行），vitepress vp-doc.css:312-337 为默认值出处；证据：docs pnpm build 绿。
+
+- [x] 审核发现：本轮文档一致性审计将描述不一致计为 0，但中英文开发指南仍将 Spring Boot 当前基线写为 4.1.1，而 server/pom.xml 已是 4.1.2（docs/审计-文档一致性.md:174）。——证据：属实（server/pom.xml:8 = 4.1.2，HEAD 时 docs/guide/development.md:68 与 docs/zh/guide/development.md:68 均写 4.1.1）；已修（dev 指南两处改 4.1.2；复扫再清同源基线漂移：server/README.md:11 与 docs/审计-文档一致性.md:74（zh:74）版本链均改 4.1.2）；验证：docs pnpm check + build 绿，git grep 当前态无残余 4.1.1 基线。

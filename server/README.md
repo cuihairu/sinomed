@@ -8,7 +8,7 @@
 
 技术栈： 
 - Java 21 LTS
-- Spring Boot 4.1.1 
+- Spring Boot 4.1.2 
 - React 18
 - Ant Pro 6
 - Nginx

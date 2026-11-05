@@ -65,9 +65,9 @@ CI（GitHub Actions）：
 
 ## 依赖升级
 
-当前基线（2026-10 升级后）：Spring Boot **4.1.1**、caffeine 3.3.0、jjwt 0.13.0、mysql-connector-j（随 Boot 管理）；@umijs/max **4.7.22**、antd **5.29.3**、pro-components **2.8.10**；Taro **3.6.40**。
+当前基线（2026-10 升级后）：Spring Boot **4.1.2**、caffeine 3.3.0、jjwt 0.13.0、mysql-connector-j（随 Boot 管理）；@umijs/max **4.7.22**、antd **5.29.3**、pro-components **2.8.10**；Taro **3.6.40**。
 
-大版本升级评估：Spring Boot 4.x **已完成**（4.1.1，knife4j-openapi3 4.5.0 与 Boot 4 共存，回归全绿）。以下仍**暂缓**，破坏点如下，动之前先立项验证：
+大版本升级评估：Spring Boot 4.x **已完成**（4.1.2，knife4j-openapi3 4.5.0 与 Boot 4 共存，回归全绿）。以下仍**暂缓**，破坏点如下，动之前先立项验证：
 
 | 升级项 | 当前 → 目标 | 破坏点 |
 | ---- | ---- | ---- |

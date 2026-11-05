@@ -65,9 +65,9 @@ CI (GitHub Actions):
 
 ## Dependency Upgrades
 
-Current baseline (after the 2026-10 upgrades): Spring Boot **4.1.1**, caffeine 3.3.0, jjwt 0.13.0, mysql-connector-j (managed with Boot); @umijs/max **4.7.22**, antd **5.29.3**, pro-components **2.8.10**; Taro **3.6.40**.
+Current baseline (after the 2026-10 upgrades): Spring Boot **4.1.2**, caffeine 3.3.0, jjwt 0.13.0, mysql-connector-j (managed with Boot); @umijs/max **4.7.22**, antd **5.29.3**, pro-components **2.8.10**; Taro **3.6.40**.
 
-Major-version upgrade status: Spring Boot 4.x is **done** (4.1.1, knife4j-openapi3 4.5.0 coexists with Boot 4, regressions all green). The following are still **on hold**; their breaking points are listed below — open a validation effort first before touching them:
+Major-version upgrade status: Spring Boot 4.x is **done** (4.1.2, knife4j-openapi3 4.5.0 coexists with Boot 4, regressions all green). The following are still **on hold**; their breaking points are listed below — open a validation effort first before touching them:
 
 | Upgrade | Current → Target | Breaking points |
 | ---- | ---- | ---- |
