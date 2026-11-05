@@ -211,3 +211,5 @@
 - [x] 审核发现：本轮文档一致性审计将描述不一致计为 0，但中英文开发指南仍将 Spring Boot 当前基线写为 4.1.1，而 server/pom.xml 已是 4.1.2（docs/审计-文档一致性.md:174）。——证据：属实（server/pom.xml:8 = 4.1.2，HEAD 时 docs/guide/development.md:68 与 docs/zh/guide/development.md:68 均写 4.1.1）；已修（dev 指南两处改 4.1.2；复扫再清同源基线漂移：server/README.md:11 与 docs/审计-文档一致性.md:74（zh:74）版本链均改 4.1.2）；验证：docs pnpm check + build 绿，git grep 当前态无残余 4.1.1 基线。
 
 - [x] 审核发现：本轮 diff 未见问题（c45b7773..HEAD）。审核通过，无需改动
+
+- [x] 审核发现：本轮 diff 未见问题（efe7cb5..HEAD）（属实：独立审阅 efe7cb5..HEAD 完整 diff 仅含 commit e51fcb1 的 todo.md 公众号凭据复核行（2026-11-06），全部事实断言复核属实——application.yml:57-58 仍 false/空、compose.yml/server/docker-compose.yml 均无 WX_OA_* 注入、uploadRemoteMaterial→cgi-bin/material/add_material 已实现、公众号 7 个定向测试类合计 47 tests 0 failures；无引入问题；证据：server ./mvnw -B test 473 绿（0 failures/0 errors/0 skipped）、docs pnpm check + build 绿）。
