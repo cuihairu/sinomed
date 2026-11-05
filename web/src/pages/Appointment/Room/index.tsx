@@ -68,8 +68,7 @@ export default function RoomManage() {
       title: '状态',
       dataIndex: 'enabled',
       width: 100,
-      render: (_, room) =>
-        room.enabled === 1 ? <Tag color="green">在用</Tag> : <Tag>停用</Tag>,
+      render: (_, room) => (room.enabled === 1 ? <Tag color="green">在用</Tag> : <Tag>停用</Tag>),
     },
     {
       title: '操作',

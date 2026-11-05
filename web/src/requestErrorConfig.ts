@@ -89,7 +89,10 @@ export const errorConfig: RequestConfig = {
         if (error.response?.status === 401) {
           // JWT 过期/失效：清凭证回登录页，避免整站 401 假死（登录请求自身失败不重定向）
           const url: string = error.config?.url ?? '';
-          if (!url.includes('/api/v1/user/login') && !window.location.pathname.startsWith('/user/login')) {
+          if (
+            !url.includes('/api/v1/user/login') &&
+            !window.location.pathname.startsWith('/user/login')
+          ) {
             localStorage.removeItem('jwt');
             history.push('/user/login');
           }

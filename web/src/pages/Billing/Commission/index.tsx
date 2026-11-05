@@ -205,7 +205,11 @@ export default function CommissionManage() {
       <Table<CommissionSummary>
         rowKey="staffId"
         columns={[
-          { title: '员工', dataIndex: 'staffName', render: (_, s) => s.staffName || `#${s.staffId}` },
+          {
+            title: '员工',
+            dataIndex: 'staffName',
+            render: (_, s) => s.staffName || `#${s.staffId}`,
+          },
           { title: '提成合计（元，含冲销）', dataIndex: 'total', width: 200 },
         ]}
         dataSource={summary}

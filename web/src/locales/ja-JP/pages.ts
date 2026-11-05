@@ -1,8 +1,7 @@
 export default {
   'pages.layouts.userLayout.title': 'タイ州で最も専門的なウェルネスチーム',
   'pages.login.accountLogin.tab': 'アカウントログイン',
-  'pages.login.accountLogin.errorMessage':
-    'ユーザー名/パスワードが正しくありません',
+  'pages.login.accountLogin.errorMessage': 'ユーザー名/パスワードが正しくありません',
   'pages.login.failure': 'ログインに失敗したら、もう一度試してください!',
   'pages.login.success': 'ログイン成功!',
   'pages.login.username.placeholder': 'ユーザー名を入力してください',

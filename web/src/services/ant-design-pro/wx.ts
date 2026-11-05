@@ -69,7 +69,11 @@ export async function createWxAccount(body: WxAccount, options?: { [key: string]
 }
 
 /** 更新公众号账号（仅 ADMIN；密钥留空=保持既有） */
-export async function updateWxAccount(id: number, body: WxAccount, options?: { [key: string]: any }) {
+export async function updateWxAccount(
+  id: number,
+  body: WxAccount,
+  options?: { [key: string]: any },
+) {
   return request<WxAccount>(`/api/v1/wx/accounts/${id}`, {
     method: 'PUT',
     data: body,
@@ -93,10 +97,7 @@ export interface WxCapabilities {
   templateMessage?: boolean;
 }
 
-export async function queryCapabilities(
-  accountId: number,
-  options?: { [key: string]: any },
-) {
+export async function queryCapabilities(accountId: number, options?: { [key: string]: any }) {
   return request<WxCapabilities>(`/api/v1/wx/capabilities/${accountId}`, {
     method: 'GET',
     ...(options || {}),
@@ -106,7 +107,13 @@ export async function queryCapabilities(
 // ---------- 自动回复规则 ----------
 
 export async function queryAutoRepliesByPage(
-  params: { current?: number; pageSize?: number; accountId?: number; ruleType?: string; enabled?: number },
+  params: {
+    current?: number;
+    pageSize?: number;
+    accountId?: number;
+    ruleType?: string;
+    enabled?: number;
+  },
   options?: { [key: string]: any },
 ) {
   return request<WxPageResult<WxAutoReply>>('/api/v1/wx/auto-replies/page', {
@@ -212,7 +219,10 @@ export async function queryMaterialsByPage(
 }
 
 /** 取素材本地副本：需带 JWT，故走 request 拿 blob（裸 img src 带不上 Authorization） */
-export async function fetchMaterialBlob(id: number, options?: { [key: string]: any }): Promise<Blob> {
+export async function fetchMaterialBlob(
+  id: number,
+  options?: { [key: string]: any },
+): Promise<Blob> {
   return request<Blob>(`/api/v1/wx/materials/${id}`, {
     method: 'GET',
     responseType: 'blob',

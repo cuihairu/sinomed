@@ -1,6 +1,5 @@
 export default {
-  'pages.layouts.userLayout.title':
-    'Tim kesehatan paling profesional di Taizhou',
+  'pages.layouts.userLayout.title': 'Tim kesehatan paling profesional di Taizhou',
   'pages.login.accountLogin.tab': 'Login dengan akun',
   'pages.login.accountLogin.errorMessage': 'Nama pengguna dan kata sandi salah',
   'pages.login.failure': 'Log masuk gagal, silakan coba lagi!',

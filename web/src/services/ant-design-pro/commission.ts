@@ -60,10 +60,7 @@ export async function queryCommissionRuleList(
   });
 }
 
-export async function createCommissionRule(
-  body: CommissionRule,
-  options?: { [key: string]: any },
-) {
+export async function createCommissionRule(body: CommissionRule, options?: { [key: string]: any }) {
   return request<CommissionRule>('/api/v1/commission/rule', {
     method: 'POST',
     data: body,
@@ -71,10 +68,7 @@ export async function createCommissionRule(
   });
 }
 
-export async function updateCommissionRule(
-  body: CommissionRule,
-  options?: { [key: string]: any },
-) {
+export async function updateCommissionRule(body: CommissionRule, options?: { [key: string]: any }) {
   return request<CommissionRule>('/api/v1/commission/rule', {
     method: 'PUT',
     data: body,

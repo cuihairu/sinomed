@@ -123,10 +123,7 @@ export interface CustomerTag {
   createTime?: string;
 }
 
-export async function listCustomerTags(
-  cid: number | string,
-  options?: { [key: string]: any },
-) {
+export async function listCustomerTags(cid: number | string, options?: { [key: string]: any }) {
   return request<CustomerTag[]>(`/api/v1/customer/${cid}/tag`, {
     method: 'GET',
     ...(options || {}),

@@ -1,6 +1,5 @@
 export default {
-  'pages.layouts.userLayout.title':
-    "Taizhou's most professional wellness team",
+  'pages.layouts.userLayout.title': "Taizhou's most professional wellness team",
   'pages.login.accountLogin.tab': 'Account Login',
   'pages.login.accountLogin.errorMessage': 'Incorrect username or password',
   'pages.login.failure': 'Login failed, please try again!',

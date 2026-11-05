@@ -27,7 +27,11 @@ describe('requestErrorConfig 401 处理', () => {
   it('401 清 jwt 并跳登录页（非登录请求）', () => {
     localStorage.setItem('jwt', 'tok');
     errorConfig.errorConfig?.errorHandler?.(
-      { name: 'AxiosError', response: { status: 401 }, config: { url: '/api/v1/customer/page' } } as any,
+      {
+        name: 'AxiosError',
+        response: { status: 401 },
+        config: { url: '/api/v1/customer/page' },
+      } as any,
       {},
     );
     expect(localStorage.getItem('jwt')).toBeNull();
@@ -37,7 +41,11 @@ describe('requestErrorConfig 401 处理', () => {
 
   it('401 不跳登录页（登录请求自身失败，避免回环）', () => {
     errorConfig.errorConfig?.errorHandler?.(
-      { name: 'AxiosError', response: { status: 401 }, config: { url: '/api/v1/user/login' } } as any,
+      {
+        name: 'AxiosError',
+        response: { status: 401 },
+        config: { url: '/api/v1/user/login' },
+      } as any,
       {},
     );
     expect(push).not.toHaveBeenCalled();
@@ -45,7 +53,11 @@ describe('requestErrorConfig 401 处理', () => {
 
   it('非 401 维持原 toast 行为，不跳转', () => {
     errorConfig.errorConfig?.errorHandler?.(
-      { name: 'AxiosError', response: { status: 500, data: { errorMessage: '服务器错误' } }, config: { url: '/api/v1/customer/page' } } as any,
+      {
+        name: 'AxiosError',
+        response: { status: 500, data: { errorMessage: '服务器错误' } },
+        config: { url: '/api/v1/customer/page' },
+      } as any,
       {},
     );
     expect(msgError).toHaveBeenCalledWith('服务器错误');

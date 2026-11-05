@@ -1,6 +1,5 @@
 export default {
-  'pages.layouts.userLayout.title':
-    'তাইঝোউয়ের সবচেয়ে পেশাদার ওয়েলনেস টিম',
+  'pages.layouts.userLayout.title': 'তাইঝোউয়ের সবচেয়ে পেশাদার ওয়েলনেস টিম',
   'pages.login.accountLogin.tab': 'অ্যাকাউন্টে লগইন',
   'pages.login.accountLogin.errorMessage': 'ভুল ব্যবহারকারীর নাম/পাসওয়ার্ড',
   'pages.login.failure': 'লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন!',

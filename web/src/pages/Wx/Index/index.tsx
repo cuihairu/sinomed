@@ -1,6 +1,20 @@
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { Alert, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Spin, Table, Tabs, Tag, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Spin,
+  Table,
+  Tabs,
+  Tag,
+  message,
+} from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useModel } from '@umijs/max';
 import {
@@ -118,7 +132,10 @@ const useAccountOptions = () => {
   useEffect(() => {
     queryWxAccounts().then((list) => setAccounts(list || []));
   }, []);
-  const options = useMemo(() => accounts.map((a) => ({ value: a.id!, label: a.accountName || a.appId || `#${a.id}` })), [accounts]);
+  const options = useMemo(
+    () => accounts.map((a) => ({ value: a.id!, label: a.accountName || a.appId || `#${a.id}` })),
+    [accounts],
+  );
   const nameOf = (id?: number) =>
     accounts.find((a) => a.id === id)?.accountName || (id != null ? `#${id}` : '-');
   return { accounts, options, nameOf };
@@ -155,26 +172,70 @@ const MessageLogsTab: React.FC = () => {
   };
 
   const columns: ProColumns<WxMessageLog>[] = [
-    { title: '时间', dataIndex: 'createTime', width: 150, hideInSearch: true,
-      render: (_, entity) => (entity.createTime ? moment(entity.createTime).format('YYYY-MM-DD HH:mm:ss') : '-') },
-    { title: '账号', dataIndex: 'accountId', width: 130, valueType: 'select', fieldProps: { options, showSearch: true },
-      render: (_, entity) => nameOf(entity.accountId) },
-    { title: '方向', dataIndex: 'direction', width: 90, valueType: 'select',
+    {
+      title: '时间',
+      dataIndex: 'createTime',
+      width: 150,
+      hideInSearch: true,
+      render: (_, entity) =>
+        entity.createTime ? moment(entity.createTime).format('YYYY-MM-DD HH:mm:ss') : '-',
+    },
+    {
+      title: '账号',
+      dataIndex: 'accountId',
+      width: 130,
+      valueType: 'select',
+      fieldProps: { options, showSearch: true },
+      render: (_, entity) => nameOf(entity.accountId),
+    },
+    {
+      title: '方向',
+      dataIndex: 'direction',
+      width: 90,
+      valueType: 'select',
       valueEnum: DIRECTION_ENUM,
-      render: (_, entity) => <Tag>{DIRECTION_LABELS[entity.direction || ''] || entity.direction}</Tag> },
-    { title: '类型', dataIndex: 'msgType', width: 90, valueType: 'select',
+      render: (_, entity) => (
+        <Tag>{DIRECTION_LABELS[entity.direction || ''] || entity.direction}</Tag>
+      ),
+    },
+    {
+      title: '类型',
+      dataIndex: 'msgType',
+      width: 90,
+      valueType: 'select',
       valueEnum: MSG_TYPE_ENUM,
-      render: (_, entity) => MSG_TYPE_LABELS[entity.msgType || ''] || entity.msgType || '-' },
+      render: (_, entity) => MSG_TYPE_LABELS[entity.msgType || ''] || entity.msgType || '-',
+    },
     { title: '粉丝', dataIndex: 'fromUser', ellipsis: true },
-    { title: '顾客', dataIndex: 'customerName', width: 110, hideInSearch: true,
-      render: (_, entity) => entity.customerName || <span style={{ color: '#aaa' }}>未绑定</span> },
+    {
+      title: '顾客',
+      dataIndex: 'customerName',
+      width: 110,
+      hideInSearch: true,
+      render: (_, entity) => entity.customerName || <span style={{ color: '#aaa' }}>未绑定</span>,
+    },
     { title: '内容', dataIndex: 'content', ellipsis: true, hideInSearch: true },
-    { title: '结果', dataIndex: 'result', width: 130, valueType: 'select',
+    {
+      title: '结果',
+      dataIndex: 'result',
+      width: 130,
+      valueType: 'select',
       valueEnum: RESULT_ENUM,
-      render: (_, entity) => <Tag color={entity.result === 'ok' ? 'green' : entity.direction === 'reject' ? 'red' : 'default'}>
-        {RESULT_LABELS[entity.result || ''] || entity.result}
-      </Tag> },
-    { title: '操作', key: 'actions', width: 80, hideInSearch: true,
+      render: (_, entity) => (
+        <Tag
+          color={
+            entity.result === 'ok' ? 'green' : entity.direction === 'reject' ? 'red' : 'default'
+          }
+        >
+          {RESULT_LABELS[entity.result || ''] || entity.result}
+        </Tag>
+      ),
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 80,
+      hideInSearch: true,
       render: (_, entity) => {
         const openid = entity.direction === 'out' ? entity.toUser : entity.fromUser;
         if (!openid || entity.accountId == null) {
@@ -191,7 +252,8 @@ const MessageLogsTab: React.FC = () => {
             <a style={{ color: '#cf1322' }}>解绑</a>
           </Popconfirm>
         );
-      } },
+      },
+    },
     timeRangeColumn('createTime'),
   ];
 
@@ -237,28 +299,71 @@ const MaterialsTab: React.FC = () => {
   };
 
   const columns: ProColumns<WxMaterial>[] = [
-    { title: '时间', dataIndex: 'createTime', width: 150, hideInSearch: true,
-      render: (_, entity) => (entity.createTime ? moment(entity.createTime).format('YYYY-MM-DD HH:mm:ss') : '-') },
-    { title: '账号', dataIndex: 'accountId', width: 130, valueType: 'select', fieldProps: { options, showSearch: true },
-      render: (_, entity) => nameOf(entity.accountId) },
-    { title: '类型', dataIndex: 'materialType', width: 110, valueType: 'select',
+    {
+      title: '时间',
+      dataIndex: 'createTime',
+      width: 150,
+      hideInSearch: true,
+      render: (_, entity) =>
+        entity.createTime ? moment(entity.createTime).format('YYYY-MM-DD HH:mm:ss') : '-',
+    },
+    {
+      title: '账号',
+      dataIndex: 'accountId',
+      width: 130,
+      valueType: 'select',
+      fieldProps: { options, showSearch: true },
+      render: (_, entity) => nameOf(entity.accountId),
+    },
+    {
+      title: '类型',
+      dataIndex: 'materialType',
+      width: 110,
+      valueType: 'select',
       valueEnum: MATERIAL_TYPE_ENUM,
-      render: (_, entity) => MATERIAL_TYPE_LABELS[entity.materialType || ''] || entity.materialType || '-' },
-    { title: '素材', dataIndex: 'name', ellipsis: true,
-      render: (_, entity) => entity.name || entity.mediaId || '-' },
-    { title: '媒体ID', dataIndex: 'mediaId', width: 180, ellipsis: true, hideInSearch: true,
-      render: (_, entity) => entity.mediaId || '-' },
-    { title: '大小', dataIndex: 'size', width: 100, hideInSearch: true,
-      render: (_, entity) => (entity.size != null ? `${(entity.size / 1024).toFixed(1)} KB` : '-') },
-    { title: '本地副本', dataIndex: 'localPath', width: 110, hideInSearch: true,
-      render: (_, entity) => (entity.localPath ? <Tag color="green">有</Tag> : <Tag>无</Tag>) },
-    { title: '查看', key: 'view', width: 90, hideInSearch: true,
+      render: (_, entity) =>
+        MATERIAL_TYPE_LABELS[entity.materialType || ''] || entity.materialType || '-',
+    },
+    {
+      title: '素材',
+      dataIndex: 'name',
+      ellipsis: true,
+      render: (_, entity) => entity.name || entity.mediaId || '-',
+    },
+    {
+      title: '媒体ID',
+      dataIndex: 'mediaId',
+      width: 180,
+      ellipsis: true,
+      hideInSearch: true,
+      render: (_, entity) => entity.mediaId || '-',
+    },
+    {
+      title: '大小',
+      dataIndex: 'size',
+      width: 100,
+      hideInSearch: true,
+      render: (_, entity) => (entity.size != null ? `${(entity.size / 1024).toFixed(1)} KB` : '-'),
+    },
+    {
+      title: '本地副本',
+      dataIndex: 'localPath',
+      width: 110,
+      hideInSearch: true,
+      render: (_, entity) => (entity.localPath ? <Tag color="green">有</Tag> : <Tag>无</Tag>),
+    },
+    {
+      title: '查看',
+      key: 'view',
+      width: 90,
+      hideInSearch: true,
       render: (_, entity) =>
         entity.localPath ? (
           <a onClick={() => openPreview(entity)}>查看</a>
         ) : (
           <span style={{ color: '#aaa' }}>—</span>
-        ) },
+        ),
+    },
     timeRangeColumn('createTime'),
   ];
 
@@ -278,14 +383,23 @@ const MaterialsTab: React.FC = () => {
         pagination={{ pageSize: 20, showTotal: (total) => `共 ${total} 条` }}
         locale={{ emptyText: '暂无素材（粉丝发来图片消息后会落到这里）' }}
       />
-      <Modal title={preview?.name} open={preview != null} onCancel={closePreview} footer={null} width={720} destroyOnClose>
+      <Modal
+        title={preview?.name}
+        open={preview != null}
+        onCancel={closePreview}
+        footer={null}
+        width={720}
+        destroyOnClose
+      >
         {preview &&
           (preview.mime.startsWith('image/') ? (
             <img src={preview.url} alt={preview.name} style={{ maxWidth: '100%' }} />
           ) : (
             <p>
               非图片素材，
-              <a href={preview.url} target="_blank" rel="noreferrer">点此打开</a>
+              <a href={preview.url} target="_blank" rel="noreferrer">
+                点此打开
+              </a>
             </p>
           ))}
       </Modal>
@@ -294,7 +408,8 @@ const MaterialsTab: React.FC = () => {
 };
 
 /** 菜单名权重（微信口径「N 汉字或 2N 字母」）：非 ASCII 记 2 分、ASCII 记 1 分，与服务端同式 */
-const menuNameWeight = (s: string) => [...s].reduce((w, c) => w + (c.charCodeAt(0) > 127 ? 2 : 1), 0);
+const menuNameWeight = (s: string) =>
+  [...s].reduce((w, c) => w + (c.charCodeAt(0) > 127 ? 2 : 1), 0);
 
 const MenusTab: React.FC = () => {
   const { options, accounts } = useAccountOptions();
@@ -363,9 +478,10 @@ const MenusTab: React.FC = () => {
   }, [menus]);
 
   const topOptions = useMemo(
-    () => menus
-      .filter((m) => m.parentId == null)
-      .map((t) => ({ value: t.id!, label: t.name || `#${t.id}` })),
+    () =>
+      menus
+        .filter((m) => m.parentId == null)
+        .map((t) => ({ value: t.id!, label: t.name || `#${t.id}` })),
     [menus],
   );
 
@@ -391,7 +507,9 @@ const MenusTab: React.FC = () => {
       const res = await pushMenus(accountId);
       if (res?.message) message.success(res.message);
     } catch (e: any) {
-      message.error(e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '推送失败');
+      message.error(
+        e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '推送失败',
+      );
     } finally {
       setPushing(false);
     }
@@ -415,7 +533,9 @@ const MenusTab: React.FC = () => {
       }
     } catch (e: any) {
       // 服务端校验拒绝（结构/容量/必填字段）原样透出，不静默
-      message.error(e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '保存失败');
+      message.error(
+        e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '保存失败',
+      );
     }
   };
 
@@ -428,7 +548,9 @@ const MenusTab: React.FC = () => {
         loadMenus();
       }
     } catch (e: any) {
-      message.error(e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '操作失败');
+      message.error(
+        e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '操作失败',
+      );
     }
   };
 
@@ -439,7 +561,9 @@ const MenusTab: React.FC = () => {
       loadMenus();
     } catch (e: any) {
       // 父菜单带子菜单时服务端拒绝（先删子）
-      message.error(e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '删除失败');
+      message.error(
+        e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '删除失败',
+      );
     }
   };
 
@@ -500,13 +624,14 @@ const MenusTab: React.FC = () => {
         width: 190,
         render: (_: unknown, entity: WxMenu) => (
           <>
-            {entity.parentId == null && (
-              <a onClick={() => openCreate(entity.id)}>添加二级</a>
-            )}
+            {entity.parentId == null && <a onClick={() => openCreate(entity.id)}>添加二级</a>}
             <a style={{ marginLeft: 12 }} onClick={() => openEdit(entity)}>
               编辑
             </a>
-            <Popconfirm title="删除该菜单？（带子菜单需先删子）" onConfirm={() => removeMenuRow(entity)}>
+            <Popconfirm
+              title="删除该菜单？（带子菜单需先删子）"
+              onConfirm={() => removeMenuRow(entity)}
+            >
               <a style={{ marginLeft: 12, color: '#cf1322' }}>删除</a>
             </Popconfirm>
           </>
@@ -563,7 +688,12 @@ const MenusTab: React.FC = () => {
           columns={columns}
           pagination={false}
           size="middle"
-          locale={{ emptyText: accountId == null ? '暂无公众号账号（先在 wx_accounts 落账号行）' : '暂无菜单（草稿态随时可编辑，推送微信需凭据）' }}
+          locale={{
+            emptyText:
+              accountId == null
+                ? '暂无公众号账号（先在 wx_accounts 落账号行）'
+                : '暂无菜单（草稿态随时可编辑，推送微信需凭据）',
+          }}
         />
       ) : (
         <Alert
@@ -583,7 +713,11 @@ const MenusTab: React.FC = () => {
         width={520}
       >
         <Form form={menuForm} layout="vertical">
-          <Form.Item name="parentId" label="父菜单" extra={isTop ? '留空即一级菜单（每号最多 3 个）' : '二级菜单（每个一级下最多 5 个）'}>
+          <Form.Item
+            name="parentId"
+            label="父菜单"
+            extra={isTop ? '留空即一级菜单（每号最多 3 个）' : '二级菜单（每个一级下最多 5 个）'}
+          >
             <Select allowClear placeholder="不选=一级菜单" options={topOptions} />
           </Form.Item>
           <Form.Item
@@ -700,7 +834,9 @@ const RulesTab: React.FC = () => {
 
   const [ruleForm] = Form.useForm();
   const watchRuleType = Form.useWatch('ruleType', ruleForm) as WxAutoReply['ruleType'] | undefined;
-  const [ruleModal, setRuleModal] = useState<{ open: boolean; editing?: WxAutoReply }>({ open: false });
+  const [ruleModal, setRuleModal] = useState<{ open: boolean; editing?: WxAutoReply }>({
+    open: false,
+  });
 
   const loadRules = useCallback(async () => {
     if (accountId == null) return;
@@ -812,10 +948,7 @@ const RulesTab: React.FC = () => {
               entity.enabled !== 1 &&
               SINGLE_ENABLED_TYPES.includes(entity.ruleType || '') &&
               rules.some(
-                (r) =>
-                  r.enabled === 1 &&
-                  r.ruleType === entity.ruleType &&
-                  r.id !== entity.id,
+                (r) => r.enabled === 1 && r.ruleType === entity.ruleType && r.id !== entity.id,
               )
             }
           >
@@ -878,7 +1011,12 @@ const RulesTab: React.FC = () => {
             { value: 0, label: '停用' },
           ]}
         />
-        <Button type="primary" disabled={accountId == null} onClick={openCreate} style={{ marginLeft: 'auto' }}>
+        <Button
+          type="primary"
+          disabled={accountId == null}
+          onClick={openCreate}
+          style={{ marginLeft: 'auto' }}
+        >
           新建规则
         </Button>
       </div>
@@ -890,7 +1028,9 @@ const RulesTab: React.FC = () => {
         columns={columns}
         pagination={false}
         size="middle"
-        locale={{ emptyText: accountId == null ? '暂无公众号账号（先在 wx_accounts 落账号行）' : '暂无规则' }}
+        locale={{
+          emptyText: accountId == null ? '暂无公众号账号（先在 wx_accounts 落账号行）' : '暂无规则',
+        }}
       />
 
       <Modal
@@ -938,9 +1078,19 @@ const RulesTab: React.FC = () => {
             label="回复内容"
             rules={[{ required: true, whitespace: true, message: '回复内容不能为空' }]}
           >
-            <Input.TextArea rows={3} maxLength={600} showCount placeholder="粉丝命中规则后收到的文本回复" />
+            <Input.TextArea
+              rows={3}
+              maxLength={600}
+              showCount
+              placeholder="粉丝命中规则后收到的文本回复"
+            />
           </Form.Item>
-          <Form.Item name="priority" label="优先级" initialValue={0} extra="数字小的先匹配；同账号关键词按此排序">
+          <Form.Item
+            name="priority"
+            label="优先级"
+            initialValue={0}
+            extra="数字小的先匹配；同账号关键词按此排序"
+          >
             <InputNumber min={0} max={9999} style={{ width: 120 }} />
           </Form.Item>
         </Form>
@@ -973,7 +1123,12 @@ const AccountsTab: React.FC = () => {
 
   const openCreate = () => {
     form.resetFields();
-    form.setFieldsValue({ accountType: 'service', verified: 0, enabled: 1, encryptMode: 'plaintext' });
+    form.setFieldsValue({
+      accountType: 'service',
+      verified: 0,
+      enabled: 1,
+      encryptMode: 'plaintext',
+    });
     setModal({ open: true });
   };
 
@@ -1005,7 +1160,9 @@ const AccountsTab: React.FC = () => {
       setModal({ open: false });
       load();
     } catch (e: any) {
-      message.error(e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '保存失败');
+      message.error(
+        e?.data?.errorMessage || e?.response?.data?.errorMessage || e?.message || '保存失败',
+      );
     }
   };
 
@@ -1013,29 +1170,62 @@ const AccountsTab: React.FC = () => {
     { title: 'ID', dataIndex: 'id', width: 60, hideInSearch: true },
     { title: '名称', dataIndex: 'accountName', ellipsis: true },
     { title: 'AppID', dataIndex: 'appId', ellipsis: true },
-    { title: '类型', dataIndex: 'accountType', width: 90, hideInSearch: true,
-      render: (_, r) => (r.accountType === 'service' ? '服务号' : '订阅号') },
-    { title: '认证', dataIndex: 'verified', width: 70, hideInSearch: true,
-      render: (_, r) => (r.verified ? <Tag color="green">已认证</Tag> : <Tag>未认证</Tag>) },
+    {
+      title: '类型',
+      dataIndex: 'accountType',
+      width: 90,
+      hideInSearch: true,
+      render: (_, r) => (r.accountType === 'service' ? '服务号' : '订阅号'),
+    },
+    {
+      title: '认证',
+      dataIndex: 'verified',
+      width: 70,
+      hideInSearch: true,
+      render: (_, r) => (r.verified ? <Tag color="green">已认证</Tag> : <Tag>未认证</Tag>),
+    },
     { title: '加密模式', dataIndex: 'encryptMode', width: 90, hideInSearch: true },
-    { title: '状态', dataIndex: 'enabled', width: 80, hideInSearch: true,
-      render: (_, r) => (r.enabled ? <Tag color="green">启用</Tag> : <Tag>停用</Tag>) },
-    { title: '密钥', dataIndex: 'appSecret', width: 100, hideInSearch: true,
-      render: (_, r) => (r.appSecret ? <Tag>已配置</Tag> : <Tag color="orange">未配置</Tag>) },
-    { title: '操作', key: 'actions', width: 90, hideInSearch: true,
+    {
+      title: '状态',
+      dataIndex: 'enabled',
+      width: 80,
+      hideInSearch: true,
+      render: (_, r) => (r.enabled ? <Tag color="green">启用</Tag> : <Tag>停用</Tag>),
+    },
+    {
+      title: '密钥',
+      dataIndex: 'appSecret',
+      width: 100,
+      hideInSearch: true,
+      render: (_, r) => (r.appSecret ? <Tag>已配置</Tag> : <Tag color="orange">未配置</Tag>),
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 90,
+      hideInSearch: true,
       render: (_, r) =>
         isAdmin ? (
-          <Button type="link" size="small" onClick={() => openEdit(r)}>编辑</Button>
-        ) : null },
+          <Button type="link" size="small" onClick={() => openEdit(r)}>
+            编辑
+          </Button>
+        ) : null,
+    },
   ];
 
   return (
     <div>
       {isAdmin ? (
-        <Button type="primary" style={{ marginBottom: 16 }} onClick={openCreate}>新建公众号账号</Button>
+        <Button type="primary" style={{ marginBottom: 16 }} onClick={openCreate}>
+          新建公众号账号
+        </Button>
       ) : (
-        <Alert type="info" showIcon style={{ marginBottom: 16 }}
-          message="账号配置仅 ADMIN 可操作（设计稿 §6.3）；当前账号只读" />
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="账号配置仅 ADMIN 可操作（设计稿 §6.3）；当前账号只读"
+        />
       )}
       <ProTable<WxAccount>
         rowKey="id"
@@ -1056,39 +1246,77 @@ const AccountsTab: React.FC = () => {
         width={560}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="appId" label="AppID" rules={[{ required: true, message: '请输入公众号 AppID' }]}>
+          <Form.Item
+            name="appId"
+            label="AppID"
+            rules={[{ required: true, message: '请输入公众号 AppID' }]}
+          >
             <Input placeholder="wx1234567890abcdef" />
           </Form.Item>
           <Form.Item name="accountName" label="账号名称">
             <Input placeholder="例如：XX中医馆服务号" />
           </Form.Item>
           <Form.Item name="accountType" label="账号类型" rules={[{ required: true }]}>
-            <Select options={[{ value: 'service', label: '服务号' }, { value: 'subscription', label: '订阅号' }]} />
+            <Select
+              options={[
+                { value: 'service', label: '服务号' },
+                { value: 'subscription', label: '订阅号' },
+              ]}
+            />
           </Form.Item>
           <Form.Item name="verified" label="微信认证" rules={[{ required: true }]}>
-            <Select options={[{ value: 0, label: '未认证' }, { value: 1, label: '已认证' }]} />
+            <Select
+              options={[
+                { value: 0, label: '未认证' },
+                { value: 1, label: '已认证' },
+              ]}
+            />
           </Form.Item>
           <Form.Item name="enabled" label="启用状态" rules={[{ required: true }]}>
-            <Select options={[{ value: 0, label: '停用' }, { value: 1, label: '启用' }]} />
+            <Select
+              options={[
+                { value: 0, label: '停用' },
+                { value: 1, label: '启用' },
+              ]}
+            />
           </Form.Item>
           <Form.Item name="encryptMode" label="消息加密模式" rules={[{ required: true }]}>
-            <Select options={[
-              { value: 'plaintext', label: '明文' },
-              { value: 'compatible', label: '兼容' },
-              { value: 'safe', label: '安全' },
-            ]} />
+            <Select
+              options={[
+                { value: 'plaintext', label: '明文' },
+                { value: 'compatible', label: '兼容' },
+                { value: 'safe', label: '安全' },
+              ]}
+            />
           </Form.Item>
-          <Form.Item name="appSecret" label="AppSecret"
-            extra={modal.editing?.appSecret ? '已配置：留空=保持既有（服务端不回显明文）' : '留空=不配置凭据'}>
-            <Input.Password placeholder={modal.editing?.appSecret ? '保持既有' : '请输入 AppSecret'} />
+          <Form.Item
+            name="appSecret"
+            label="AppSecret"
+            extra={
+              modal.editing?.appSecret
+                ? '已配置：留空=保持既有（服务端不回显明文）'
+                : '留空=不配置凭据'
+            }
+          >
+            <Input.Password
+              placeholder={modal.editing?.appSecret ? '保持既有' : '请输入 AppSecret'}
+            />
           </Form.Item>
-          <Form.Item name="token" label="消息推送 Token"
-            extra={modal.editing?.token ? '已配置：留空=保持既有' : '留空=不配置'}>
+          <Form.Item
+            name="token"
+            label="消息推送 Token"
+            extra={modal.editing?.token ? '已配置：留空=保持既有' : '留空=不配置'}
+          >
             <Input.Password placeholder={modal.editing?.token ? '保持既有' : '服务器配置 Token'} />
           </Form.Item>
-          <Form.Item name="aesKey" label="EncodingAESKey"
-            extra={modal.editing?.aesKey ? '已配置：留空=保持既有' : '留空=不配置'}>
-            <Input.Password placeholder={modal.editing?.aesKey ? '保持既有' : '43 字符 EncodingAESKey'} />
+          <Form.Item
+            name="aesKey"
+            label="EncodingAESKey"
+            extra={modal.editing?.aesKey ? '已配置：留空=保持既有' : '留空=不配置'}
+          >
+            <Input.Password
+              placeholder={modal.editing?.aesKey ? '保持既有' : '43 字符 EncodingAESKey'}
+            />
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={2} />
@@ -1102,7 +1330,12 @@ const AccountsTab: React.FC = () => {
 const WxPage: React.FC = () => (
   <PageContainer
     title="公众号管理"
-    content={<span>规则与菜单不再手工改库；素材台账只读；消息流水只读、行内仅提供管理端解绑（线下换绑场景，设计稿 §4.7）；推送到微信仍依附公众号凭据</span>}
+    content={
+      <span>
+        规则与菜单不再手工改库；素材台账只读；消息流水只读、行内仅提供管理端解绑（线下换绑场景，设计稿
+        §4.7）；推送到微信仍依附公众号凭据
+      </span>
+    }
   >
     <Tabs
       items={[

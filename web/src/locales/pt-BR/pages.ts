@@ -1,6 +1,5 @@
 export default {
-  'pages.layouts.userLayout.title':
-    'Equipe de bem-estar mais profissional de Taizhou',
+  'pages.layouts.userLayout.title': 'Equipe de bem-estar mais profissional de Taizhou',
   'pages.login.accountLogin.tab': 'Login da conta',
   'pages.login.accountLogin.errorMessage': 'usuário/senha incorreto',
   'pages.login.failure': 'Login falhou, por favor tente novamente!',

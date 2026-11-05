@@ -563,7 +563,8 @@ const Update: React.FC = () => {
           {customer?.beautyConsent === 1 ? (
             <>
               <span style={{ marginRight: 8 }}>
-                已单独同意（{customer.beautyConsentTime
+                已单独同意（
+                {customer.beautyConsentTime
                   ? moment(customer.beautyConsentTime).format('YYYY-MM-DD HH:mm')
                   : '—'}
                 ）
