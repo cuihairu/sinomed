@@ -106,7 +106,7 @@
 		<dependency>
 			<groupId>com.github.binarywang</groupId>
 			<artifactId>weixin-java-mp</artifactId>
-			<version>4.8.6-20261024.175727</version>
+			<version>4.8.6-20261102.143550</version>
 		</dependency>
 </dependencies>
 	<repositories>
