@@ -12,9 +12,11 @@
 - [ ] 微信小程序正式凭据（appid+AppSecret）：真机运行与 openid 通道（openid-session/openid-bind）激活压在此（用户侧；公众号另用独立 appid 存 wx_accounts，非本项 WECHAT_APP_ID/WECHAT_APP_SECRET）。 **[BLOCKED 用户侧账号凭据与真机联调，见 docs/review/2026-10-30-decisions.md 第 1 项]**
   - 证据（2026-11-01 复核）：app/project.config.json:5 仍 touristappid；application.yml:52-53 空缺省；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：app/project.config.json:5 仍 touristappid，application.yml:52-53 仍空缺省。
+  - 复核（2026-11-06）：app/project.config.json:5 仍 touristappid，application.yml:52-53 仍空缺省；小程序构建/tsc 通过不解除凭据阻塞。
 - [ ] 在线支付真实通道：缺商户号与密钥等真实凭据 + 用户授权接网关，付费红线不碰（用户侧）。 **[BLOCKED 用户侧商户资料与网关授权，见 docs/review/2026-10-30-decisions.md 第 3 项]**
   - 证据（2026-11-01 复核）：PayQrCodeController 仍仅按本地目录出收款码图，无网关/商户号/密钥配置；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：PayQrCodeController.java:22/43 仍仅配置本地收款码目录，无商户号、密钥或网关接线。
+  - 复核（2026-11-06）：PayQrCodeController.java 仍仅按 {sinomed.pay.qrcodes-dir} 本地目录出收款码图，application.yml 无商户号/密钥/网关配置，无在线支付通道。
 - [x] 配置开关效果动态文档页（双语）：逐开关 off/on 图 + 切换 GIF，流水线可重跑、兼作配置效果回归（kode todo C-24 同款，2026-11-01 用户令）——证据：已建成 docs/guide/config-switches.md 与 docs/zh/guide/config-switches.md（off/on 两态文字描述代替截图/GIF，逐开关标注对应回归测试类；纳入 VitePress 双语侧栏），pnpm -C docs check 绿 + pnpm -C docs build 绿（.vitepress/dist/guide/config-switches.html 与 /zh/guide/config-switches.html 渲染成功）。
 - [x] 公众号回调排重 check-then-insert 竞态：并发重复消息可触发 dedupe_key 唯一索引冲突未捕获 → 500 → 微信重试放大（C3，docs/review/2026-11-01-code-review.md；证据 WxOfficialAccountService.onMessage:270-275）——证据：已修复（logMessage 改 saveAndFlush+DataIntegrityViolationException 捕获→落 duplicate 审计回 success，并发双投递不再 500），WxOfficialAccountHttpTest.concurrentDuplicateMsgIdBothSucceedWithoutRace 并发双线程定向绿。
 - [x] 预约时段互斥 check-then-act 竞态：两个自助约期并发过 count==0 后双双落库，时段双占（C4，docs/review/2026-11-01-code-review.md；证据 AppointmentServiceImpl.ensureSlotFree:69-91 + KioskController:249）——证据：已修复（AppointmentEntity 增 slot_key/room_slot_key @Column(unique=true)，SQLite 方言内联为唯一列，MySQL 建唯一约束；status 0/1 落 "<staff|room>|<hourStart>"、终态置 NULL 释放；save 改 saveAndFlush+唯一违例捕获转 400；Kiosk 自助路径同样接线），AppointmentSlotTest.concurrentSameSlotOnlyOneSucceeds 并发双线程定向绿（连续 3 次过，schema 实查 slot_key/room_slot_key 均带 unique）。
@@ -187,13 +189,16 @@
 
 - [ ] VULN-SINOMED-001 [BLOCKED·上游无补丁·高危·命令注入] git-clone ≤0.2.0（@tarojs/cli>download-git-repo 链，app 终扫残留）：上游无 patched，需替换 download-git-repo 链路；不勾，验收：链路替换后 pnpm audit --audit-level=high 中 git-clone 不再命中；该仓无 test 脚本，audit-only
   - 复核（2026-11-04）：pnpm why 仍为 @tarojs/cli@3.6.40>download-git-repo@2.0.0>git-clone@0.1.0；npm view git-clone 最新 0.2.0、2022-06 修改。
+  - 复核（2026-11-06）：pnpm why 仍为 @tarojs/cli@3.6.40>download-git-repo@2.0.0>git-clone@0.1.0；npm view git-clone 最新仍 0.2.0（2021-09 发布），无更高 patched；app pnpm audit --audit-level=high 仍命中 git-clone。
 - [x] VULN-SINOMED-002 [高危 REDoS] html-minifier ≤4.0.0（app 终扫残留）：换 html-minifier-terser；验收：替换后 pnpm audit 中 html-minifier 不再命中；audit-only。证据：app/pnpm-workspace.yaml:35 `html-minifier: npm:html-minifier-terser@^6.1.0` override + app/pnpm-lock.yaml:39/9140 html-minifier→html-minifier-terser@6.1.0；pnpm audit 无 html-minifier（余 17 项全为既有其它漏洞）；build:h5 绿 50.05s + build:weapp 绿 36.18s + tsc --noEmit --skipLibCheck 0 错。commit 见下。
 - [ ] VULN-SINOMED-003 [BLOCKED·替换品与消费者 CJS/ESM 不兼容·严重·路径穿越] decompress ≤4.2.1 ×2 实例（app 终扫残留）：上游 decompress 停维护无 patched（npm view 最新仍 4.2.1）；唯一替换线 @xhmikosr/decompress@10.2.2/11.1.4 为 ESM-only（type:module），而消费方 download@7.1.0 用 CJS `require('decompress')` 后直接调用（实测 `require('@xhmikosr/decompress')` 返回 `{default:fn}`，直接调用报 `d is not a function`），且无 @xhmikosr/download 同级替换线（npm view 404）；不勾，验收：链路替换后 pnpm audit 中 decompress 不再命中；audit-only
   - 证据（2026-11-04 复核）：pnpm audit 仍命中 decompress ×2（@tarojs/cli>download-git-repo>download>decompress）；npm view decompress 最新仍 4.2.1、@xhmikosr/decompress 最新 11.1.4（type:module）；npm view @xhmikosr/download 404 无同级替换线。
   - 复核（2026-11-04 二次）：同日重查结论不变，pnpm audit 仍命中 decompress；@xhmikosr/download 仍 404。
+  - 复核（2026-11-06）：app pnpm audit --audit-level=high 仍命中 decompress（.>@tarojs/cli>download-git-repo>download>decompress）；npm view decompress 最新仍 4.2.1、@xhmikosr/download 仍 404，替换线仍不可用。
 - [x] VULN-SINOMED-004 [高危·原型污染] swiper 6.8.0→12.1.2【跨大版本需改代码（跨 6 个 major）】：@tarojs/components 依赖（app 终扫残留）；验收：pnpm audit --audit-level=high 中 swiper 不再命中；该仓无 test 脚本，audit-only。证据：app/pnpm-workspace.yaml:32 `swiper: 12.1.2` override + app/package.json swiper 显式依赖 12.1.2 + app/config/index.ts:79-84 h5.webpackChain alias 指 scripts/swiper-shim/index.mjs 补 $wrapperEl/$el 兼容；app/pnpm-lock.yaml swiper@12.1.2；pnpm audit --audit-level=high 无 swiper（22 项全为既有其它漏洞）；build:weapp 绿 48.59s + build:h5 绿 143s + tsc --noEmit --skipLibCheck 0 错。commit 见下。
 - [ ] VULN-SINOMED-005 [BLOCKED·上游无补丁·高危 symlink 路径穿越] extract-zip ≤2.0.1 ×2 实例（sinomed/web 终扫残留 2，@ant-design/pro-cli>puppeteer-core 链）：上游无 patched；不勾，验收：链路替换后 pnpm audit 中 extract-zip 不再命中 + pnpm test 绿（24/24）
   - 复核（2026-11-04）：pnpm why 仍为 @ant-design/pro-cli@2.1.5>carlo@0.9.46>puppeteer-core@1.12.2>extract-zip@1.7.0；npm view extract-zip 最新 2.0.1、2023-03 修改。
+  - 复核（2026-11-06）：web pnpm audit --audit-level=high 仍命中 extract-zip（.>@ant-design/pro-cli>carlo>puppeteer-core>extract-zip）；npm view extract-zip 最新仍 2.0.1（2023-03 修改），无更高 patched。
 
 ## 审核发现（2026-11-04，git diff 0b2edc1..12be529 只审不改）
 
@@ -213,3 +218,4 @@
 - [x] 审核发现：本轮 diff 未见问题（c45b7773..HEAD）。审核通过，无需改动
 
 - [x] 审核发现：本轮 diff 未见问题（efe7cb5..HEAD）（属实：独立审阅 efe7cb5..HEAD 完整 diff 仅含 commit e51fcb1 的 todo.md 公众号凭据复核行（2026-11-06），全部事实断言复核属实——application.yml:57-58 仍 false/空、compose.yml/server/docker-compose.yml 均无 WX_OA_* 注入、uploadRemoteMaterial→cgi-bin/material/add_material 已实现、公众号 7 个定向测试类合计 47 tests 0 failures；无引入问题；证据：server ./mvnw -B test 473 绿（0 failures/0 errors/0 skipped）、docs pnpm check + build 绿）。
+- [x] 审核发现：本轮 diff 未见问题（e51fcb1f..HEAD）（属实：独立审阅 e51fcb1f..HEAD 完整 diff 仅含 commit 6b89de1 的 todo.md 纯文书追加（2 行审核记录），无任何代码/配置/文档内容改动，无引入问题；证据：git diff e51fcb1f..HEAD --stat 仅 todo.md | 2 ++，当日 HEAD sha=6b89de10e82aa5db5cf59df505e5203e8cb34915）。
