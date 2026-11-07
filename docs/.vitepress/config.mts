@@ -21,6 +21,8 @@ const serverSidebar = [
     text: 'Server',
     items: [
       { text: 'Architecture overview', link: '/server/architecture' },
+      { text: 'Source layer analysis', link: '/source-layer-analysis' },
+      { text: 'Glossary', link: '/glossary' },
       { text: 'REST API reference', link: '/server/api' },
       { text: 'Data model', link: '/server/data-model' },
       { text: 'Configuration & deployment', link: '/server/deploy' }
@@ -171,6 +173,8 @@ export default defineConfig({
               text: '服务端',
               items: [
                 { text: '架构总览', link: '/zh/server/architecture' },
+                { text: '源码分层分析', link: '/zh/source-layer-analysis' },
+                { text: '术语表', link: '/zh/glossary' },
                 { text: 'REST 接口清单', link: '/zh/server/api' },
                 { text: '数据模型', link: '/zh/server/data-model' },
                 { text: '配置与部署', link: '/zh/server/deploy' }

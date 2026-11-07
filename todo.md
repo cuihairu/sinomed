@@ -219,3 +219,14 @@
 
 - [x] 审核发现：本轮 diff 未见问题（efe7cb5..HEAD）（属实：独立审阅 efe7cb5..HEAD 完整 diff 仅含 commit e51fcb1 的 todo.md 公众号凭据复核行（2026-11-06），全部事实断言复核属实——application.yml:57-58 仍 false/空、compose.yml/server/docker-compose.yml 均无 WX_OA_* 注入、uploadRemoteMaterial→cgi-bin/material/add_material 已实现、公众号 7 个定向测试类合计 47 tests 0 failures；无引入问题；证据：server ./mvnw -B test 473 绿（0 failures/0 errors/0 skipped）、docs pnpm check + build 绿）。
 - [x] 审核发现：本轮 diff 未见问题（e51fcb1f..HEAD）（属实：独立审阅 e51fcb1f..HEAD 完整 diff 仅含 commit 6b89de1 的 todo.md 纯文书追加（2 行审核记录），无任何代码/配置/文档内容改动，无引入问题；证据：git diff e51fcb1f..HEAD --stat 仅 todo.md | 2 ++，当日 HEAD sha=6b89de10e82aa5db5cf59df505e5203e8cb34915）。
+
+## 源码分层分析 2026-11-07
+
+基于 HEAD `1f10eef0234f37cd81bd5b11b35d8c2c93b4bc99`。按职责归纳 11 层：接入编排、资源控制器、应用服务、持久化、业务字典、临床运营、财务结算、渠道集成、内容与外设、交互运行时、平台生命周期。完整地图与互链见 `docs/source-layer-analysis.md` 与 `docs/zh/source-layer-analysis.md`，术语见 `docs/glossary.md` 与 `docs/zh/glossary.md`。
+
+- [ ] LAY-001 [P1] 拆分 server/src/main/java/com/sinomed/service/WxOfficialAccountService.java（1587 行）——回调验签/加密、账号与菜单、消息日志、OAuth、素材文件和出网上传混在一个服务（file:line server/src/main/java/com/sinomed/service/WxOfficialAccountService.java:215）。
+- [ ] LAY-002 [P1] 拆分 server/src/main/java/com/sinomed/seed/DemoSeedRunner.java（1230 行）——一个 ApplicationRunner 直接播种 20+ 张业务表，领域数据构造与生命周期开关纠缠（file:line server/src/main/java/com/sinomed/seed/DemoSeedRunner.java:91）。
+- [ ] LAY-003 [P1] 拆分 web/src/pages/Wx/Index/index.tsx（1352 行）——账号、菜单、自动回复、素材、消息日志和授权管理都是内聚页面组件/状态机，却耦合在一文件（file:line web/src/pages/Wx/Index/index.tsx:130）。
+- [ ] LAY-004 [P1] 拆分 web/src/pages/Prescription/Create/index.tsx（1020 行）——顾客定位、药味表、安全审方、定价、模板/方剂带入和提交状态共用一个组件作用域（file:line web/src/pages/Prescription/Create/index.tsx:69）。
+- [ ] 目录：`server/src/main/java/com/sinomed/service` 与 `service/impl` 并存时，独立领域服务多在 `impl`，而 `WxOfficialAccountService` 这类跨渠道复合服务在根目录，复合边界与普通 CRUD 边界未区分（file:line server/src/main/java/com/sinomed/service/WxOfficialAccountService.java:90）。
+- [ ] 目录：`web/src/pages/Wx/Index/index.tsx` 把至少五个公众号管理面板合并到同一页面文件，与其余每任务一目录的 web 分类口径不一致（file:line web/src/pages/Wx/Index/index.tsx:418）。

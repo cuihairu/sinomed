@@ -17,6 +17,24 @@ The server (`server/`) is the business hub of the whole system: both the admin c
 
 ## Layered Structure
 
+### Source Layers
+
+For the responsibility-oriented source layer map, module/state inventory, call surface, and split rationale, see [Source layer analysis](/source-layer-analysis.md). Its term definitions are collected in the [Glossary](/glossary.md).
+
+| Layer | Implementation | Configuration schema | Dedicated protocol file | Copy location |
+|---|---|---|---|---|
+| Request orchestration | `server/src/main/java/com/sinomed/config/SecurityConfig.java` | `server/src/main/resources/application.yml` | No; OpenAPI is generated | Not applicable |
+| Resource controllers | `server/src/main/java/com/sinomed/controller/PrescriptionController.java` | Springdoc scans `com.sinomed.controller` | No | Admin locale/page code |
+| Application services | `server/src/main/java/com/sinomed/service/impl/SettlementServiceImpl.java` | JPA/annotations and selected service `@Value` keys | No | Admin locale/page code |
+| Persistence | `server/src/main/java/com/sinomed/config/PersistenceConfig.java` | `server/src/main/resources/application.yml` | `server/init/init.sql` is bootstrap, not runtime schema | Not applicable |
+| Clinical reference | `server/src/main/java/com/sinomed/service/FormulaService.java` | JPA entity schema | No | Admin locale/page code |
+| Clinical operations | `server/src/main/java/com/sinomed/service/AppointmentService.java` | JPA entity schema | No | Admin locale/page code |
+| Financial settlement | `server/src/main/java/com/sinomed/service/CardService.java` | JPA entity schema | No | Admin locale/page code |
+| Channel integration | `server/src/main/java/com/sinomed/service/WxMpServiceProvider.java` | `server/src/main/resources/application.yml` | Callback XML behavior is code-owned | Channel-facing strings in services |
+| Content and peripherals | `desktop/src-tauri/src/main.rs` | `desktop/src-tauri/src/config.rs` | `desktop/src-tauri/templates/*.html` | `desktop/ui/index.html` |
+| Interaction runtimes | `web/src/app.tsx`, `app/src/app.ts`, `kiosk/src/App.tsx`, `tablet/src/App.tsx` | `web/config/config.ts`, `app/config/index.ts`, Vite configs | REST client modules | Locale/page/token CSS files |
+| Platform lifecycle | `server/src/main/java/com/sinomed/seed/DemoSeedRunner.java` | `compose.yml`, CI workflows, `demo.seed` | No | Not applicable |
+
 The code under the `com.sinomed` package follows a classic layered organization:
 
 | Package | Responsibility |
@@ -33,6 +51,8 @@ The code under the `com.sinomed` package follows a classic layered organization:
 | `util` | Utilities: date ranges, attendance calculation, phone number validation |
 
 ## Modules and Business Chains
+
+The source-layer vocabulary used below is defined in the [Glossary](/glossary.md); the detailed responsibility map is in [Source layer analysis](/source-layer-analysis.md).
 
 Judging from the endpoints and pages, the system's current main chains are:
 

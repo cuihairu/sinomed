@@ -17,6 +17,24 @@
 
 ## 分层结构
 
+### 源码层
+
+按职责归纳的源码层地图、模块/状态清单、调用面和拆分理由见[源码分层分析](/zh/source-layer-analysis.md)；术语定义汇总在[术语表](/zh/glossary.md)。
+
+| 层 | 实现 | 配置 schema | 专属协议文件 | 文案挂点 |
+|---|---|---|---|---|
+| 接入编排 | `server/src/main/java/com/sinomed/config/SecurityConfig.java` | `server/src/main/resources/application.yml` | 无；OpenAPI 生成 | 不适用 |
+| 资源控制器 | `server/src/main/java/com/sinomed/controller/PrescriptionController.java` | Springdoc 扫描 `com.sinomed.controller` | 无 | 管理端 locale/页面 |
+| 应用服务 | `server/src/main/java/com/sinomed/service/impl/SettlementServiceImpl.java` | JPA/注解与部分服务 `@Value` | 无 | 管理端 locale/页面 |
+| 持久化 | `server/src/main/java/com/sinomed/config/PersistenceConfig.java` | `server/src/main/resources/application.yml` | `server/init/init.sql` 是引导而非运行 schema | 不适用 |
+| 业务字典 | `server/src/main/java/com/sinomed/service/FormulaService.java` | JPA 实体 schema | 无 | 管理端 locale/页面 |
+| 临床运营 | `server/src/main/java/com/sinomed/service/AppointmentService.java` | JPA 实体 schema | 无 | 管理端 locale/页面 |
+| 财务结算 | `server/src/main/java/com/sinomed/service/CardService.java` | JPA 实体 schema | 无 | 管理端 locale/页面 |
+| 渠道集成 | `server/src/main/java/com/sinomed/service/WxMpServiceProvider.java` | `server/src/main/resources/application.yml` | 回调 XML 行为由代码持有 | 服务内渠道文案 |
+| 内容与外设 | `desktop/src-tauri/src/main.rs` | `desktop/src-tauri/src/config.rs` | `desktop/src-tauri/templates/*.html` | `desktop/ui/index.html` |
+| 交互运行时 | `web/src/app.tsx`、`app/src/app.ts`、`kiosk/src/App.tsx`、`tablet/src/App.tsx` | `web/config/config.ts`、`app/config/index.ts`、Vite 配置 | REST 客户端模块 | locale/页面/token CSS |
+| 平台生命周期 | `server/src/main/java/com/sinomed/seed/DemoSeedRunner.java` | `compose.yml`、CI workflow、`demo.seed` | 无 | 不适用 |
+
 代码在 `com.sinomed` 包下按经典分层组织：
 
 | 包 | 职责 |
@@ -33,6 +51,8 @@
 | `util` | 工具类：日期区间、考勤计算、手机号校验 |
 
 ## 模块与业务链路
+
+下文的源码层词汇在[术语表](/zh/glossary.md)定义；详细职责地图见[源码分层分析](/zh/source-layer-analysis.md)。
 
 从接口与页面出发，系统当前的主链路是：
 

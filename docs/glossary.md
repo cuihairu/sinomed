@@ -1,0 +1,20 @@
+# Glossary
+
+[English](/glossary.md) | [中文](/zh/glossary.md)
+
+This glossary describes the responsibilities represented by the implementation, not merely directory names. File references point to the HEAD used for this analysis.
+
+| Term | English | Definition | Evidence |
+|---|---|---|---|
+| 接入编排层 | Request Orchestration Layer | Exposes REST resources, applies authentication, multipart limits, and method-level authorization before business work begins. | server/src/main/java/com/sinomed/config/SecurityConfig.java:27; server/src/main/java/com/sinomed/config/WebMvcConfig.java:16; server/src/main/resources/application.yml:3 |
+| 资源控制器层 | Resource Controller Layer | Validates and maps HTTP requests to application services for 30 business resource families under `/api/v1`. | server/src/main/java/com/sinomed/controller/PrescriptionController.java:62; server/src/main/java/com/sinomed/controller/KioskController.java:66; server/src/main/java/com/sinomed/controller/WxOfficialAccountController.java:81 |
+| 应用服务层 | Application Service Layer | Owns clinic use cases, transaction boundaries, cache eviction, orchestration between repositories, and outbound integrations. | server/src/main/java/com/sinomed/service/impl/SettlementServiceImpl.java:49; server/src/main/java/com/sinomed/service/WxOfficialAccountService.java:90; server/src/main/java/com/sinomed/service/impl/HerbStockServiceImpl.java:37 |
+| 持久化层 | Persistence Layer | Uses JPA entities and repositories to keep relational state and audited changes in MySQL or SQLite. | server/src/main/java/com/sinomed/config/PersistenceConfig.java:6; server/src/main/java/com/sinomed/repository/PrescriptionTemplateRepository.java:11; server/src/main/resources/application.yml:18 |
+| 业务字典层 | Clinical Reference Layer | Maintains herbs, formulas, acupoints, treatment and prescription templates, allergy and compatibility rules, plus pricing and dose checks. | server/src/main/java/com/sinomed/service/FormulaService.java:8; server/src/main/java/com/sinomed/service/AcupointService.java:8; server/src/main/java/com/sinomed/service/AllergyService.java:15 |
+| 临床运营层 | Clinical Operations Layer | Coordinates patients, bookings, calls, treatment, prescriptions, dispensing, review plans, staff attendance, and orders. | server/src/main/java/com/sinomed/service/AppointmentService.java:15; server/src/main/java/com/sinomed/service/TreatService.java:11; server/src/main/java/com/sinomed/service/ReviewService.java:11 |
+| 财务结算层 | Financial Settlement Layer | Owns recharge ledgers, card deductions and adjustments, orders, commissions, settlements, reconciliation, and refunds. | server/src/main/java/com/sinomed/service/CardService.java:16; server/src/main/java/com/sinomed/service/OrderService.java:15; server/src/main/java/com/sinomed/service/CommissionService.java:11 |
+| 渠道集成层 | Channel Integration Layer | Adds mini-program login and card lookup, self-service kiosk flows, official-account callbacks, SDK instances, and WeChat credential handling. | server/src/main/java/com/sinomed/controller/KioskController.java:66; server/src/main/java/com/sinomed/service/WechatClient.java:18; server/src/main/java/com/sinomed/service/WxMpServiceProvider.java:22 |
+| 内容与外设层 | Content And Peripheral Layer | Publishes scheduled ad playlists, files, print templates, desktop shell commands, serial scanners, and ESC/POS printing. | server/src/main/java/com/sinomed/service/AdsService.java:16; desktop/src-tauri/src/main.rs:71; desktop/src-tauri/src/scanner.rs:29 |
+| 交互执行层 | Interaction Runtime Layer | Separates admin console, mini program, customer kiosk, lobby display, and desktop webview into independently built frontends with device-specific state and HTTP APIs. | web/config/routes.ts:8; app/src/app.config.ts:1; tablet/src/App.tsx:15 |
+| 平台生命周期层 | Platform Lifecycle Layer | Configures, migrates, seeds, documents, and packages the server and deployable clients during startup, build, and deployment. | server/src/main/java/com/sinomed/seed/DemoSeedRunner.java:90; server/src/main/java/com/sinomed/config/DbUniqueIndexInitializer.java:22; compose.yml:6 |
+
