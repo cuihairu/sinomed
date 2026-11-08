@@ -78,7 +78,7 @@
     "postcss": "^8.5.32",
     "@tarojs/webpack5-runner": "3.6.40",
     "@tarojs/taro-loader": "3.6.40",
-    "webpack": "5.112.2",
+    "webpack": "5.104.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
     "babel-plugin-import": "^1.13.3",
     "babel-preset-taro": "3.6.40",

@@ -220,6 +220,9 @@
 - [x] 审核发现：本轮 diff 未见问题（efe7cb5..HEAD）（属实：独立审阅 efe7cb5..HEAD 完整 diff 仅含 commit e51fcb1 的 todo.md 公众号凭据复核行（2026-11-06），全部事实断言复核属实——application.yml:57-58 仍 false/空、compose.yml/server/docker-compose.yml 均无 WX_OA_* 注入、uploadRemoteMaterial→cgi-bin/material/add_material 已实现、公众号 7 个定向测试类合计 47 tests 0 failures；无引入问题；证据：server ./mvnw -B test 473 绿（0 failures/0 errors/0 skipped）、docs pnpm check + build 绿）。
 - [x] 审核发现：本轮 diff 未见问题（e51fcb1f..HEAD）（属实：独立审阅 e51fcb1f..HEAD 完整 diff 仅含 commit 6b89de1 的 todo.md 纯文书追加（2 行审核记录），无任何代码/配置/文档内容改动，无引入问题；证据：git diff e51fcb1f..HEAD --stat 仅 todo.md | 2 ++，当日 HEAD sha=6b89de10e82aa5db5cf59df505e5203e8cb34915）。
 
+- [x] 审核发现：swiper 声明升级至 12.2.0，但 pnpm 覆盖规则仍锁定 12.1.2，实际安装及构建未使用新版本（app/package.json:60）——证据：已修复（app/pnpm-workspace.yaml:36 `swiper: 12.1.2` → `12.2.0` 与声明对齐；lockfile 重解析 `swiper@12.2.0`、旧版残留 0；node_modules 实装 12.2.0；`pnpm build:weapp` 编译成功 2.62m exit 0）。
+- [x] 审核发现：webpack 声明升级至 5.112.2，但 pnpm 覆盖规则仍锁定 5.104.1，实际安装及构建未使用新版本（app/package.json:81）——证据：已修复（5.112.2 与 Taro 3.6.40 不兼容——`@tarojs/webpack5-runner` 引用私有路径 `webpack/lib/dependencies/EntryDependency`，实测 5.112.2 该模块被移除、`pnpm build:weapp` 报 `Cannot find module`，而 5.104.1 存在该模块；故声明回退 `app/package.json:81` `5.112.2` → `5.104.1` 与 override 对齐，declared=override=installed=构建可用；`pnpm build:weapp` 编译成功 2.62m exit 0）。
+
 ## 源码分层分析 2026-11-07
 
 基于 HEAD `1f10eef0234f37cd81bd5b11b35d8c2c93b4bc99`。按职责归纳 11 层：接入编排、资源控制器、应用服务、持久化、业务字典、临床运营、财务结算、渠道集成、内容与外设、交互运行时、平台生命周期。完整地图与互链见 `docs/source-layer-analysis.md` 与 `docs/zh/source-layer-analysis.md`，术语见 `docs/glossary.md` 与 `docs/zh/glossary.md`。
