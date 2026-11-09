@@ -6,6 +6,7 @@ import com.sinomed.entity.WxMaterialEntity;
 import com.sinomed.entity.WxMenuEntity;
 import com.sinomed.entity.WxMessageLogEntity;
 import com.sinomed.service.WxOfficialAccountService;
+import com.sinomed.service.impl.WxMaterialAdminService;
 import com.sinomed.vo.MessageView;
 import com.sinomed.vo.PageResp;
 import com.sinomed.vo.WxAccountView;
@@ -345,7 +346,7 @@ public class WxOfficialAccountController {
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     @GetMapping("/materials/{id}")
     public ResponseEntity<ByteArrayResource> materialFile(@PathVariable long id) throws IOException {
-        WxOfficialAccountService.MaterialFile file = wxOfficialAccountService.loadMaterialFile(id);
+        WxMaterialAdminService.MaterialFile file = wxOfficialAccountService.loadMaterialFile(id);
         byte[] bytes = Files.readAllBytes(file.path()); // 落盘时已限单文件上限，读全量有界
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(file.mimeType()))
