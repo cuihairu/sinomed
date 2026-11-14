@@ -9,7 +9,7 @@ sinomed/
 ├── web/       # 管理端（Ant Design Pro / Umi，Node.js 24）
 ├── app/       # 小程序端（Taro 3.6 / React / NutUI，Node.js 24）
 ├── docs/      # 文档站（VitePress，本站源码）与调研资料
-└── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建、前端三端构建）
+└── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建、前端三端构建、tag 版本发布）
 ```
 
 - 三端独立构建、互不依赖；管理端与小程序端通过服务端 `/api/v1` 接口通信。
@@ -54,6 +54,7 @@ CI（GitHub Actions）：
 | `Docker Images` | push main 且 `server/` `web/` 变更 | 构建并推送 ghcr.io 镜像 |
 | `Deploy Docs` | push main 且 `docs/**` 变更 | 文档站检查 + 构建 + 部署 github-pages |
 | `Desktop Build` | push main 且 `desktop/` 变更 | Windows NSIS / Linux deb 安装包 + Rust 单元测试（独立 `cargo test` job，与构建矩阵并行）；nightly 发布为手动点火 |
+| `Release` | push `vX.Y.Z` tag，或 `workflow_dispatch` 传入已存在 tag | `./mvnw -B package` 带测试（不可 `-DskipTests`），打包 `sinomed-<version>.jar` + `sinomed-<version>-linux-x64.tar.gz` + `SHA256SUMS`，再发布为 GitHub Release；构建失败时发布 job 直接跳过（`needs: build`），`gh release create --verify-tag` 拒绝补建缺失 tag |
 
 ## 环境版本要求
 

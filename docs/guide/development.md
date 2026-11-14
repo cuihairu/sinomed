@@ -9,7 +9,7 @@ sinomed/
 ├── web/       # 管理端（Ant Design Pro / Umi，Node.js 24）
 ├── app/       # 小程序端（Taro 3.6 / React / NutUI，Node.js 24）
 ├── docs/      # 文档站（VitePress，本站源码）与调研资料
-└── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建、前端三端构建）
+└── .github/workflows/               # CI（Maven 构建、Docker 镜像、文档站部署、桌面端构建、前端三端构建、tag 版本发布）
 ```
 
 - The three frontends are built independently with no cross-dependencies; the admin console and mini program talk to the server through its `/api/v1` API.
@@ -54,6 +54,7 @@ CI (GitHub Actions):
 | `Docker Images` | push to main with changes in `server/` `web/` | build and push ghcr.io images |
 | `Deploy Docs` | push to main with `docs/**` changes | docs site check + build + deploy to github-pages |
 | `Desktop Build` | push to main with `desktop/` changes | Windows NSIS / Linux deb installers + Rust unit tests (a separate `cargo test` job, parallel to the build matrix); nightly releases are manually triggered |
+| `Release` | a pushed `vX.Y.Z` tag, or `workflow_dispatch` with an existing tag | `./mvnw -B package` with tests (never `-DskipTests`), stages `sinomed-<version>.jar` + `sinomed-<version>-linux-x64.tar.gz` + `SHA256SUMS`, then publishes them as a GitHub Release; the publish job is skipped when the build job fails (`needs: build`), and `gh release create --verify-tag` refuses to create a missing tag |
 
 ## Environment Version Requirements
 
