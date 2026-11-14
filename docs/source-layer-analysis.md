@@ -36,7 +36,7 @@ Thirty controllers translate resource requests into services. API scope is assem
 
 ### 3. Application services
 
-Interfaces in `server/src/main/java/com/sinomed/service` define clinic use cases; `service/impl` provides transactions and orchestration. Large `WxOfficialAccountService` also owns callbacks, credential/device state, material files, and outbound calls, so it belongs to this layer while showing a split candidate in `todo.md`.
+Interfaces in `server/src/main/java/com/sinomed/service` define clinic use cases; `service/impl` provides transactions and orchestration. The official-account channel lives in this layer as a thin `WxOfficialAccountService` facade (186 lines; split landed 2026-11-10) delegating to `WxCallbackService` / `WxFanBindService` / `WxOauthService` in `service/`, plus `WxMessageLogService` and the four `Wx*AdminService` (auto-reply / menu / material / account) in `service/impl/`, with `WxAccountTokenResolver` resolving the callback/OAuth token.
 
 ### 4. Persistence
 

@@ -36,7 +36,7 @@ Spring Security 与 multipart 限额先准入口；JWT 认证、方法安全和�
 
 ### 3. 应用服务
 
-`server/src/main/java/com/sinomed/service` 接口定义用例；`service/impl` 提供事务与编排。超大 `WxOfficialAccountService` 同时承载回调、凭据/设备态、素材文件和出网调用，因此仍归本层，同时在 `todo.md` 记为拆分候选。
+`server/src/main/java/com/sinomed/service` 接口定义用例；`service/impl` 提供事务与编排。公众号渠道以 186 行薄门面 `WxOfficialAccountService` 落在本层（2026-11-10 拆分落地），委托 `service/` 下 `WxCallbackService` / `WxFanBindService` / `WxOauthService`，以及 `service/impl` 下 `WxMessageLogService` 与四个 `Wx*AdminService`（自动回复/菜单/素材/账号），回调/OAuth token 由 `WxAccountTokenResolver` 解析。
 
 ### 4. 持久化
 
