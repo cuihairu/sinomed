@@ -4,10 +4,12 @@ import com.sinomed.entity.CustomerEntity;
 import com.sinomed.entity.DispenseLogEntity;
 import com.sinomed.entity.PrescriptionEntity;
 import com.sinomed.entity.PrescriptionItemEntity;
+import com.sinomed.entity.TreatEntity;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.DispenseLogRepository;
 import com.sinomed.repository.PrescriptionItemRepository;
 import com.sinomed.repository.PrescriptionRepository;
+import com.sinomed.repository.TreatRepository;
 import com.sinomed.service.PrescriptionService;
 import com.sinomed.vo.PrescriptionItemView;
 import com.sinomed.vo.PrescriptionView;
@@ -33,9 +35,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     private final PrescriptionItemRepository prescriptionItemRepository;
     private final DispenseLogRepository dispenseLogRepository;
     private final CustomerRepository customerRepository;
+    private final TreatRepository treatRepository;
 
     /**
      * 开方：顾客必填、至少 1 味药、剂数 ≥ 1、剂量 > 0；创建/更新时间由审计维护。
+     * 接诊单选填；携带时必须真实存在且属于同一顾客（防前端切换顾客后仍携带上一位的接诊单提交）。
      * 代煎：view.decoction=true 时袋数=剂数、落「待煎」，否则「无需代煎」（领取方式仅代煎保留）。
      * 膏方：prescriptionType=1 时落「待制作」并记收膏方式，否则「非膏方」。
      * 签名行：药师审核人 / 调配复核人 staff id 可空存档。
@@ -45,6 +49,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     public PrescriptionEntity save(PrescriptionView view) {
         if (view.getCustomerId() == null) {
             throw new IllegalArgumentException("顾客id不能为空");
+        }
+        if (view.getTreatId() != null) {
+            TreatEntity treat = treatRepository.findById(view.getTreatId())
+                    .orElseThrow(() -> new IllegalArgumentException("接诊单不存在：" + view.getTreatId()));
+            if (!treat.getCustomerId().equals(view.getCustomerId())) {
+                throw new IllegalArgumentException("接诊单不属于该顾客：" + view.getTreatId());
+            }
         }
         List<PrescriptionItemView> herbs = view.getHerbs();
         if (herbs == null || herbs.isEmpty()) {

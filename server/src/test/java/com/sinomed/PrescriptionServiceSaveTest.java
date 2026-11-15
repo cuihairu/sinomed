@@ -1,9 +1,11 @@
 package com.sinomed;
 
 import com.sinomed.entity.CustomerEntity;
+import com.sinomed.entity.TreatEntity;
 import com.sinomed.repository.CustomerRepository;
 import com.sinomed.repository.PrescriptionItemRepository;
 import com.sinomed.repository.PrescriptionRepository;
+import com.sinomed.repository.TreatRepository;
 import com.sinomed.service.PrescriptionService;
 import com.sinomed.vo.PrescriptionItemView;
 import com.sinomed.vo.PrescriptionView;
@@ -38,6 +40,9 @@ class PrescriptionServiceSaveTest {
 
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private TreatRepository treatRepository;
 
     private static Long customerId;
 
@@ -135,5 +140,49 @@ class PrescriptionServiceSaveTest {
         view.setHerbs(List.of(herb("甘草", 0.0, null)));
         var e = assertThrows(IllegalArgumentException.class, () -> prescriptionService.save(view));
         assertEquals("药材「甘草」剂量必须大于 0", e.getMessage());
+    }
+
+    @Test
+    void treatOfSameCustomerAccepted() {
+        TreatEntity treat = new TreatEntity();
+        treat.setCustomerId(customerId);
+        treat.setDesc("失眠多梦");
+        Long treatId = treatRepository.save(treat).getId();
+        PrescriptionView view = new PrescriptionView();
+        view.setCustomerId(customerId);
+        view.setTreatId(treatId);
+        view.setHerbs(List.of(herb("酸枣仁", 15.0, null)));
+        assertEquals(treatId, prescriptionService.save(view).getTreatId());
+    }
+
+    @Test
+    void treatOfAnotherCustomerRejectedAndRolledBack() {
+        CustomerEntity other = new CustomerEntity();
+        other.setName("另一位顾客");
+        other.setPhone("13900004002");
+        Long otherId = customerRepository.save(other).getId();
+        TreatEntity treat = new TreatEntity();
+        treat.setCustomerId(otherId);
+        Long treatId = treatRepository.save(treat).getId();
+
+        // 顾客 A 携带顾客 B 的接诊单开方：拒绝且不留主单（防切换顾客后旧接诊单被提交）
+        long before = prescriptionRepository.count();
+        PrescriptionView view = new PrescriptionView();
+        view.setCustomerId(customerId);
+        view.setTreatId(treatId);
+        view.setHerbs(List.of(herb("甘草", 6.0, null)));
+        var e = assertThrows(IllegalArgumentException.class, () -> prescriptionService.save(view));
+        assertEquals("接诊单不属于该顾客：" + treatId, e.getMessage());
+        assertEquals(before, prescriptionRepository.count());
+    }
+
+    @Test
+    void missingTreatRejected() {
+        PrescriptionView view = new PrescriptionView();
+        view.setCustomerId(customerId);
+        view.setTreatId(999_999L);
+        view.setHerbs(List.of(herb("甘草", 6.0, null)));
+        var e = assertThrows(IllegalArgumentException.class, () -> prescriptionService.save(view));
+        assertEquals("接诊单不存在：999999", e.getMessage());
     }
 }

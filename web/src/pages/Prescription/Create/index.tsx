@@ -151,6 +151,10 @@ const Create: React.FC = () => {
   };
 
   const submit = async () => {
+    if (finding) {
+      message.warning('顾客定位中，请等定位完成再开方');
+      return;
+    }
     if (!customer?.id) {
       message.warning('请先按手机号定位顾客');
       return;
@@ -399,7 +403,13 @@ const Create: React.FC = () => {
               <Button size="large" onClick={() => window.print()}>
                 打印处方笺
               </Button>
-              <Button type="primary" size="large" loading={busy} onClick={submit}>
+              <Button
+                type="primary"
+                size="large"
+                loading={busy}
+                disabled={finding}
+                onClick={submit}
+              >
                 存方并收费
               </Button>
             </div>
