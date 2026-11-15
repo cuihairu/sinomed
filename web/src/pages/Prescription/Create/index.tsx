@@ -79,12 +79,19 @@ const Create: React.FC = () => {
 
   // 有效药名列表：审方四查与计价的比对输入（去空白行）
   const namedHerbs = herbs.map((r) => (r.herb || '').trim()).filter(Boolean);
-  const { compat, checking, allergy, allergyRecordCount, dose, pricing } = usePrescriptionChecks(
-    namedHerbs,
-    herbs,
-    doses,
-    customer,
-  );
+  const {
+    compat,
+    compatFailed,
+    checking,
+    allergy,
+    allergyFailed,
+    allergyRecordCount,
+    allergyRecordFailed,
+    dose,
+    doseFailed,
+    pricing,
+    pricingFailed,
+  } = usePrescriptionChecks(namedHerbs, herbs, doses, customer);
 
   const loadStaff = async () => {
     if (staffOptions.length > 0) return;
@@ -322,15 +329,20 @@ const Create: React.FC = () => {
             namedCount={namedHerbs.length}
             checking={checking}
             compat={compat}
+            compatFailed={compatFailed}
             specialFxCount={specialFxCount}
             allergy={allergy}
+            allergyFailed={allergyFailed}
             allergyRecordCount={allergyRecordCount}
+            allergyRecordFailed={allergyRecordFailed}
             hasCustomer={!!customer}
             dose={dose}
+            doseFailed={doseFailed}
           />
 
           <PricingPanel
             pricing={pricing}
+            pricingFailed={pricingFailed}
             recvFen={recvFen}
             decoctFeeFen={decoctFeeFen}
             doses={doses}

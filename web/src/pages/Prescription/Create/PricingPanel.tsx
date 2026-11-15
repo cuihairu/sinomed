@@ -1,3 +1,4 @@
+import { WarningFilled } from '@ant-design/icons';
 import React from 'react';
 import type { Pricing } from '@/services/ant-design-pro/prescription';
 import { fenToYuan } from './helpers';
@@ -5,14 +6,20 @@ import { fenToYuan } from './helpers';
 /** 4 · 计价：字典实时试算（无快照），三行账=饮片+代煎服务费；运费不进合计 */
 const PricingPanel: React.FC<{
   pricing?: Pricing;
+  /** 试算请求异常：不显示 ¥0 试算结果，改提示未完成 */
+  pricingFailed: boolean;
   recvFen: number;
   decoctFeeFen: number;
   doses: number;
   showDecoctionLine: boolean;
-}> = ({ pricing, recvFen, decoctFeeFen, doses, showDecoctionLine }) => (
+}> = ({ pricing, pricingFailed, recvFen, decoctFeeFen, doses, showDecoctionLine }) => (
   <div className="pricing">
     <h3>4 · 计价</h3>
-    {!pricing || (pricing.herbCount ?? 0) === 0 ? (
+    {pricingFailed ? (
+      <div className="tip">
+        <WarningFilled /> 计价服务暂不可用，本次试算未完成（应收以结算时卡项订单为准）
+      </div>
+    ) : !pricing || (pricing.herbCount ?? 0) === 0 ? (
       <div className="tip">写药名后按药材字典自动试算</div>
     ) : (
       <div className="sum">
