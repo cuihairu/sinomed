@@ -40,7 +40,13 @@ public class WxMessageLogService {
         messageLogRepository.save(log);
     }
 
-    public void logMessage(long accountId, String direction, String msgType, String fromUser, String toUser,
+    /**
+     * 落一条消息流水；返回本请求是否取得处理权（原子插入语义）：
+     * 带 dedupe_key 的流水插入成功=true（本请求唯一持有该消息的业务处理权），
+     * 并发双投递撞唯一索引=false（另一请求已持有处理权，本请求只作重放登记，业务不得再做）。
+     * direction=out 等无 dedupe_key 的调用恒 true。
+     */
+    public boolean logMessage(long accountId, String direction, String msgType, String fromUser, String toUser,
                            String content, String msgId, String dedupeKey) {
         WxMessageLogEntity log = new WxMessageLogEntity();
         log.setAccountId(accountId);
@@ -55,14 +61,16 @@ public class WxMessageLogService {
         log.setResult("ok");
         try {
             messageLogRepository.saveAndFlush(log);
+            // 原子插入取得处理权：谁把带 dedupe_key 的流水先落进库，谁才有资格做业务处理
+            return true;
         } catch (DataAccessException e) {
             // 并发同 dedupe_key 双投递：唯一索引兜底排重——另一请求已落库，本请求作重放处理，
             // 不向上抛（否则 500 触发微信重试放大）。调用方在 existsByDedupeKey 后的窗口由这里补住。
             if (dedupeKey != null && isUniqueConstraint(e)) {
                 logReject(accountId, "duplicate", msgType, fromUser, toUser);
-            } else {
-                throw e;
+                return false;
             }
+            throw e;
         }
     }
 

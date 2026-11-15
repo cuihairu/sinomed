@@ -161,7 +161,12 @@ public class WxCallbackService {
             return "success";
         }
 
-        messageLogService.logMessage(accountId, "in", msgType, fromUser, toUser, event != null ? event : content, msgId, dedupeKey);
+        // 原子插入取得处理权后才路由业务：并发双投递的输家（撞唯一索引）只登记重放并直接回 success，
+        // 业务（回复/粉丝维护/素材拉取）只允许赢家的那一次执行——排重语义从「只落一条流水」升级为「只处理一次」。
+        boolean owned = messageLogService.logMessage(accountId, "in", msgType, fromUser, toUser, event != null ? event : content, msgId, dedupeKey);
+        if (!owned) {
+            return "success";
+        }
 
         // 路由骨架（设计稿 §5.4）：SDK WxMpMessageRouter 按账号实例化 + 同步规则（5s 窗口）；
         // 规则不命中或 handler 无回复时 Route 返回 null → 回 "success"。repo 侧排重仍由 DB 承担，

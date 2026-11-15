@@ -238,6 +238,48 @@ class WxOfficialAccountHttpTest {
     }
 
     @Test
+    void concurrentDuplicateBusinessProcessedOnce() throws Exception {
+        // 并发同 MsgId 双投递 + 命中关键词规则：排重语义必须是「业务只处理一次」——
+        // 出站回复流水只落一条、只有一侧拿到被动回复，另一侧按重放回 success
+        WxAutoReplyEntity rule = new WxAutoReplyEntity();
+        rule.setAccountId(accountId);
+        rule.setRuleType("keyword");
+        rule.setKeyword("营业时间");
+        rule.setMatchType("exact");
+        rule.setContent("营业时间 9:00-18:00");
+        autoReplyRepository.save(rule);
+
+        int threads = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            java.util.List<Future<String>> futures = new java.util.ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return postXml(accountId, "1700000046", "nonceBIZ" + Thread.currentThread().threadId(),
+                            textXml("oFANBIZ", 99999L, "营业时间"));
+                }));
+            }
+            start.countDown();
+            int replyHits = 0;
+            for (Future<String> future : futures) {
+                String body = future.get();
+                assertTrue(body != null && (body.contains("success") || body.contains("9:00-18:00")),
+                        "并发重复消息两侧都应正常应答不抛 500：" + body);
+                if (body.contains("9:00-18:00")) {
+                    replyHits++;
+                }
+            }
+            assertEquals(1, replyHits, "关键词被动回复只允许赢家一侧拿到，输家按重放回 success");
+            assertEquals(1, countLogs("in"), "入站流水只落一条");
+            assertEquals(1, countLogs("out"), "出站回复流水只落一条：业务只执行一次的直接证据");
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     void unknownAccountReturnsSuccessAndAudits() throws Exception {
         String body = postXml(999999L, "1700000050", "nonceG", textXml("oFAN5", 8888L, "营业时间"));
         assertEquals("success", body, "未知账号应拒处理回 success（不让微信重试）：" + body);
