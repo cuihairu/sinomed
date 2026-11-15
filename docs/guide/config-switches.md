@@ -1,10 +1,14 @@
 # Configuration Switch Effects
 
-> 本页把 `server/src/main/resources/application.yml` 的行为开关逐个列成 **off / on 两态** 的生效说明（文字描述代替截图/GIF），并标注对应的回归测试——**可重跑、兼作配置效果回归**：改任一开关后跑对应测试类，绿灯即该开关的行为未被破坏。测试口径见 [development](/guide/development#tests)（`./mvnw test` 自带 SQLite，无需外库）。
+> 本页把 `server/src/main/resources/application.yml` 的行为开关逐个列成 **off / on 两态** 的生效说明，并标注对应的回归测试——**可重跑、兼作配置效果回归**：改任一开关后跑对应测试类，绿灯即该开关的行为未被破坏。测试口径见 [development](/guide/development#tests)（`./mvnw test` 自带 SQLite，无需外库）。
+>
+> 两态截图与切换 GIF 由流水线真实起 server、curl 关键端点后渲染（非手摆截图）：`./mvnw -DskipTests package` 后跑 `bash docs/scripts/gen-config-switch-visuals.sh`，产物固定写 `docs/public/config-switches/`，重跑覆盖。
 
 ## 手机查卡开关 `sinomed.phone-lookup.mode`
 
 三态（`off` / `openid_only` / `sms_verified`），默认 `off`，环境变量 `PHONE_LOOKUP_MODE` 覆盖。隐私红线：不做裸手机号查卡。
+
+![手机查卡开关三态切换（真实 server 实录）](/config-switches/phone-lookup-toggle.gif)
 
 ### off（默认）
 
@@ -25,6 +29,8 @@
 
 布尔，默认 `false`，环境变量 `WX_OA_ENABLED` 覆盖。总开关：**false = 模块整体关闭**，激活需 `WX_OA_TOKEN` 与 `WX_OA_CREDENTIAL_KEY`。
 
+![公众号模块开关两态切换（真实 server 实录：false 拒处理回 success 落审计 / true 关键词命中被动回复）](/config-switches/wx-enabled-toggle.gif)
+
 ### false（默认）
 
 - **效果**：`/api/v1/wx/callback/{accountId}` GET 验证不回显 echostr、POST 推送一律 200 回 `success` 拒处理（不静默），落 `wx_message_logs` 审计（result=disabled）；`/api/v1/wx/bind/{accountId}/code` 与 `/api/v1/wx/bind/{accountId}` 一律 400 拒绝，落 `wx_binding_logs` 审计（result=disabled），不落消息流水。
@@ -38,6 +44,8 @@
 ## 演示种子开关 `demo.seed`
 
 布尔，默认 `false`，环境变量 `DEMO_SEED` 覆盖。`@ConditionalOnProperty(name = "demo.seed", havingValue = "true")` 才启用 `DemoSeedRunner`。
+
+![演示种子开关两态切换（真实 server 实录：卡项列表空 vs 播种后）](/config-switches/demo-seed-toggle.gif)
 
 ### false（默认）
 
@@ -53,14 +61,16 @@
 
 数值，默认 `20`，环境变量 `FAMOUS_DOCTOR_SURGE_CAP_PERCENT` 覆盖。溢价值单列展示，不做阶梯/时段差异。
 
-- **效果**：名医挂号费溢价不得超过该百分比；仅影响列表排序与标识徽章（`staffs.famous_level` 0-3）。后台可改。
-- **回归**：无独立测试类；由 `StaffLookupTest` / 管理端列表接口覆盖。
+- **状态（2026-11-15 核实）**：**预留配置，server 生产代码无消费点**——全仓唯一引用是 `FamousDoctorTest.surgeCapConfigDefault`（断言 `@Value` 缺省装配为 20）；列表排序与标识徽章（`staffs.famous_level` 0-3）由 `famous_level` 驱动，与本配置无关。文档先前描述的「溢价不得超过该百分比」行为**尚未接线**，接线前不出两态图（避免给未生效行为摆拍）。
+- **回归**：`FamousDoctorTest`（仅装配缺省断言）。
 
 ## 微信小程序凭据 `sinomed.wechat.app-id` / `app-secret`
 
 空串默认，环境变量 `WECHAT_APP_ID` / `WECHAT_APP_SECRET` 覆盖。openid 换取路径的**激活前置**，非行为开关本身。
 
+![微信小程序凭据两态切换（真实 server 实录：未配置 400 落审计 / 已配置出网 jscode2session）](/config-switches/wechat-credential-toggle.gif)
+
 - **未配置（默认）**：`/api/v1/kiosk/openid-session` 换 openid 400「微信凭据未配置」并落审计（result=code_exchange_failed），不静默。
 - **已配置**：经 `jscode2session` 出网换 openid，成功进入绑定/查卡流程；微信返回错误映射 400 落审计。
 
-> 注：本页「效果」用文字描述代替截图/GIF；「回归」列对应测试类跑绿即该开关行为未破坏，流水线 `./mvnw test`（server）与 `pnpm build`（docs）可重跑。
+> 注：本页「效果」配两态图/GIF（流水线实录，见页首重跑命令）；「回归」列对应测试类跑绿即该开关行为未破坏，流水线 `./mvnw test`（server）与 `pnpm build`（docs）可重跑。
