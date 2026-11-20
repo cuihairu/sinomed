@@ -41,7 +41,7 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "@babel/runtime": "^7.29.13",
+    "@babel/runtime": "^7.29.14",
     "@tarojs/components": "3.6.40",
     "@tarojs/helper": "3.6.40",
     "@tarojs/plugin-platform-weapp": "3.6.40",
@@ -75,7 +75,7 @@
     "@types/webpack-env": "^1.18.8",
     "@typescript-eslint/parser": "^5.20.0",
     "@typescript-eslint/eslint-plugin": "^5.20.0",
-    "postcss": "^8.5.32",
+    "postcss": "^8.5.33",
     "@tarojs/webpack5-runner": "3.6.40",
     "@tarojs/taro-loader": "3.6.40",
     "webpack": "5.112.2",
