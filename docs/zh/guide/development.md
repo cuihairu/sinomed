@@ -49,7 +49,7 @@ CI（GitHub Actions）：
 
 | 工作流 | 触发 | 内容 |
 | ---- | ---- | ---- |
-| `Java CI with Maven` | push / PR main（忽略纯文档改动） | `cd server && ./mvnw -B package`（Java 21，**带测试**，非 `-DskipTests`；Maven 版本由 wrapper 钉在 3.10.0，无需 runner 预装） |
+| `Java CI with Maven` | push / PR main（忽略纯文档改动） | `cd server && ./mvnw -B package`（Java 21，**带测试**，非 `-DskipTests`；Maven 版本由 wrapper 钉版（见 `server/.mvn/wrapper`），无需 runner 预装） |
 | `Frontend Build` | push main 且 `app/` `kiosk/` `tablet/` `web/` 变更 | app 类型检查 + 双端构建（weapp + h5）、kiosk / tablet `pnpm build`、web eslint + 类型检查 + jest（web 构建由 `Docker Images` 出镜像时覆盖） |
 | `Docker Images` | push main 且 `server/` `web/` 变更 | 构建并推送 ghcr.io 镜像 |
 | `Deploy Docs` | push main 且 `docs/**` 变更 | 文档站检查 + 构建 + 部署 github-pages |
@@ -60,7 +60,7 @@ CI（GitHub Actions）：
 
 | 端 | 要求 |
 | ---- | ---- |
-| server | Java 21（`pom.xml` `java.version`，CI 同步）、Maven 3.10.0（`server/.mvn/wrapper` 钉，CI 与本地同版） |
+| server | Java 21（`pom.xml` `java.version`，CI 同步）、Maven（`server/.mvn/wrapper` 钉版，CI 与本地同版） |
 | web / app | Node.js 24（`engines` + `.nvmrc` + CI 约束）、pnpm 9/10 |
 | 文档站 | Node.js 24，`cd docs && pnpm install && pnpm build` |
 

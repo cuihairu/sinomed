@@ -77,7 +77,7 @@ sinomed/
 ```
 
 - Source code for `server/`, `app/`, and `web/` is maintained directly in this repository.
-- Backend build (requires Java 21; Maven version pinned at 3.10.0 by the wrapper in `server/.mvn/wrapper`): `cd server && ./mvnw -B package`.
+- Backend build (requires Java 21; Maven version pinned by the wrapper in `server/.mvn/wrapper`): `cd server && ./mvnw -B package`.
 - Frontend build (requires Node.js 24): in `web/`, run `pnpm install && pnpm build`; the mini program under `app/` works the same way.
 
 For details on each component, see the README in each directory and the [documentation site](https://cuihairu.github.io/sinomed/).

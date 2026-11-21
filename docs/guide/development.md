@@ -49,7 +49,7 @@ CI (GitHub Actions):
 
 | Workflow | Trigger | Contents |
 | ---- | ---- | ---- |
-| `Java CI with Maven` | push / PR to main (ignores docs-only changes) | `cd server && ./mvnw -B package` (Java 21, **with tests**, not `-DskipTests`; Maven version pinned to 3.10.0 by the wrapper, no runner preinstall needed) |
+| `Java CI with Maven` | push / PR to main (ignores docs-only changes) | `cd server && ./mvnw -B package` (Java 21, **with tests**, not `-DskipTests`; Maven version pinned by the wrapper (see `server/.mvn/wrapper`), no runner preinstall needed) |
 | `Frontend Build` | push to main with changes in `app/` `kiosk/` `tablet/` `web/` | app type check + dual-platform builds (weapp + h5), kiosk / tablet `pnpm build`, web eslint + type check + jest (the web build is covered when `Docker Images` produces the image) |
 | `Docker Images` | push to main with changes in `server/` `web/` | build and push ghcr.io images |
 | `Deploy Docs` | push to main with `docs/**` changes | docs site check + build + deploy to github-pages |
@@ -60,7 +60,7 @@ CI (GitHub Actions):
 
 | Target | Requirement |
 | ---- | ---- |
-| server | Java 21 (`pom.xml` `java.version`, mirrored in CI), Maven 3.10.0 (pinned by `server/.mvn/wrapper`, same version in CI and locally) |
+| server | Java 21 (`pom.xml` `java.version`, mirrored in CI), Maven (pinned by `server/.mvn/wrapper`, same version in CI and locally) |
 | web / app | Node.js 24 (`engines` + `.nvmrc` + CI constraint), pnpm 9/10 |
 | Docs site | Node.js 24, `cd docs && pnpm install && pnpm build` |
 

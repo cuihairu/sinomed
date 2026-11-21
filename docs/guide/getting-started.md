@@ -7,7 +7,7 @@ This guide walks through three steps by platform: start the **server**, then the
 | Component | Version requirement | Notes |
 | ---- | ---- | ---- |
 | JDK | 21 | Server compile and runtime |
-| Maven | 3.10.0 (pinned by `server/.mvn/wrapper`; the repo-bundled `./mvnw` avoids a local install) | Server build |
+| Maven | pinned by `server/.mvn/wrapper` (the repo-bundled `./mvnw` avoids a local install) | Server build |
 | Node.js | 24 | Admin console and mini program |
 | pnpm | 9/10 | Frontend package manager |
 | MySQL | 8.0 | Database |

@@ -1,7 +1,7 @@
 # 发布工作流：仅由用户手动打 v* tag 并 push 后触发，构建后端可运行产物并发布到 GitHub Release。
 # 本 workflow 绝不创建 tag：tag push 只消费已存在的 tag；手动补发必须显式传入已有 tag，
 # 且 gh release create 带 --verify-tag（tag 不存在即失败，杜绝自动建 tag）。
-# 构建口径与 maven.yml 保持一致：JDK 21 / temurin + Maven wrapper（3.10.0 pinned in server/.mvn/wrapper）；
+# 构建口径与 maven.yml 保持一致：JDK 21 / temurin + Maven wrapper（version pinned in server/.mvn/wrapper）；
 # ./mvnw -B package 自带 surefire 测试阶段（见 server/pom.xml 注入的 SQLite 测试环境），不可绕过——
 # 测试或构建失败时 build job 失败，release job 因 needs 依赖不会运行，绝不产出 Release。
 name: Release
@@ -54,7 +54,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('server/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
       # 与 maven.yml 逐字一致；package 阶段包含测试，不允许 -DskipTests
-      - name: Build and test with Maven wrapper (3.10.0 pinned in server/.mvn/wrapper)
+      - name: Build and test with Maven wrapper (version pinned in server/.mvn/wrapper)
         run: cd server && ./mvnw -B package
       - name: Stage release artifacts
         run: |
