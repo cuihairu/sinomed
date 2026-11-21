@@ -39,6 +39,11 @@ jobs:
       - uses: docker/build-push-action@v7.4.0
         with:
           context: ./server
+          # 镜像源开关：repo vars 默认不设=空串=官方源（与 compose.yml「空串回退官方源」同口径）；
+          # Maven Central 限流（429，run 44686859977 实例）时在仓库 Settings→Variables 配置同名 vars 即切国内镜像
+          build-args: |
+            MVN_DIST_MIRROR=${{ vars.MVN_DIST_MIRROR || '' }}
+            MAVEN_MIRROR_URL=${{ vars.MAVEN_MIRROR_URL || '' }}
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/sinomed-server:latest
