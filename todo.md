@@ -262,7 +262,7 @@
   - 【2026-11-14 G2 更正】上面「命名导入兼容 v11」「无新问题」结论有误，已证伪：收窄后 web 的 glob@10.5.0 仍配对 minimatch 11.0.5，实跑 `globSync('src/**/*.test.{ts,tsx,js,jsx}')` 返回 **0**（盘上实有 7 个测试文件：src/requestErrorConfig.test.ts、src/services/ant-design-pro/{wx,billing,appointment,tokens,order,prescription}.test.ts），对照 app 的 glob@10.5.0＋minimatch@9 配对同法命中真实文件（test/*.test.mjs 1/1）——即 glob@10 的匹配在 minimatch 11 下静默漏项（glob 内以 `instanceof RegExp` 判匹配片段，v11 返回 Matcher 实例）；影响面为 rimraf 等经 glob 的通配清理（现行 build/jest 门禁不走该路径，故仍绿）。修复未做，按 Codex 深审第 1 条挂起待修（恢复 glob 支持的 minimatch 主版本或整链升级＋真实文件匹配断言）。
   - 【2026-11-15 已修复】挂起解除，见下方「Codex 深审发现」第 1 条的修复证据（commit 46075e7）。
 
-## Codex 深审发现（2026-11-13，luna profile 近5 commit 审核，待修）
+## Codex 深审发现（2026-11-13，luna profile 近5 commit 审核，已收口：6 条均带修复证据 commit 46075e7 / 34f1611 / f1f90c7 / 9106a3a / 771244c，均已核验在 git 历史中）
 
 - [Major] minimatch 修复仍遗留跨版本兼容错误 | 位置 `web/pnpm-workspace.yaml:5`、`web/pnpm-lock.yaml:15458` | 问题：b983316 保留了 `minimatch@^9.0.4: '>=11.0.1'`，使 glob@10.5.0 使用 v11；glob 依赖 `p instanceof RegExp`，v11 的匹配片段却是 `Matcher`。实跑同一模式 `src/**/*.test.ts`：app 的 glob@10.5.0＋minimatch@9.0.9 返回 7 个文件，web 的组合返回 0 个 | 影响：通配文件发现静默漏项，依赖该链的 rimraf 通配清理也会受影响；todo.md:245–246 的“兼容 v11／无越权残留”结论错误，修复未新增回归测试 | 修复方向：恢复 glob 支持的 minimatch 主版本，或整体升级兼容的消费链，并增加真实文件匹配断言。——证据：已修复（commit 46075e7）。
   - 根因链：`@umijs/bundler-mako>rimraf@5.0.1` 声明 `glob ^10.2.5`，glob@10.5.0 声明 `minimatch ^9.0.4`；b983316 的收窄 override `minimatch@^9.0.4: '>=11.0.1'` 恰把这一对改成 glob@10 + minimatch@11，而 glob@10 以 `p instanceof RegExp` 判匹配片段、minimatch@11 返回 `Matcher` 实例 → `globSync` 静默返回 0。
