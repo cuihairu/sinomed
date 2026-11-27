@@ -29,9 +29,9 @@ Agreed policy:
 | Package | Manifest | Alert | Blocked reason |
 |---|---|---|---|
 | swiper | app/pnpm-lock.yaml | critical 1 | Pinned by the dependency tree: @tarojs/components 3.6.40 → swiper 6.8.0; the fix version 12.1.2 is a major jump and requires a Taro framework upgrade (the 3.6.40 ecosystem does not support swiper 12) |
-| decompress 4.2.1 | app/pnpm-lock.yaml | critical 2 | NO-PATCH (upstream abandoned, no fixed version; transitive via the @tarojs toolchain) |
+| decompress 4.2.1 | app/pnpm-lock.yaml | critical 2 | ✅ Cleared (2026-11-27): the only chain was `@tarojs/cli > download-git-repo > download > decompress`; a local dependency-free shim now replaces download-git-repo (the `taro init/create` path this repo never uses), removing the chain from the lockfile |
 | braces 3.0.3 | app+web/pnpm-lock.yaml | high 1 each | NO-PATCH (3.0.3 is already the latest release line; the advisory has no patched version) |
-| git-clone 0.1.0 | app/pnpm-lock.yaml | high 1 | NO-PATCH |
+| git-clone 0.1.0 | app/pnpm-lock.yaml | high 1 | ✅ Cleared (2026-11-27): same `download-git-repo` shim removes git-clone from the lockfile |
 | html-minifier 4.0.0 | app/pnpm-lock.yaml | high 1 | NO-PATCH (upstream abandoned; the replacement html-minifier-terser would require changing the parent chain) |
 | node-forge 1.4.0 | app/pnpm-lock.yaml | high 1 | NO-PATCH (1.4.0 is already latest; the advisory has no patch) |
 | http-cache-semantics 4.1.1 | app/pnpm-lock.yaml | high 1 | ✅ Cleared (2026-10-13): NO-PATCH, but the override was switched to a range form pinning the fix version, `http-cache-semantics@<4.3.0: 4.3.0` (app/package.json:106); the lockfile is fully at 4.3.0 |

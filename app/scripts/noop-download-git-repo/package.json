@@ -1,0 +1,7 @@
+{
+  "name": "noop-download-git-repo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dependency-free shim for the unused `taro init/create` template download path; blocks the vulnerable git-clone/decompress chain.",
+  "main": "index.js"
+}
