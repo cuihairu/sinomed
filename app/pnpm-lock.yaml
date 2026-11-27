@@ -44,8 +44,8 @@ importers:
   .:
     dependencies:
       '@babel/runtime':
-        specifier: ^7.29.14
-        version: 7.29.14
+        specifier: ^7.29.15
+        version: 7.29.15
       '@nutui/nutui-react-taro':
         specifier: ^2.7.15
         version: 2.7.15(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -955,8 +955,8 @@ packages:
     resolution: {integrity: sha512-kz2fAQ5UzjV7X7D3ySxmj3vRq89dTpqOZWv76Z6pNPztkwb/0Yj1Mtx1xFrYj6mbIHysxtBot8J4o0JLCblcFw==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/runtime@7.29.14':
-    resolution: {integrity: sha512-Y5tqevQaUAZhhj82BpYMNC1ssvLQTVAfwKdm8iy8qwmhvC2/CpcAu8OC+QEtjM7pMk7knx83u1Qj8gzkicyelw==}
+  '@babel/runtime@7.29.15':
+    resolution: {integrity: sha512-304gsbbGVmQc+cNGHzwHBlqepYdWLKj3VXCQBGt/EGcV7PUPfKI7kAUNW1FZEOCwlQiLvQjg1JEaAlRQ616h+Q==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.29.7':
@@ -8168,7 +8168,7 @@ snapshots:
     dependencies:
       core-js-pure: 3.47.0
 
-  '@babel/runtime@7.29.14': {}
+  '@babel/runtime@7.29.15': {}
 
   '@babel/template@7.29.7':
     dependencies:
@@ -8647,7 +8647,7 @@ snapshots:
 
   '@nutui/nutui-react-taro@2.7.15(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       '@nutui/icons-react-taro': 1.0.5
       '@nutui/jdesign-icons-react-taro': 1.0.6-beta.2
       '@nutui/touch-emulator': 1.0.0
@@ -8891,7 +8891,7 @@ snapshots:
 
   '@tarojs/api@3.6.40':
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       '@tarojs/runtime': 3.6.40(@tarojs/shared@3.6.40)
       '@tarojs/shared': 3.6.40
 
@@ -8968,7 +8968,7 @@ snapshots:
 
   '@tarojs/components-react@3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.3)(postcss@8.5.33)':
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       '@tarojs/components': 3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.3)(postcss@8.5.33)
       '@tarojs/taro': 3.6.40(@tarojs/helper@3.6.40(supports-color@8.1.1))(@tarojs/runtime@3.6.40(@tarojs/shared@3.6.40))(@types/react@18.3.3)(postcss@8.5.33)
       classnames: 2.5.1
@@ -9034,7 +9034,7 @@ snapshots:
       '@babel/preset-env': 7.24.6(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1)
       '@babel/preset-typescript': 7.24.6(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1)
       '@babel/register': 7.24.6(@babel/core@7.29.13(supports-color@8.1.1))
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       '@babel/traverse': 7.29.7(supports-color@8.1.1)
       '@swc/core': 1.3.96
       '@swc/register': 0.1.10(@swc/core@1.3.96)
@@ -10354,7 +10354,7 @@ snapshots:
       '@babel/preset-env': 7.24.6(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1)
       '@babel/preset-react': 7.24.6(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1)
       '@babel/preset-typescript': 7.24.6(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1)
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       '@babel/runtime-corejs3': 7.28.6
       '@tarojs/helper': 3.6.40(supports-color@8.1.1)
       babel-plugin-dynamic-import-node: 2.3.3
@@ -11187,7 +11187,7 @@ snapshots:
 
   dom-helpers@5.2.1:
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       csstype: 3.1.3
 
   dom-serializer@1.4.1:
@@ -12250,7 +12250,7 @@ snapshots:
 
   history@5.3.0:
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
 
   hls.js@1.5.8: {}
 
@@ -14020,7 +14020,7 @@ snapshots:
 
   react-transition-group@4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
       dom-helpers: 5.2.1
       loose-envify: 1.4.0
       prop-types: 15.8.1
@@ -14096,7 +14096,7 @@ snapshots:
 
   regenerator-transform@0.15.2:
     dependencies:
-      '@babel/runtime': 7.29.14
+      '@babel/runtime': 7.29.15
 
   regex-parser@2.3.0: {}
 
