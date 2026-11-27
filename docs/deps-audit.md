@@ -38,7 +38,7 @@ Agreed policy:
 | webpack-dev-middleware 5.3.4 | app/pnpm-lock.yaml | high 1 | ✅ Cleared (2026-10-13): override `webpack-dev-middleware@<7.4.6: 7.4.6` pins the fix version (app/package.json); compatible with Taro's webpack5-runner |
 | postcss 7.0.39 | app/pnpm-lock.yaml | high/medium | ✅ Cleared (2026-10-13): override switched to a range form, `postcss@<8.5.23: 8.5.28` + `autoprefixer@9: ^10.4.21` (app/package.json:107-108); build green |
 | mockjs 1.1.0 | web/pnpm-lock.yaml | high 1 | ✅ Cleared (2026-10-12): NO-PATCH (upstream no longer maintained), but the dependency chain `umi-presets-pro → @umijs/max-plugin-openapi → @umijs/openapi → mockjs` belonged to an unused feature (the service layer is maintained by hand; the openAPI / requestRecord config was removed at the same time); removing it entirely left zero mockjs in the lockfile and alert #12 was marked fixed |
-| extract-zip 1.7.0 | web/pnpm-lock.yaml | high 2 | NO-PATCH (transitive via the old pro-cli toolchain) |
+| extract-zip 1.7.0 | web/pnpm-lock.yaml | high 2 | ✅ Cleared (2026-11-27): the only chain was `@ant-design/pro-cli > carlo > puppeteer-core > extract-zip`; pro-cli was removed (its sole script `i18n-remove` was already broken — `Failed to load config "prettier"` — and umi max 4 has no native replacement), extract-zip is now absent from the lockfile |
 | elliptic 6.6.1 | web/pnpm-lock.yaml | low 1 | NO-PATCH (6.6.1 is already the latest line) |
 | request 2.88.2 | app+web/pnpm-lock.yaml | medium | NO-PATCH (upstream abandoned; its vulnerable main chain, form-data, was mitigated by the 2.5.6 override) |
 | sprintf-js | app+web/pnpm-lock.yaml | medium | NO-PATCH (the 1.1.2 fix was never released) |

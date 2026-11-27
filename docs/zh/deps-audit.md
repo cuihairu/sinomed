@@ -38,7 +38,7 @@
 | webpack-dev-middleware 5.3.4 | app/pnpm-lock.yaml | high 1 | ✅ 已解除（2026-10-13）：override `webpack-dev-middleware@<7.4.6: 7.4.6` 钉修复版（app/package.json），Taro webpack5-runner 兼容 |
 | postcss 7.0.39 | app/pnpm-lock.yaml | high/medium | ✅ 已解除（2026-10-13）：override 换范围形式 `postcss@<8.5.23: 8.5.28` + `autoprefixer@9: ^10.4.21`（app/package.json:107-108），构建绿 |
 | mockjs 1.1.0 | web/pnpm-lock.yaml | high 1 | ✅ 已解除（2026-10-12）：NO-PATCH（上游停更），但依赖链 `umi-presets-pro → @umijs/max-plugin-openapi → @umijs/openapi → mockjs` 属未使用功能（服务层手写维护、openAPI/requestRecord 配置一并移除），整体摘除后锁文件零 mockjs，alert #12 归 fixed |
-| extract-zip 1.7.0 | web/pnpm-lock.yaml | high 2 | NO-PATCH（pro-cli 老工具链传递） |
+| extract-zip 1.7.0 | web/pnpm-lock.yaml | high 2 | ✅ 已解除（2026-11-27）：唯一链路为 `@ant-design/pro-cli > carlo > puppeteer-core > extract-zip`；已删除 pro-cli（其唯一 `i18n-remove` 脚本本已崩溃——`Failed to load config "prettier"`，且 umi max 4 无原生替代），extract-zip 已从 lockfile 消失 |
 | elliptic 6.6.1 | web/pnpm-lock.yaml | low 1 | NO-PATCH（6.6.1 已最新线） |
 | request 2.88.2 | app+web/pnpm-lock.yaml | medium | NO-PATCH（上游弃坑；其漏洞主链 form-data 已 override 2.5.6 缓解） |
 | sprintf-js | app+web/pnpm-lock.yaml | medium | NO-PATCH（1.1.2 修复未发布） |
