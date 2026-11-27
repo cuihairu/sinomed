@@ -54,7 +54,7 @@ CI (GitHub Actions):
 | `Docker Images` | push to main with changes in `server/` `web/` | build and push ghcr.io images |
 | `Deploy Docs` | push to main with `docs/**` changes | docs site check + build + deploy to github-pages |
 | `Desktop Build` | push to main with `desktop/` changes | Windows NSIS / Linux deb installers + Rust unit tests (a separate `cargo test` job, parallel to the build matrix); nightly releases are manually triggered |
-| `Release` | a pushed `vX.Y.Z` tag, or `workflow_dispatch` with an existing tag | `./mvnw -B package` with tests (never `-DskipTests`), stages `sinomed-<version>.jar` + `sinomed-<version>-linux-x64.tar.gz` + `SHA256SUMS`, then publishes them as a GitHub Release; the publish job is skipped when the build job fails (`needs: build`), and `gh release create --verify-tag` refuses to create a missing tag |
+| `Release` | a pushed `vX.Y.Z` tag, or `workflow_dispatch` with an existing tag | Builds the full release bundle from the tag: server jar + linux-x64 tar.gz (`./mvnw -B package` with tests, never `-DskipTests`), web dashboard / miniprogram weapp / tablet / service kiosk zips, desktop deb, plus a combined `SHA256SUMS`, then publishes them as a GitHub Release; the publish job runs only when all six build jobs succeed (`needs`), and `gh release create --verify-tag` refuses to create a missing tag |
 
 ## Environment Version Requirements
 

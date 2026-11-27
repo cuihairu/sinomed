@@ -54,7 +54,7 @@ CI（GitHub Actions）：
 | `Docker Images` | push main 且 `server/` `web/` 变更 | 构建并推送 ghcr.io 镜像 |
 | `Deploy Docs` | push main 且 `docs/**` 变更 | 文档站检查 + 构建 + 部署 github-pages |
 | `Desktop Build` | push main 且 `desktop/` 变更 | Windows NSIS / Linux deb 安装包 + Rust 单元测试（独立 `cargo test` job，与构建矩阵并行）；nightly 发布为手动点火 |
-| `Release` | push `vX.Y.Z` tag，或 `workflow_dispatch` 传入已存在 tag | `./mvnw -B package` 带测试（不可 `-DskipTests`），打包 `sinomed-<version>.jar` + `sinomed-<version>-linux-x64.tar.gz` + `SHA256SUMS`，再发布为 GitHub Release；构建失败时发布 job 直接跳过（`needs: build`），`gh release create --verify-tag` 拒绝补建缺失 tag |
+| `Release` | push `vX.Y.Z` tag，或 `workflow_dispatch` 传入已存在 tag | 从 tag 构建全套发布资产：服务端 jar + linux-x64 tar.gz（`./mvnw -B package` 带测试，不可 `-DskipTests`）、web dashboard / 小程序 weapp / tablet / 自助机 zip、桌面 deb，统一生成 `SHA256SUMS`，再发布为 GitHub Release；任一构建 job 失败时发布 job 直接跳过（`needs`），`gh release create --verify-tag` 拒绝补建缺失 tag |
 
 ## 环境版本要求
 

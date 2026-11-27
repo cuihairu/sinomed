@@ -1,9 +1,15 @@
-# 发布工作流：仅由用户手动打 v* tag 并 push 后触发，构建后端可运行产物并发布到 GitHub Release。
+# 发布工作流：仅由用户手动打 v* tag 并 push 后触发，按用户实际发版口径（v0.1.1 手工发布的 7 资产）
+# 构建全部产物并发布到 GitHub Release：
+#   sinomed-server-<version>.jar / sinomed-server-<version>-linux-x64.tar.gz（server job）
+#   sinomed-web-dashboard-<version>.zip（web） sinomed-miniprogram-weapp-<version>.zip（app）
+#   sinomed-tablet-kiosk-<version>.zip（tablet） sinomed-service-kiosk-<version>.zip（kiosk）
+#   sinomed-desktop_<pkg-version>_amd64.deb（desktop，deb 文件名沿用 Tauri conf 自身版本，不随 tag 改名）
+#   + SHA256SUMS（release job 对全部资产统一生成）
 # 本 workflow 绝不创建 tag：tag push 只消费已存在的 tag；手动补发必须显式传入已有 tag，
 # 且 gh release create 带 --verify-tag（tag 不存在即失败，杜绝自动建 tag）。
-# 构建口径与 maven.yml 保持一致：JDK 21 / temurin + Maven wrapper（version pinned in server/.mvn/wrapper）；
-# ./mvnw -B package 自带 surefire 测试阶段（见 server/pom.xml 注入的 SQLite 测试环境），不可绕过——
-# 测试或构建失败时 build job 失败，release job 因 needs 依赖不会运行，绝不产出 Release。
+# 质量门禁：server 带 surefire 测试（见 server/pom.xml 注入的 SQLite 测试环境），不可绕过；
+# 前端各 job 跑与 frontend.yml 同口径的门禁（web lint+tsc+jest+build、app 运行时测试+类型检查+weapp 构建、
+# kiosk/tablet 的 build 自含 tsc -b 类型门禁）；任一 build job 失败时 release job 因 needs 依赖直接跳过。
 name: Release
 
 on:
@@ -29,8 +35,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build & test (linux-x64)
+  validate:
+    name: Validate tag format
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     steps:
       - name: Validate tag format (vX.Y.Z, 可带 -rc1 类后缀)
@@ -39,6 +45,13 @@ jobs:
             echo "::error::Tag '$RELEASE_TAG' does not match vX.Y.Z format, refusing to release"
             exit 1
           fi
+
+  server:
+    name: Server build & test (linux-x64)
+    needs: validate
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
+    steps:
+      # 手动补发时默认 checkout 的是分支头而非 tag，必须显式钉到目标 tag
       - name: Checkout tag
         uses: actions/checkout@v7.0.1
         with:
@@ -62,30 +75,241 @@ jobs:
           mkdir -p dist
           cp server/target/sinomed-server.jar "dist/sinomed-${VERSION}.jar"
           tar -czf "dist/sinomed-${VERSION}-linux-x64.tar.gz" -C dist "sinomed-${VERSION}.jar"
-          (cd dist && sha256sum "sinomed-${VERSION}.jar" "sinomed-${VERSION}-linux-x64.tar.gz" > SHA256SUMS)
           ls -l dist
       - name: Upload artifacts
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: release-dist
+          name: release-server
           path: dist/*
+          if-no-files-found: error
+
+  web:
+    name: web 管理端 build
+    needs: validate
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 10
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: web
+      # 与 frontend.yml web job 同口径的门禁；本 job 额外跑 build（frontend.yml 的构建由 docker.yml 覆盖，此处发布需要 dist）
+      - name: Lint (eslint)
+        run: pnpm lint:js
+        working-directory: web
+      - name: Type check
+        run: pnpm tsc
+        working-directory: web
+      - name: Jest
+        run: pnpm test
+        working-directory: web
+      - name: Build
+        run: pnpm build
+        working-directory: web
+      - name: Stage release artifact
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p dist
+          # 与 v0.1.1 资产一致：zip 以产物内容为根（index.html 在 zip 根部），不含 dist/ 前缀
+          (cd web/dist && zip -qr "$GITHUB_WORKSPACE/dist/sinomed-web-dashboard-${VERSION}.zip" .)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-web
+          path: dist/*
+          if-no-files-found: error
+
+  app:
+    name: app 小程序 weapp build
+    needs: validate
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 10
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: app
+      - name: Runtime test (swiper shim)
+        run: pnpm test
+        working-directory: app
+      - name: Type check
+        run: pnpm exec tsc --noEmit --skipLibCheck
+        working-directory: app
+        # --skipLibCheck：Taro / @types 库自身类型报错（约 97 条）不属本仓源码，屏蔽后只看本仓类型错误
+      # 发布资产只有微信端（v0.1.1 口径），故不跑 build:h5（H5 由 frontend.yml 的 push 门禁覆盖）
+      - name: Build weapp
+        run: pnpm build:weapp
+        working-directory: app
+      - name: Stage release artifact
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p dist
+          (cd app/dist && zip -qr "$GITHUB_WORKSPACE/dist/sinomed-miniprogram-weapp-${VERSION}.zip" .)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-app
+          path: dist/*
+          if-no-files-found: error
+
+  kiosk:
+    name: kiosk 自助机 build
+    needs: validate
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 10
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: kiosk/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: kiosk
+      - name: Build (tsc -b && vite build)
+        run: pnpm build
+        working-directory: kiosk
+      - name: Stage release artifact
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p dist
+          (cd kiosk/dist && zip -qr "$GITHUB_WORKSPACE/dist/sinomed-service-kiosk-${VERSION}.zip" .)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-kiosk
+          path: dist/*
+          if-no-files-found: error
+
+  tablet:
+    name: tablet 平板展示 build
+    needs: validate
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 10
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: tablet/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: tablet
+      - name: Build (tsc -b && vite build)
+        run: pnpm build
+        working-directory: tablet
+      - name: Stage release artifact
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p dist
+          (cd tablet/dist && zip -qr "$GITHUB_WORKSPACE/dist/sinomed-tablet-kiosk-${VERSION}.zip" .)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-tablet
+          path: dist/*
+          if-no-files-found: error
+
+  desktop:
+    name: desktop deb (linux-x64)
+    needs: validate
+    # 与 desktop.yml linux-deb 一致用官方 ubuntu-24.04，不走 vars.CI_RUNNER（自托管机无 Tauri 构建依赖）
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: pnpm/action-setup@v6.1.1
+        with:
+          version: 10
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: desktop
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: desktop/src-tauri
+      - name: Install Linux build deps (Tauri prerequisites)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev patchelf libudev-dev
+          # libudev-dev：serialport crate 的 Linux 后端依赖（扫码枪串口 D8/D9 起）
+      - name: Build deb
+        run: pnpm tauri build --bundles deb
+        working-directory: desktop
+        # conf 里已开 createUpdaterArtifacts（updater 签名公钥），构建期即需私钥签名更新包
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      # deb 文件名沿用 Tauri conf 自身版本（v0.1.1 即 sinomed-desktop_0.1.0_amd64.deb），不随 tag 改名
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-desktop
+          path: desktop/src-tauri/target/release/bundle/deb/*.deb
           if-no-files-found: error
 
   release:
     name: Publish GitHub Release
-    needs: build # 质量门禁：构建或测试失败时本 job 直接跳过，不创建 Release
+    # 质量门禁：任一构建 job 失败或被跳过时，本 job 不运行，绝不产出 Release
+    needs: [server, web, app, kiosk, tablet, desktop]
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-24.04' }}
     permissions:
       contents: write
     steps:
+      # gh release create 内部 shell 出 git 解析仓库/tag 上下文，本 job 若无 .git 必报
+      # "failed to run git: fatal: not a git repository"（run 44875632721 即此因必红）——先 checkout 同一 tag
+      - name: Checkout tag
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - name: Download built artifacts
         uses: actions/download-artifact@v8.0.2
         with:
-          name: release-dist
           path: dist
+          merge-multiple: true
       - name: Verify checksums after transfer
         working-directory: dist
-        run: sha256sum -c SHA256SUMS
+        # 8 类资产统一在此生成 SHA256SUMS（跨 job 无法提前算全量）；
+        # 数组展开先于重定向建文件，不会自含；校验文件内保持裸文件名
+        run: |
+          ls -l
+          files=(*)
+          sha256sum "${files[@]}" > SHA256SUMS
+          sha256sum -c SHA256SUMS
       - name: Generate release notes
         run: |
           VERSION="${RELEASE_TAG#v}"
@@ -98,16 +322,21 @@ jobs:
               echo "| \`$file\` | \`$digest\` |"
             done < dist/SHA256SUMS
             echo
-            echo "Spring Boot executable fat jar (portable, requires Java 21+):"
+            echo "Components:"
             echo
-            echo '```bash'
-            echo "java -jar sinomed-${VERSION}.jar"
-            echo '```'
+            echo "- \`sinomed-${VERSION}.jar\` / \`sinomed-${VERSION}-linux-x64.tar.gz\`: Spring Boot server fat jar (portable, requires Java 21+): \`java -jar sinomed-${VERSION}.jar\`"
+            echo "- \`sinomed-web-dashboard-${VERSION}.zip\`: admin console static build (serve via nginx or any static host)"
+            echo "- \`sinomed-miniprogram-weapp-${VERSION}.zip\`: WeChat mini-program dist — upload via WeChat DevTools and submit for review"
+            echo "- \`sinomed-tablet-kiosk-${VERSION}.zip\`: waiting-area tablet static build"
+            echo "- \`sinomed-service-kiosk-${VERSION}.zip\`: customer service-selection kiosk static build"
+            echo "- \`sinomed-desktop_*.deb\`: workstation desktop app (Tauri 2, Linux x64; file named by package metadata version, not by this tag)"
             echo
             echo "Verify all assets: \`sha256sum -c SHA256SUMS\`"
           } > release-notes.md
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 显式指明仓库，配合上方 checkout 双保险，gh 不再依赖运行目录猜测仓库上下文
+          GH_REPO: ${{ github.repository }}
         # --verify-tag：目标 tag 必须已存在于远端，否则直接失败（不会自动建 tag）
         run: gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md dist/*
