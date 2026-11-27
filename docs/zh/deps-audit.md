@@ -28,11 +28,11 @@
 
 | 包 | manifest | 告警 | blocked 原因 |
 |---|---|---|---|
-| swiper | app/pnpm-lock.yaml | critical 1 | 依赖树钉死：@tarojs/components 3.6.40 → swiper 6.8.0，修复版 12.1.2 为 major 跳版，升级需 Taro 框架升级（3.6.40 生态未适配 swiper 12） |
+| swiper | app/pnpm-lock.yaml | critical 1 | ✅ 已解除（VULN-SINOMED-004，commit 631d38d，后经 585c4c5 对齐 12.2.0）：override `swiper: 12.2.0` + 显式依赖 + scripts/swiper-shim 桥接 v6 API 与修饰类 CSS；audit 不再命中 swiper |
 | decompress 4.2.1 | app/pnpm-lock.yaml | critical 2 | ✅ 已解除（2026-11-27）：唯一链路为 `@tarojs/cli > download-git-repo > download > decompress`；已用本地零依赖 shim 替换 download-git-repo（本仓不使用的 `taro init/create` 路径），该链已从 lockfile 消失 |
 | braces 3.0.3 | app+web/pnpm-lock.yaml | high 各1 | NO-PATCH（3.0.3 已是发布线最新，advisory 无补丁版本） |
 | git-clone 0.1.0 | app/pnpm-lock.yaml | high 1 | ✅ 已解除（2026-11-27）：同一个 download-git-repo shim 使 git-clone 从 lockfile 消失 |
-| html-minifier 4.0.0 | app/pnpm-lock.yaml | high 1 | NO-PATCH（上游弃坑，替代品 html-minifier-terser 需换父链） |
+| html-minifier 4.0.0 | app/pnpm-lock.yaml | high 1 | ✅ 已解除（VULN-SINOMED-002，commit c63bb09）：override `html-minifier: npm:html-minifier-terser@^6.1.0` 换掉弃坑包；audit 不再命中 html-minifier |
 | node-forge 1.4.0 | app/pnpm-lock.yaml | high 1 | NO-PATCH（1.4.0 已最新，advisory 无补丁） |
 | http-cache-semantics 4.1.1 | app/pnpm-lock.yaml | high 1 | ✅ 已解除（2026-10-13）：NO-PATCH，但 override 换范围形式钉修复版 `http-cache-semantics@<4.3.0: 4.3.0`（app/package.json:106），锁文件已全量 4.3.0 |
 | webpack-dev-middleware 5.3.4 | app/pnpm-lock.yaml | high 1 | ✅ 已解除（2026-10-13）：override `webpack-dev-middleware@<7.4.6: 7.4.6` 钉修复版（app/package.json），Taro webpack5-runner 兼容 |
