@@ -46,3 +46,10 @@
 | react-router 6.30.6 | web/pnpm-lock.yaml | medium 1 | 该实例剩余 1 条 advisory 修复版 7.18.0 为 major 跳版，umi max 集成 react-router 6，跳 7 破坏路由栈（6.3.0 旧实例已 override 到 6.30.6） |
 | vite 5.4.21 | docs/pnpm-lock.yaml | high 1/medium 1 | ✅ 已解除（2026-10-13）：docs/package.json:20 override `vite@<6.4.3: 6.4.3` 钉修复版，vitepress 1.6.4 构建绿 |
 | glib 0.18.5 | desktop/src-tauri/Cargo.lock | medium 1 | tauri 2.12.1 → gtk ^0.18 → glib ^0.18 钉死，0.20.0 需 gtk-rs 0.20 线（tauri/wry 升级跟随） |
+| fast-uri 3.1.8 | app/pnpm-lock.yaml | moderate 1 | ✅ 已解除（2026-11-27 新公告轮）：范围 override `fast-uri@<3.1.9: 3.1.9`，在 ajv 声明 `^3.0.1` 范围内 |
+| qs ≤6.16.0 | app+web/pnpm-lock.yaml | moderate 各 1 | ✅ 已解除（2026-11-27 新公告轮）：范围 override `qs@<6.16.1: 6.16.1` 取代原两个精确钉（6.5.5/6.14.2） |
+| glob 10.5.0 | app/pnpm-lock.yaml | moderate 1 | ✅ 已解除（2026-11-27 新公告轮）：`glob@10.2.6: 10.5.0` 钉抬到 `14.0.2`（原生配对 minimatch ^11）；消费方 @tarojs/plugin-doctor 仅在 `taro doctor` 加载，构建/CI 不用 |
+| minimatch 7.4.9 / 9.0.x | app/pnpm-lock.yaml | moderate | ✅ 已解除（2026-11-27 新公告轮）：范围 override `minimatch@>=7.0.0 <11.0.1: 11.0.1`；消费方逐一核验兼容——@typescript-eslint/typescript-estree 为命名导入 `minimatch.minimatch`，npm-check>depcheck 是 @tarojs/cli dist 从不 require 的死依赖 |
+| hono 4.13.13 / @hono/node-server 2.1.3 | web/pnpm-lock.yaml | moderate 5 | ✅ 已解除（2026-11-27 新公告轮）：范围 override `hono@<4.13.16: 4.13.16` + `@hono/node-server@<2.1.6: 2.1.6` |
+| react-router 6.30.6（公告 ×2） | web/pnpm-lock.yaml | moderate 2 | 6 线无补丁（仅 7.18.0 修复，major 跳版）；umi max 4 集成 react-router 6，跳 7 破坏路由栈——维持上方已代决口径（重评触发=umi/router 大版本） |
+| request 2.88.2（SSF 公告） | app/pnpm-lock.yaml | moderate 1 | 已在上方登记 NO-PATCH；本轮后 app audit 8 → 1，仅余该项 |
