@@ -11,18 +11,21 @@
   - 复核（2026-11-06）：application.yml:57-58 仍为 false/空，compose.yml/server/docker-compose.yml 均无 WX_OA_* 注入，全仓无真实 appid/AppSecret 或「网页授权域名」白名单登记；卡 B 远端上传（uploadRemoteMaterial→cgi-bin/material/add_material）已实现但真实出网压凭据；公众号定向测试绿（WxOfficialAccountHttpTest+WxMaterialCaptureHttpTest+WxMaterialLocalUploadHttpTest+WxMaterialRemoteUploadHttpTest+WxMaterialAdminHttpTest+WxAccountAdminHttpTest+WxMenusAndMaterialsSchemaTest = 47 tests, 0 failures, 0 errors, 0 skipped），仍缺 用户侧凭据与域名白名单。
   - 复核（2026-11-12）：server/src/main/resources/application.yml:57-58 仍 `enabled: ${WX_OA_ENABLED:false}` / `token: ${WX_OA_TOKEN:}` 空缺省，无真实 appid/AppSecret，无「网页授权域名」白名单登记 → 仍缺 用户侧凭据与域名白名单。
   - 复核（2026-11-21）：application.yml:57-58 仍 `enabled: ${WX_OA_ENABLED:false}` / `token: ${WX_OA_TOKEN:}` 空缺省，无真实 appid/AppSecret，无「网页授权域名」白名单登记 → 仍缺 用户侧凭据与域名白名单。
+  - 复核（2026-11-27）：application.yml:57-58 仍 false/空缺省，compose.yml/server/docker-compose.yml 无 WX_OA_* 注入，无真实 appid/AppSecret 与「网页授权域名」白名单登记 → 仍 BLOCKED 用户侧凭据与域名白名单。
 - [ ] 微信小程序正式凭据（appid+AppSecret）：真机运行与 openid 通道（openid-session/openid-bind）激活压在此（用户侧；公众号另用独立 appid 存 wx_accounts，非本项 WECHAT_APP_ID/WECHAT_APP_SECRET）。 **[BLOCKED 用户侧账号凭据与真机联调，见 docs/review/2026-10-30-decisions.md 第 1 项]**
   - 证据（2026-11-01 复核）：app/project.config.json:5 仍 touristappid；application.yml:52-53 空缺省；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：app/project.config.json:5 仍 touristappid，application.yml:52-53 仍空缺省。
   - 复核（2026-11-06）：app/project.config.json:5 仍 touristappid，application.yml:52-53 仍空缺省；小程序构建/tsc 通过不解除凭据阻塞。
   - 复核（2026-11-12）：app/project.config.json:5 仍 `"appid": "touristappid"`；server/src/main/resources/application.yml:52-53 仍 `${WECHAT_APP_ID:}` / `${WECHAT_APP_SECRET:}` 空缺省 → 仍缺 用户侧账号凭据与真机联调。
   - 复核（2026-11-21）：app/project.config.json:5 仍 `"appid": "touristappid"`；application.yml:52-53 仍 `${WECHAT_APP_ID:}` / `${WECHAT_APP_SECRET:}` 空缺省 → 仍缺 用户侧账号凭据与真机联调。
+  - 复核（2026-11-27）：app/project.config.json:5 仍 `"appid": "touristappid"`；application.yml:52-53 仍 `${WECHAT_APP_ID:}` / `${WECHAT_APP_SECRET:}` 空缺省 → 仍 BLOCKED 用户侧账号凭据与真机联调。
 - [ ] 在线支付真实通道：缺商户号与密钥等真实凭据 + 用户授权接网关，付费红线不碰（用户侧）。 **[BLOCKED 用户侧商户资料与网关授权，见 docs/review/2026-10-30-decisions.md 第 3 项]**
   - 证据（2026-11-01 复核）：PayQrCodeController 仍仅按本地目录出收款码图，无网关/商户号/密钥配置；已代决按 docs/review/2026-10-30-decisions.md 执行。
   - 复核（2026-11-04）：PayQrCodeController.java:22/43 仍仅配置本地收款码目录，无商户号、密钥或网关接线。
   - 复核（2026-11-06）：PayQrCodeController.java 仍仅按 {sinomed.pay.qrcodes-dir} 本地目录出收款码图，application.yml 无商户号/密钥/网关配置，无在线支付通道。
   - 复核（2026-11-12）：application.yml 全仓 grep appid/AppSecret 仅 wechat 段命中，无商户号/密钥/网关配置 → 仍缺 用户侧商户资料与网关授权（付费红线不碰）。
   - 复核（2026-11-21）：PayQrCodeController.java:43 仍仅 `@Value("${sinomed.pay.qrcodes-dir:data/payqrcodes}")` 本地目录出图，全仓 grep gateway/merchantId/apiV3Key 零命中，无商户号/密钥/网关接线 → 仍缺 用户侧商户资料与网关授权（付费红线不碰）。
+  - 复核（2026-11-27）：PayQrCodeController.java:43 仍仅本地目录出图；application.yml 无商户号/密钥/网关配置，付费红线不碰 → 仍 BLOCKED 用户侧商户资料与网关授权。
 - [x] 配置开关效果动态文档页（双语）：逐开关 off/on 图 + 切换 GIF，流水线可重跑、兼作配置效果回归（kode todo C-24 同款，2026-11-01 用户令）——证据：已建成 docs/guide/config-switches.md 与 docs/zh/guide/config-switches.md（逐开关标注对应回归测试类，纳入 VitePress 双语侧栏）；**两态图与切换 GIF 由流水线真实产出**（commit 771244c）——`docs/scripts/gen-config-switch-visuals.sh` 起真 server（每态独立 SQLite 库）→ curl 关键端点 → ImageMagick 渲帧 → 拼 GIF，产物固定写 `docs/public/config-switches/`（9 PNG + 4 GIF，重跑覆盖）：
   - phone-lookup.mode 三态（off / openid_only / sms_verified）：逐态断言响应文案（「在线查卡已关闭」/「需要 openid」/「需要手机号与短信验证码」），3 帧 GIF。
   - official-account.enabled 两态：**false** 态用**故意错误签名**验证门控先于验签（模块开关拦住，不是验签）；**true** 态关键词命中回被动回复「营业时间 9:00-18:00」并断言 `in`/`out` 规则创建成功。
